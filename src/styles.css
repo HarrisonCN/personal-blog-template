@@ -981,6 +981,8 @@ select {
 .section {
   display: grid;
   gap: 14px;
+  content-visibility: auto;
+  contain-intrinsic-size: 640px;
 }
 
 .split-layout {
@@ -1030,6 +1032,8 @@ select {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
   gap: 16px;
+  content-visibility: auto;
+  contain-intrinsic-size: 520px;
 }
 
 .article-grid {
@@ -1108,6 +1112,8 @@ select {
 .article-list {
   display: grid;
   gap: 12px;
+  content-visibility: auto;
+  contain-intrinsic-size: 680px;
 }
 
 .article-tools,
@@ -1213,6 +1219,8 @@ select {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 16px;
+  content-visibility: auto;
+  contain-intrinsic-size: 520px;
 }
 
 .music-dock {

@@ -652,10 +652,20 @@ function usePalette() {
 
 function useGlassTracking(pathname) {
   useEffect(() => {
-    const cards = Array.from(document.querySelectorAll(".glass-card"));
+    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) {
+      return undefined;
+    }
+
+    const cards = Array.from(document.querySelectorAll(".glass-card")).map((card) => ({
+      card,
+      rect: card.getBoundingClientRect(),
+      visible: true,
+    }));
     const root = document.documentElement;
     let frameId = 0;
+    let rectFrameId = 0;
     let latestPointer = null;
+    let observer;
 
     const resetCard = (card) => {
       card.style.setProperty("--mouse-x", `${card.clientWidth / 2}px`);
@@ -665,8 +675,24 @@ function useGlassTracking(pathname) {
       card.style.setProperty("--light-opacity", "0");
     };
 
-    const updateCard = (card, clientX, clientY, active) => {
-      const rect = card.getBoundingClientRect();
+    const measureCards = () => {
+      rectFrameId = 0;
+      cards.forEach((entry) => {
+        if (!entry.visible) {
+          return;
+        }
+        entry.rect = entry.card.getBoundingClientRect();
+      });
+    };
+
+    const scheduleMeasure = () => {
+      if (!rectFrameId) {
+        rectFrameId = window.requestAnimationFrame(measureCards);
+      }
+    };
+
+    const updateCard = (entry, clientX, clientY, active) => {
+      const { card, rect } = entry;
       const clampedX = Math.min(Math.max(clientX, rect.left), rect.right);
       const clampedY = Math.min(Math.max(clientY, rect.top), rect.bottom);
       const localX = clampedX - rect.left;
@@ -696,8 +722,12 @@ function useGlassTracking(pathname) {
       root.style.setProperty("--cursor-x", `${clientX}px`);
       root.style.setProperty("--cursor-y", `${clientY}px`);
 
-      cards.forEach((card) => {
-        const rect = card.getBoundingClientRect();
+      cards.forEach((entry) => {
+        if (!entry.visible) {
+          return;
+        }
+
+        const { card, rect } = entry;
         const expandedLeft = rect.left - 160;
         const expandedRight = rect.right + 160;
         const expandedTop = rect.top - 160;
@@ -709,9 +739,7 @@ function useGlassTracking(pathname) {
           clientY <= expandedBottom;
 
         if (!near) {
-          card.style.setProperty("--light-opacity", "0");
-          card.style.setProperty("--rotate-x", "0deg");
-          card.style.setProperty("--rotate-y", "0deg");
+          resetCard(card);
           return;
         }
 
@@ -720,7 +748,7 @@ function useGlassTracking(pathname) {
           clientX <= rect.right &&
           clientY >= rect.top &&
           clientY <= rect.bottom;
-        updateCard(card, clientX, clientY, inside);
+        updateCard(entry, clientX, clientY, inside);
       });
     };
 
@@ -733,26 +761,54 @@ function useGlassTracking(pathname) {
         frameId = window.requestAnimationFrame(renderPointerFrame);
       }
     };
-    const handleWindowLeave = () => cards.forEach((card) => resetCard(card));
+    const handleWindowLeave = () => cards.forEach(({ card }) => resetCard(card));
     const handleVisibilityChange = () => {
       if (document.hidden) {
-        cards.forEach((card) => resetCard(card));
+        cards.forEach(({ card }) => resetCard(card));
       }
     };
 
+    observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((item) => {
+          const target = cards.find((entry) => entry.card === item.target);
+          if (!target) {
+            return;
+          }
+
+          target.visible = item.isIntersecting;
+          if (target.visible) {
+            target.rect = target.card.getBoundingClientRect();
+          } else {
+            resetCard(target.card);
+          }
+        });
+      },
+      { rootMargin: "240px" }
+    );
+
     window.addEventListener("pointermove", handlePointerMove, { passive: true });
+    window.addEventListener("scroll", scheduleMeasure, { passive: true });
+    window.addEventListener("resize", scheduleMeasure, { passive: true });
     window.addEventListener("blur", handleWindowLeave);
     document.addEventListener("visibilitychange", handleVisibilityChange);
 
-    cards.forEach((card) => {
-      resetCard(card);
+    cards.forEach((entry) => {
+      resetCard(entry.card);
+      observer.observe(entry.card);
     });
 
     return () => {
       if (frameId) {
         window.cancelAnimationFrame(frameId);
       }
+      if (rectFrameId) {
+        window.cancelAnimationFrame(rectFrameId);
+      }
+      observer?.disconnect();
       window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("scroll", scheduleMeasure);
+      window.removeEventListener("resize", scheduleMeasure);
       window.removeEventListener("blur", handleWindowLeave);
       document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
@@ -1728,19 +1784,31 @@ function useReadingProgress() {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
+    let frameId = 0;
+
     const update = () => {
+      frameId = 0;
       const scrollTop = window.scrollY;
       const total = document.documentElement.scrollHeight - window.innerHeight;
       const next = total > 0 ? Math.min(1, Math.max(0, scrollTop / total)) : 0;
-      setProgress(next);
+      setProgress((current) => (Math.abs(current - next) < 0.004 ? current : next));
+    };
+
+    const scheduleUpdate = () => {
+      if (!frameId) {
+        frameId = window.requestAnimationFrame(update);
+      }
     };
 
     update();
-    window.addEventListener("scroll", update, { passive: true });
-    window.addEventListener("resize", update);
+    window.addEventListener("scroll", scheduleUpdate, { passive: true });
+    window.addEventListener("resize", scheduleUpdate, { passive: true });
     return () => {
-      window.removeEventListener("scroll", update);
-      window.removeEventListener("resize", update);
+      if (frameId) {
+        window.cancelAnimationFrame(frameId);
+      }
+      window.removeEventListener("scroll", scheduleUpdate);
+      window.removeEventListener("resize", scheduleUpdate);
     };
   }, []);
 
