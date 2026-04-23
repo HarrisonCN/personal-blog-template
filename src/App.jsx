@@ -2818,6 +2818,16 @@ function StudioPage({
     ],
     [copy]
   );
+  const scrollToStudioSection = (sectionId) => {
+    const node = document.getElementById(sectionId);
+    if (!node) {
+      return;
+    }
+
+    const headerOffset = 108;
+    const top = node.getBoundingClientRect().top + window.scrollY - headerOffset;
+    window.scrollTo({ top, behavior: "smooth" });
+  };
 
   if (!studioAvailable) {
     return (
@@ -3449,14 +3459,25 @@ function StudioPage({
           <div className="studio-rail__progress">
             <span className="micro-label">Progress</span>
             <div className="studio-rail__bar">
-              <div className="studio-rail__fill" style={{ height: `${studioProgress * 100}%` }} />
+              <div
+                className="studio-rail__fill"
+                style={{
+                  height: `${studioProgress * 100}%`,
+                  width: `${studioProgress * 100}%`,
+                }}
+              />
             </div>
           </div>
           <nav className="studio-rail__nav">
             {studioSections.map((section) => (
-              <a key={section.id} className="studio-rail__link" href={`#${section.id}`}>
+              <button
+                key={section.id}
+                type="button"
+                className="studio-rail__link"
+                onClick={() => scrollToStudioSection(section.id)}
+              >
                 {section.label}
-              </a>
+              </button>
             ))}
           </nav>
         </aside>
