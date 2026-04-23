@@ -2948,45 +2948,32 @@ function StudioPage({
             <div className="auth-mascot" aria-hidden="true">
               <div className="auth-mascot__halo auth-mascot__halo--back" />
               <div className="auth-mascot__halo auth-mascot__halo--front" />
+              <div className="auth-mascot__spark auth-mascot__spark--a" />
+              <div className="auth-mascot__spark auth-mascot__spark--b" />
+              <div className="auth-mascot__spark auth-mascot__spark--c" />
 
-              <div className="auth-mascot__figure auth-mascot__figure--ghost auth-mascot__figure--ghost-a">
-                <div className="auth-mascot__head">
-                  <div className="auth-mascot__eyes">
-                    <span className="auth-mascot__eye" />
-                    <span className="auth-mascot__eye" />
-                  </div>
-                  <div className="auth-mascot__mouth" />
-                </div>
-                <div className="auth-mascot__body" />
-                <div className="auth-mascot__arm auth-mascot__arm--left" />
-                <div className="auth-mascot__arm auth-mascot__arm--right" />
+              <div className="auth-mascot__buddy auth-mascot__buddy--a">
+                <span className="auth-mascot__buddy-eye" />
+                <span className="auth-mascot__buddy-eye" />
               </div>
-
-              <div className="auth-mascot__figure auth-mascot__figure--ghost auth-mascot__figure--ghost-b">
-                <div className="auth-mascot__head">
-                  <div className="auth-mascot__eyes">
-                    <span className="auth-mascot__eye" />
-                    <span className="auth-mascot__eye" />
-                  </div>
-                  <div className="auth-mascot__mouth" />
-                </div>
-                <div className="auth-mascot__body" />
-                <div className="auth-mascot__arm auth-mascot__arm--left" />
-                <div className="auth-mascot__arm auth-mascot__arm--right" />
+              <div className="auth-mascot__buddy auth-mascot__buddy--b">
+                <span className="auth-mascot__buddy-eye" />
+                <span className="auth-mascot__buddy-eye" />
               </div>
 
               <div className="auth-mascot__figure auth-mascot__figure--main">
                 <div className="auth-mascot__orb" />
-                <div className="auth-mascot__head">
-                  <div className="auth-mascot__eyes">
+                <div className="auth-mascot__shell">
+                  <div className="auth-mascot__visor">
                     <span className="auth-mascot__eye" />
                     <span className="auth-mascot__eye" />
                   </div>
-                  <div className="auth-mascot__mouth" />
+                  <div className="auth-mascot__smile" />
+                  <div className="auth-mascot__arm auth-mascot__arm--left" />
+                  <div className="auth-mascot__arm auth-mascot__arm--right" />
+                  <div className="auth-mascot__foot auth-mascot__foot--left" />
+                  <div className="auth-mascot__foot auth-mascot__foot--right" />
                 </div>
-                <div className="auth-mascot__body" />
-                <div className="auth-mascot__arm auth-mascot__arm--left" />
-                <div className="auth-mascot__arm auth-mascot__arm--right" />
               </div>
             </div>
             <h1>{copy.loginTitle}</h1>

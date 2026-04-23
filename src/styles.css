@@ -2033,210 +2033,249 @@ select {
 .auth-mascot__halo,
 .auth-mascot__figure,
 .auth-mascot__orb,
-.auth-mascot__head,
-.auth-mascot__body,
+.auth-mascot__shell,
+.auth-mascot__visor,
 .auth-mascot__arm,
-.auth-mascot__mouth,
-.auth-mascot__eye {
+.auth-mascot__foot,
+.auth-mascot__smile,
+.auth-mascot__eye,
+.auth-mascot__spark,
+.auth-mascot__buddy,
+.auth-mascot__buddy-eye {
   position: absolute;
 }
 
 .auth-mascot__halo {
   border-radius: 50%;
-  filter: blur(24px);
+  filter: blur(26px);
 }
 
 .auth-mascot__halo--back {
-  inset: 8% 10% auto;
-  height: 74%;
+  inset: 10% 12% auto;
+  height: 72%;
   background:
-    radial-gradient(circle at center, rgba(255, 146, 194, 0.4), transparent 42%),
-    radial-gradient(circle at 62% 42%, rgba(104, 178, 255, 0.34), transparent 44%),
-    radial-gradient(circle at 34% 62%, rgba(121, 255, 219, 0.3), transparent 46%);
-  opacity: 0.96;
+    radial-gradient(circle at 30% 35%, rgba(255, 171, 207, 0.46), transparent 36%),
+    radial-gradient(circle at 66% 36%, rgba(142, 161, 255, 0.38), transparent 38%),
+    radial-gradient(circle at 50% 68%, rgba(109, 244, 226, 0.32), transparent 42%);
 }
 
 .auth-mascot__halo--front {
-  inset: 16% 18% auto;
-  height: 54%;
-  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.22), transparent 58%);
-  opacity: 0.84;
+  inset: 18% 22% auto;
+  height: 50%;
+  background: radial-gradient(circle at center, rgba(255,255,255,0.24), transparent 58%);
+}
+
+.auth-mascot__spark {
+  width: 14px;
+  height: 14px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.88);
+  box-shadow: 0 0 18px rgba(255,255,255,0.3);
+}
+
+.auth-mascot__spark--a {
+  top: 20%;
+  left: 18%;
+}
+
+.auth-mascot__spark--b {
+  top: 32%;
+  right: 15%;
+  width: 10px;
+  height: 10px;
+}
+
+.auth-mascot__spark--c {
+  bottom: 20%;
+  right: 22%;
+  width: 12px;
+  height: 12px;
+}
+
+.auth-mascot__buddy {
+  width: 52px;
+  height: 52px;
+  border-radius: 20px 20px 18px 18px;
+  background:
+    linear-gradient(180deg, rgba(255,255,255,0.34), rgba(255,255,255,0.08)),
+    linear-gradient(145deg, rgba(255, 154, 204, 0.24), rgba(115, 189, 255, 0.12));
+  border: 1px solid rgba(255,255,255,0.28);
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.26),
+    0 10px 18px rgba(64, 36, 108, 0.12);
+}
+
+.auth-mascot__buddy--a {
+  top: 30%;
+  left: 14%;
+  transform: rotate(-10deg);
+}
+
+.auth-mascot__buddy--b {
+  top: 18%;
+  right: 16%;
+  transform: rotate(9deg);
+}
+
+.auth-mascot__buddy-eye {
+  top: 19px;
+  width: 7px;
+  height: 7px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.96);
+}
+
+.auth-mascot__buddy-eye:first-child {
+  left: 15px;
+}
+
+.auth-mascot__buddy-eye:last-child {
+  right: 15px;
 }
 
 .auth-mascot__figure {
   inset: 0;
-  transform-origin: 50% 52%;
-  transition: transform 300ms cubic-bezier(0.16, 1, 0.3, 1), opacity 240ms ease;
-}
-
-.auth-mascot__figure--main {
   z-index: 3;
 }
 
-.auth-mascot__figure--ghost {
-  opacity: 0.72;
-  filter: saturate(1.1);
-}
-
-.auth-mascot__figure--ghost-a {
-  z-index: 1;
-  transform: translate(-22px, 14px) scale(0.92);
-}
-
-.auth-mascot__figure--ghost-b {
-  z-index: 2;
-  transform: translate(18px, -10px) scale(0.96);
-}
-
 .auth-mascot__orb {
-  inset: 18% auto auto 17%;
-  width: 58%;
+  inset: 17% auto auto 17%;
+  width: 60%;
   aspect-ratio: 1;
-  border-radius: 44% 56% 52% 48% / 45% 48% 52% 55%;
+  border-radius: 50%;
   background:
-    radial-gradient(circle at 28% 24%, rgba(255,255,255,0.72), transparent 14%),
-    radial-gradient(circle at 46% 30%, rgba(255,255,255,0.26), transparent 24%),
-    linear-gradient(145deg, #ff8cb7 0%, #8e94ff 42%, #66f0d2 100%);
+    radial-gradient(circle at 28% 26%, rgba(255,255,255,0.8), transparent 12%),
+    radial-gradient(circle at 70% 34%, rgba(255,255,255,0.2), transparent 22%),
+    linear-gradient(145deg, #ff97c1 0%, #958fff 44%, #74efd5 100%);
   border: 1px solid rgba(255,255,255,0.34);
   box-shadow:
-    inset 0 1px 0 rgba(255,255,255,0.44),
-    0 22px 40px rgba(70, 40, 120, 0.24);
+    inset 0 1px 0 rgba(255,255,255,0.46),
+    0 24px 42px rgba(68, 39, 120, 0.24);
 }
 
-.auth-mascot__figure--ghost .auth-mascot__orb {
-  display: none;
-}
-
-.auth-mascot__head {
-  top: 24%;
-  left: 34%;
-  width: 104px;
-  height: 104px;
-  border-radius: 36px;
+.auth-mascot__shell {
+  top: 26%;
+  left: 31%;
+  width: 126px;
+  height: 148px;
+  border-radius: 46px 46px 38px 38px;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.34), rgba(255,255,255,0.08)),
-    linear-gradient(145deg, rgba(255, 161, 196, 0.28), rgba(120, 178, 255, 0.12));
+    linear-gradient(180deg, rgba(255,255,255,0.36), rgba(255,255,255,0.08)),
+    linear-gradient(145deg, rgba(255, 171, 209, 0.28), rgba(120, 187, 255, 0.12));
   border: 1px solid rgba(255,255,255,0.3);
   box-shadow:
     inset 0 1px 0 rgba(255,255,255,0.28),
-    0 12px 28px rgba(69, 36, 117, 0.14);
+    0 14px 28px rgba(67, 35, 114, 0.16);
 }
 
-.auth-mascot__figure--ghost .auth-mascot__head,
-.auth-mascot__figure--ghost .auth-mascot__body,
-.auth-mascot__figure--ghost .auth-mascot__arm {
+.auth-mascot__visor {
+  top: 26px;
+  left: 20px;
+  right: 20px;
+  height: 38px;
+  border-radius: 999px;
   background:
-    linear-gradient(180deg, rgba(255,255,255,0.24), rgba(255,255,255,0.06)),
-    linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(131, 192, 255, 0.06));
-  border-color: rgba(255,255,255,0.22);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.22);
-}
-
-.auth-mascot__figure--ghost .auth-mascot__eye,
-.auth-mascot__figure--ghost .auth-mascot__mouth {
-  opacity: 0.66;
-}
-
-.auth-mascot__eyes {
-  position: absolute;
-  top: 38px;
-  left: 24px;
+    linear-gradient(180deg, rgba(255,255,255,0.66), rgba(255,255,255,0.14)),
+    linear-gradient(145deg, rgba(120, 191, 255, 0.38), rgba(255, 171, 209, 0.22));
   display: flex;
-  gap: 24px;
+  justify-content: center;
+  gap: 22px;
+  align-items: center;
 }
 
 .auth-mascot__eye {
-  width: 15px;
-  height: 15px;
+  width: 10px;
+  height: 10px;
   border-radius: 999px;
-  background: #ffffff;
-  box-shadow:
-    0 0 16px rgba(255,255,255,0.34),
-    0 0 28px rgba(122, 195, 255, 0.22);
+  background: #fff;
+  box-shadow: 0 0 16px rgba(255,255,255,0.34);
   --eye-shift: 0px;
   transform: translateX(var(--eye-shift)) scaleY(1);
-  animation: auth-blink 6.4s ease-in-out infinite;
+  animation: auth-blink 6.2s ease-in-out infinite;
 }
 
-.auth-mascot__mouth {
-  top: 68px;
-  left: 38px;
+.auth-mascot__smile {
+  left: 50%;
+  bottom: 44px;
   width: 28px;
-  height: 10px;
-  border-radius: 999px 999px 14px 14px;
-  border: 2px solid rgba(255,255,255,0.7);
+  height: 12px;
+  transform: translateX(-50%);
+  border-radius: 999px;
+  border: 2px solid rgba(255,255,255,0.74);
   border-top: 0;
-  opacity: 0.9;
-}
-
-.auth-mascot__body {
-  top: 54%;
-  left: 31%;
-  width: 118px;
-  height: 92px;
-  border-radius: 30px;
-  background:
-    linear-gradient(180deg, rgba(255,255,255,0.18), rgba(255,255,255,0.05)),
-    linear-gradient(145deg, rgba(255, 152, 203, 0.2), rgba(107, 194, 255, 0.12));
-  border: 1px solid rgba(255,255,255,0.22);
 }
 
 .auth-mascot__arm {
-  top: 58%;
-  width: 72px;
-  height: 18px;
+  top: 78px;
+  width: 48px;
+  height: 16px;
   border-radius: 999px;
   background:
     linear-gradient(180deg, rgba(255,255,255,0.24), rgba(255,255,255,0.06)),
     linear-gradient(145deg, rgba(255, 158, 196, 0.22), rgba(117, 193, 255, 0.1));
   border: 1px solid rgba(255,255,255,0.18);
-  transform-origin: 12% 50%;
   transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1), top 260ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
 .auth-mascot__arm--left {
-  left: 19%;
-  transform: rotate(22deg);
+  left: -20px;
+  transform: rotate(24deg);
 }
 
 .auth-mascot__arm--right {
-  left: 52%;
-  transform: rotate(-18deg);
+  right: -20px;
+  transform: rotate(-24deg);
 }
 
-.auth-hero--username .auth-mascot__eye:first-child,
-.auth-hero--username .auth-mascot__eye:last-child {
+.auth-mascot__foot {
+  bottom: -10px;
+  width: 28px;
+  height: 18px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.56);
+  filter: blur(0.2px);
+}
+
+.auth-mascot__foot--left {
+  left: 28px;
+}
+
+.auth-mascot__foot--right {
+  right: 28px;
+}
+
+.auth-hero--username .auth-mascot__eye {
   --eye-shift: 4px;
 }
 
-.auth-hero--username .auth-mascot__figure--ghost-a {
-  transform: translate(-28px, 12px) scale(0.92) rotate(-4deg);
+.auth-hero--username .auth-mascot__buddy--a {
+  transform: translateX(-6px) rotate(-14deg);
 }
 
-.auth-hero--username .auth-mascot__figure--ghost-b {
-  transform: translate(24px, -8px) scale(0.96) rotate(4deg);
+.auth-hero--username .auth-mascot__buddy--b {
+  transform: translateX(4px) rotate(12deg);
 }
 
 .auth-hero--password .auth-mascot__arm--left {
-  top: 40%;
-  transform: rotate(-16deg) translateX(18px);
+  top: 50px;
+  transform: rotate(-20deg) translateX(18px);
 }
 
 .auth-hero--password .auth-mascot__arm--right {
-  top: 40%;
-  transform: rotate(14deg) translateX(-18px);
+  top: 50px;
+  transform: rotate(20deg) translateX(-18px);
 }
 
-.auth-hero--password .auth-mascot__mouth {
+.auth-hero--password .auth-mascot__smile {
   opacity: 0.38;
 }
 
-.auth-hero--password .auth-mascot__figure--ghost-a {
-  transform: translate(-30px, 10px) scale(0.92) rotate(-5deg);
+.auth-hero--password .auth-mascot__buddy--a {
+  transform: translate(-12px, 3px) rotate(-18deg);
 }
 
-.auth-hero--password .auth-mascot__figure--ghost-b {
-  transform: translate(24px, -12px) scale(0.96) rotate(4deg);
+.auth-hero--password .auth-mascot__buddy--b {
+  transform: translate(10px, -2px) rotate(16deg);
 }
 
 .auth-hero__chips {
