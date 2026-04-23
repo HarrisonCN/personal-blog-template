@@ -16,6 +16,9 @@ export const fonts = [
   { code: "urbanist", label: "Urbanist" },
   { code: "fraunces", label: "Fraunces" },
   { code: "ibmplex", label: "IBM Plex Sans" },
+  { code: "notosc", label: "Noto Sans SC" },
+  { code: "lxgw", label: "LXGW WenKai" },
+  { code: "mashan", label: "Ma Shan Zheng" },
 ];
 
 export const uiText = {

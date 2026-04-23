@@ -88,6 +88,21 @@
   --font-display: "IBM Plex Sans", sans-serif;
 }
 
+:root[data-font="notosc"] {
+  --font-body: "Noto Sans SC", sans-serif;
+  --font-display: "Noto Sans SC", sans-serif;
+}
+
+:root[data-font="lxgw"] {
+  --font-body: "LXGW WenKai", serif;
+  --font-display: "LXGW WenKai", serif;
+}
+
+:root[data-font="mashan"] {
+  --font-body: "Ma Shan Zheng", cursive;
+  --font-display: "Ma Shan Zheng", cursive;
+}
+
 * {
   box-sizing: border-box;
 }
