@@ -1,0 +1,5 @@
+node_modules/
+dist/
+.blog-preview.pid
+.DS_Store
+Thumbs.db
