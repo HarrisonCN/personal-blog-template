@@ -2881,6 +2881,17 @@ function StudioPage({
   };
 
   const studioProgress = useReadingProgress();
+  const authSignals = useMemo(
+    () =>
+      language === "zh"
+        ? ["Server Session", "Content Control", "Private Access"]
+        : language === "ja"
+          ? ["Server Session", "Content Control", "Private Access"]
+          : language === "ko"
+            ? ["Server Session", "Content Control", "Private Access"]
+            : ["Server Session", "Content Control", "Private Access"],
+    [language]
+  );
   const studioSections = useMemo(
     () => [
       { id: "studio-article", label: copy.articleListTitle },
@@ -2930,34 +2941,64 @@ function StudioPage({
   if (!isAuthenticated) {
     return (
       <main className="page">
-        <section className="page-banner glass-card auth-card">
-          <p className="micro-label">STUDIO</p>
-          <h1>{copy.loginTitle}</h1>
-          <p className="body-copy">{copy.loginBody}</p>
-          <form className="studio-login" onSubmit={handleLogin}>
-            <label className="studio-field">
-              <span>{copy.username}</span>
-              <input
-                type="text"
-                value={loginForm.username}
-                onChange={(event) => setLoginForm((current) => ({ ...current, username: event.target.value }))}
-              />
-            </label>
-            <label className="studio-field">
-              <span>{copy.password}</span>
-              <input
-                type="password"
-                value={loginForm.password}
-                onChange={(event) => setLoginForm((current) => ({ ...current, password: event.target.value }))}
-              />
-            </label>
-            {sessionExpired ? <p className="studio-error">{copy.sessionExpired}</p> : null}
-            {lockUntil > Date.now() ? <p className="studio-error">{copy.loginLocked}</p> : null}
-            {loginError ? <p className="studio-error">{loginError}</p> : null}
-            <button type="submit" className="action-button action-button--primary">
-              {copy.login}
-            </button>
-          </form>
+        <section className="auth-shell glass-card">
+          <div className="auth-hero">
+            <p className="micro-label">DEVELOPER ACCESS</p>
+            <h1>{copy.loginTitle}</h1>
+            <p className="body-copy">{copy.loginBody}</p>
+            <div className="auth-hero__chips">
+              {authSignals.map((item) => (
+                <span key={item} className="auth-chip">
+                  {item}
+                </span>
+              ))}
+            </div>
+            <div className="auth-hero__panel">
+              <div>
+                <span className="micro-label">Identity</span>
+                <strong>{siteDraft.meta.name}</strong>
+              </div>
+              <div>
+                <span className="micro-label">Secure Route</span>
+                <strong>/studio</strong>
+              </div>
+              <div>
+                <span className="micro-label">Scope</span>
+                <strong>{copy.contentEditorTitle}</strong>
+              </div>
+            </div>
+          </div>
+
+          <div className="auth-form-card">
+            <div className="auth-form-card__head">
+              <p className="micro-label">SIGN IN</p>
+              <h2>{copy.login}</h2>
+            </div>
+            <form className="studio-login" onSubmit={handleLogin}>
+              <label className="studio-field">
+                <span>{copy.username}</span>
+                <input
+                  type="text"
+                  value={loginForm.username}
+                  onChange={(event) => setLoginForm((current) => ({ ...current, username: event.target.value }))}
+                />
+              </label>
+              <label className="studio-field">
+                <span>{copy.password}</span>
+                <input
+                  type="password"
+                  value={loginForm.password}
+                  onChange={(event) => setLoginForm((current) => ({ ...current, password: event.target.value }))}
+                />
+              </label>
+              {sessionExpired ? <p className="studio-error">{copy.sessionExpired}</p> : null}
+              {lockUntil > Date.now() ? <p className="studio-error">{copy.loginLocked}</p> : null}
+              {loginError ? <p className="studio-error">{loginError}</p> : null}
+              <button type="submit" className="action-button action-button--primary auth-submit">
+                {copy.login}
+              </button>
+            </form>
+          </div>
         </section>
       </main>
     );
