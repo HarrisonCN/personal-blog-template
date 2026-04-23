@@ -1126,14 +1126,13 @@ function FontSlider({ label, value, onChange, options }) {
     0,
     options.findIndex((item) => item.code === value)
   );
-  const active = options[currentIndex] ?? options[0];
   const progress = options.length > 1 ? (currentIndex / (options.length - 1)) * 100 : 0;
 
   return (
     <div className="font-slider">
       <div className="font-slider__head">
         <span className="micro-label">{label}</span>
-        <strong>{active?.label}</strong>
+        <span className="font-slider__value">{currentIndex + 1}/{options.length}</span>
       </div>
       <div className="font-slider__track" style={{ "--font-progress": `${progress}%` }}>
         <input
@@ -1145,18 +1144,6 @@ function FontSlider({ label, value, onChange, options }) {
           aria-label={label}
           onChange={(event) => onChange(options[Number(event.target.value)]?.code ?? options[0].code)}
         />
-      </div>
-      <div className="font-slider__scale" aria-hidden="true">
-        {options.map((option, index) => (
-          <button
-            key={option.code}
-            type="button"
-            className={`font-slider__tick ${index === currentIndex ? "active" : ""}`}
-            onClick={() => onChange(option.code)}
-          >
-            <span>{option.label}</span>
-          </button>
-        ))}
       </div>
     </div>
   );
