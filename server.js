@@ -99,6 +99,40 @@ function normalizeCustomCard(card, index = 0) {
   };
 }
 
+function normalizeSiteContent(content) {
+  const defaults = buildDefaultSiteContent();
+
+  return {
+    meta: {
+      ...defaults.meta,
+      ...(content?.meta ?? {}),
+      avatarImage:
+        typeof content?.meta?.avatarImage === "string" ? content.meta.avatarImage : defaults.meta.avatarImage,
+      role: ensureLocalizedMap(content?.meta?.role ?? defaults.meta.role, ""),
+      intro: ensureLocalizedMap(content?.meta?.intro ?? defaults.meta.intro, ""),
+      stats: {
+        ...defaults.meta.stats,
+        ...(content?.meta?.stats ?? {}),
+      },
+      socialLinks: Array.isArray(content?.meta?.socialLinks)
+        ? content.meta.socialLinks.map(normalizeSocialLink)
+        : defaults.meta.socialLinks.map(normalizeSocialLink),
+      customCards: Array.isArray(content?.meta?.customCards)
+        ? content.meta.customCards.map(normalizeCustomCard)
+        : defaults.meta.customCards.map(normalizeCustomCard),
+    },
+    text: Object.fromEntries(
+      Object.keys(defaults.text).map((lang) => [
+        lang,
+        {
+          ...defaults.text[lang],
+          ...(content?.text?.[lang] ?? {}),
+        },
+      ])
+    ),
+  };
+}
+
 function buildDefaultSiteContent() {
   const editableKeys = [
     "navHome",
@@ -125,6 +159,7 @@ function buildDefaultSiteContent() {
       name: siteMeta.name,
       email: siteMeta.email,
       location: siteMeta.location,
+      avatarImage: "",
       role: ensureLocalizedMap(siteMeta.role, ""),
       intro: ensureLocalizedMap(siteMeta.intro, ""),
       stats: { ...siteMeta.stats },
@@ -480,7 +515,7 @@ app.post("/api/studio/site-content", requireTrustedOrigin, requireStudioAuth, (r
   }
 
   const store = readStore();
-  store.siteContent = siteContent;
+  store.siteContent = normalizeSiteContent(siteContent);
   writeStore(store);
   response.json({ ok: true, siteContent: store.siteContent });
 });

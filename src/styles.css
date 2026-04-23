@@ -2028,6 +2028,18 @@ select {
   border: 1px solid color-mix(in srgb, var(--line-strong) 76%, transparent);
 }
 
+.studio-inline-actions--avatar {
+  margin-top: 12px;
+}
+
+.studio-avatar-preview {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px;
+  object-fit: cover;
+  border: 1px solid color-mix(in srgb, var(--line-strong) 76%, transparent);
+}
+
 .studio-rail {
   position: sticky;
   top: 98px;

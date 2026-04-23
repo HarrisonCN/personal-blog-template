@@ -265,6 +265,8 @@ const fallbackCopy = {
     brandName: "Site Name",
     brandEmail: "Contact Email",
     brandLocation: "Location",
+    uploadAvatar: "Upload Avatar",
+    removeAvatar: "Reset Avatar",
     roleLabel: "Role",
     introLabel: "Intro",
     statProjects: "Projects Count",
@@ -495,6 +497,10 @@ function createBlankCustomCard() {
     linkLabel: { zh: "", en: "", ja: "", ko: "" },
     linkUrl: "",
   };
+}
+
+function getSiteAvatar(meta, fallbackImage) {
+  return typeof meta?.avatarImage === "string" && meta.avatarImage ? meta.avatarImage : fallbackImage;
 }
 
 function createBlankProject() {
@@ -1183,6 +1189,7 @@ function buildDefaultSiteContent() {
       name: siteMeta.name,
       email: siteMeta.email,
       location: siteMeta.location,
+      avatarImage: templateAvatar,
       role: ensureLocalizedMap(siteMeta.role, ""),
       intro: ensureLocalizedMap(siteMeta.intro, ""),
       stats: { ...siteMeta.stats },
@@ -1199,6 +1206,10 @@ function normalizeSiteContent(content) {
     meta: {
       ...defaults.meta,
       ...(content?.meta ?? {}),
+      avatarImage:
+        typeof content?.meta?.avatarImage === "string" && content.meta.avatarImage
+          ? content.meta.avatarImage
+          : defaults.meta.avatarImage,
       role: ensureLocalizedMap(content?.meta?.role ?? defaults.meta.role, ""),
       intro: ensureLocalizedMap(content?.meta?.intro ?? defaults.meta.intro, ""),
       stats: {
@@ -1957,10 +1968,11 @@ function useSeo({ title, description, image }) {
 
 function HomePage({ language, text, copy, articles, meta, projects, guestbookEntries, addGuestbookEntry }) {
   const [guestbookForm, setGuestbookForm] = useState({ name: "", message: "" });
+  const siteAvatar = getSiteAvatar(meta, templateAvatar);
   useSeo({
     title: `${meta.name} / ${text.heroTitle}`,
     description: text.heroBody,
-    image: templateAvatar,
+    image: siteAvatar,
   });
 
   const topArticles = useMemo(() => {
@@ -1986,7 +1998,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
       <section className="hero-grid">
         <Reveal className="intro-panel glass-card" delay={40}>
           <div className="intro-avatar">
-            <img src={templateAvatar} alt={`${meta.name} avatar`} />
+            <img src={siteAvatar} alt={`${meta.name} avatar`} />
           </div>
           <div className="intro-copy">
             <p className="micro-label">{text.heroEyebrow}</p>
@@ -2188,13 +2200,14 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
   );
 }
 
-function ArticlesPage({ language, text, copy, articles }) {
+function ArticlesPage({ language, text, copy, articles, meta }) {
   const [query, setQuery] = useState("");
   const [activeTag, setActiveTag] = useState("all");
+  const siteAvatar = getSiteAvatar(meta, templateAvatar);
   useSeo({
-    title: `${text.articleIndexTitle} / ${siteMeta.name}`,
+    title: `${text.articleIndexTitle} / ${meta.name}`,
     description: text.articleIndexBody,
-    image: winstonAvatar,
+    image: siteAvatar,
   });
 
   const tags = useMemo(
@@ -2290,7 +2303,7 @@ function ArticlesPage({ language, text, copy, articles }) {
   );
 }
 
-function ArticleDetailPage({ language, copy, articles }) {
+function ArticleDetailPage({ language, copy, articles, meta }) {
   const { slug } = useParams();
   const article = useMemo(
     () => articles.find((item) => item.slug === slug) ?? articles[0],
@@ -2298,9 +2311,10 @@ function ArticleDetailPage({ language, copy, articles }) {
   );
   const progress = useReadingProgress();
   const [copied, setCopied] = useState(false);
-  const seoTitle = article ? `${article.title[language]} / ${siteMeta.name}` : siteMeta.name;
+  const siteAvatar = getSiteAvatar(meta, templateAvatar);
+  const seoTitle = article ? `${article.title[language]} / ${meta.name}` : meta.name;
   const seoDescription = article ? article.excerpt[language] || article.excerpt.en : "";
-  const seoImage = article?.coverImage || templateAvatar;
+  const seoImage = article?.coverImage || siteAvatar;
   useSeo({
     title: seoTitle,
     description: seoDescription,
@@ -2653,6 +2667,21 @@ function StudioPage({
         [key]: value,
       },
     }));
+  };
+
+  const handleAvatarUpload = async (event) => {
+    const [file] = Array.from(event.target.files ?? []);
+    if (!file) {
+      return;
+    }
+
+    const [avatar] = await Promise.all([fileToAttachment(file)]);
+    handleSiteMetaField("avatarImage", avatar.dataUrl);
+    event.target.value = "";
+  };
+
+  const handleRemoveAvatar = () => {
+    handleSiteMetaField("avatarImage", "");
   };
 
   const handleSocialLinkChange = (index, key, value) => {
@@ -3146,6 +3175,22 @@ function StudioPage({
                 />
               </label>
             </div>
+            <div className="studio-inline-actions studio-inline-actions--avatar">
+              <label className="studio-field studio-field--inline">
+                <span>{copy.uploadAvatar || "Upload Avatar"}</span>
+                <input type="file" accept="image/*" onChange={handleAvatarUpload} />
+              </label>
+              {siteDraft.meta.avatarImage ? (
+                <img
+                  className="studio-avatar-preview"
+                  src={siteDraft.meta.avatarImage}
+                  alt={`${siteDraft.meta.name || "Site"} avatar`}
+                />
+              ) : null}
+              <button type="button" className="action-button action-button--secondary" onClick={handleRemoveAvatar}>
+                {copy.removeAvatar || "Reset Avatar"}
+              </button>
+            </div>
           </div>
         </section>
 
@@ -3539,8 +3584,8 @@ export default function App() {
             />
           }
         />
-        <Route path="/articles" element={<ArticlesPage language={language} text={text} copy={copy} articles={articles} />} />
-        <Route path="/articles/:slug" element={<ArticleDetailPage language={language} copy={copy} articles={articles} />} />
+        <Route path="/articles" element={<ArticlesPage language={language} text={text} copy={copy} articles={articles} meta={meta} />} />
+        <Route path="/articles/:slug" element={<ArticleDetailPage language={language} copy={copy} articles={articles} meta={meta} />} />
         <Route path="/projects/:slug" element={<ProjectDetailPage language={language} text={text} projects={projects} />} />
         <Route
           path="/studio"
