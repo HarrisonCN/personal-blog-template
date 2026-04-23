@@ -2806,6 +2806,19 @@ function StudioPage({
     window.setTimeout(() => setFlash(""), 1600);
   };
 
+  const studioProgress = useReadingProgress();
+  const studioSections = useMemo(
+    () => [
+      { id: "studio-article", label: copy.articleListTitle },
+      { id: "studio-site-meta", label: copy.contentEditorTitle },
+      { id: "studio-site-copy", label: "Site Copy" },
+      { id: "studio-social", label: copy.socialEditorTitle },
+      { id: "studio-custom-cards", label: copy.customCardsTitle },
+      { id: "studio-projects", label: copy.projectsEditorTitle },
+    ],
+    [copy]
+  );
+
   if (!studioAvailable) {
     return (
       <main className="page">
@@ -2880,7 +2893,7 @@ function StudioPage({
         </button>
       </section>
 
-      <section className="studio-grid">
+      <section className="studio-workbench">
         <aside className="studio-sidebar glass-card">
           <div className="studio-sidebar__head">
             <div>
@@ -2910,7 +2923,7 @@ function StudioPage({
         </aside>
 
         <section className="studio-stack">
-        <section className="studio-editor glass-card">
+        <section id="studio-article" className="studio-editor glass-card studio-section-card">
           <div className="studio-editor__head">
             <div>
               <p className="micro-label">{selectedSlug === "__new__" ? copy.newDraftTitle : draft.tag}</p>
@@ -3043,7 +3056,7 @@ function StudioPage({
             </div>
           </div>
         </section>
-        <section className="studio-editor glass-card">
+        <section id="studio-site-meta" className="studio-editor glass-card studio-section-card">
           <div className="studio-editor__head">
             <div>
               <p className="micro-label">SITE</p>
@@ -3123,7 +3136,22 @@ function StudioPage({
                 />
               </label>
             </div>
+          </div>
+        </section>
 
+        <section id="studio-site-copy" className="studio-editor glass-card studio-section-card">
+          <div className="studio-editor__head">
+            <div>
+              <p className="micro-label">COPY</p>
+              <h2>Site Copy</h2>
+              <p className="body-copy">{copy.contentEditorBody}</p>
+            </div>
+            <button type="button" className="action-button action-button--primary" onClick={handleSaveSiteContent}>
+              {copy.saveSiteContent}
+            </button>
+          </div>
+
+          <div className="studio-form">
             <div className="studio-language-bar">
               <span className="micro-label">{copy.articleLanguage}</span>
               <div className="studio-language-tabs">
@@ -3176,132 +3204,132 @@ function StudioPage({
                 )}
               </label>
             ))}
-
-            <div className="studio-subsection">
-              <div className="studio-editor__head">
-                <div>
-                  <p className="micro-label">SOCIAL</p>
-                  <h2>{copy.socialEditorTitle}</h2>
-                  <p className="body-copy">{copy.socialEditorBody}</p>
-                </div>
-                <button type="button" className="action-button action-button--secondary" onClick={handleAddSocialLink}>
-                  {copy.addSocialLink}
-                </button>
-              </div>
-
-              <div className="studio-list">
-                {siteDraft.meta.socialLinks.map((item, index) => (
-                  <div key={`${item.label}-${index}`} className="studio-block">
-                    <div className="studio-form__row">
-                      <label className="studio-field">
-                        <span>{copy.socialLabel}</span>
-                        <input
-                          type="text"
-                          value={item.label}
-                          onChange={(event) => handleSocialLinkChange(index, "label", event.target.value)}
-                        />
-                      </label>
-                      <label className="studio-field">
-                        <span>{copy.socialUrl}</span>
-                        <input
-                          type="text"
-                          value={item.url}
-                          onChange={(event) => handleSocialLinkChange(index, "url", event.target.value)}
-                        />
-                      </label>
-                      <label className="studio-field">
-                        <span>{copy.socialIcon}</span>
-                        <input
-                          type="text"
-                          value={item.icon}
-                          onChange={(event) => handleSocialLinkChange(index, "icon", event.target.value)}
-                        />
-                      </label>
-                    </div>
-                    <div className="studio-inline-actions">
-                      <label className="studio-field studio-field--inline">
-                        <span>{copy.uploadSocialIcon}</span>
-                        <input type="file" accept="image/*" onChange={(event) => handleSocialIconUpload(index, event)} />
-                      </label>
-                      {item.iconDataUrl ? <img className="studio-icon-preview" src={item.iconDataUrl} alt={item.label || "icon"} /> : null}
-                      <button type="button" className="action-button action-button--secondary" onClick={() => handleRemoveSocialLink(index)}>
-                        {copy.removeSocialLink}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="studio-subsection">
-              <div className="studio-editor__head">
-                <div>
-                  <p className="micro-label">CARDS</p>
-                  <h2>{copy.customCardsTitle}</h2>
-                  <p className="body-copy">{copy.customCardsBody}</p>
-                </div>
-                <button type="button" className="action-button action-button--secondary" onClick={handleAddCustomCard}>
-                  {copy.addCustomCard}
-                </button>
-              </div>
-
-              <div className="studio-list">
-                {siteDraft.meta.customCards.map((item, index) => (
-                  <div key={item.id} className="studio-block">
-                    <div className="studio-form__row">
-                      <label className="studio-field">
-                        <span>{copy.cardEyebrow}</span>
-                        <input
-                          type="text"
-                          value={item.eyebrow[editorLanguage] || ""}
-                          onChange={(event) => handleCustomCardLocalizedField(index, "eyebrow", event.target.value)}
-                        />
-                      </label>
-                      <label className="studio-field">
-                        <span>{copy.cardTitle}</span>
-                        <input
-                          type="text"
-                          value={item.title[editorLanguage] || ""}
-                          onChange={(event) => handleCustomCardLocalizedField(index, "title", event.target.value)}
-                        />
-                      </label>
-                      <label className="studio-field">
-                        <span>{copy.cardLinkUrl}</span>
-                        <input
-                          type="text"
-                          value={item.linkUrl}
-                          onChange={(event) => handleCustomCardField(index, "linkUrl", event.target.value)}
-                        />
-                      </label>
-                    </div>
-                    <label className="studio-field">
-                      <span>{copy.cardBody}</span>
-                      <textarea
-                        rows="4"
-                        value={item.body[editorLanguage] || ""}
-                        onChange={(event) => handleCustomCardLocalizedField(index, "body", event.target.value)}
-                      />
-                    </label>
-                    <div className="studio-inline-actions">
-                      <label className="studio-field studio-field--inline">
-                        <span>{copy.cardLinkLabel}</span>
-                        <input
-                          type="text"
-                          value={item.linkLabel[editorLanguage] || ""}
-                          onChange={(event) => handleCustomCardLocalizedField(index, "linkLabel", event.target.value)}
-                        />
-                      </label>
-                      <button type="button" className="action-button action-button--secondary" onClick={() => handleRemoveCustomCard(index)}>
-                        {copy.removeCustomCard}
-                      </button>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
           </div>
         </section>
-        <section className="studio-editor glass-card">
+
+        <section id="studio-social" className="studio-editor glass-card studio-section-card">
+          <div className="studio-editor__head">
+            <div>
+              <p className="micro-label">SOCIAL</p>
+              <h2>{copy.socialEditorTitle}</h2>
+              <p className="body-copy">{copy.socialEditorBody}</p>
+            </div>
+            <button type="button" className="action-button action-button--secondary" onClick={handleAddSocialLink}>
+              {copy.addSocialLink}
+            </button>
+          </div>
+
+          <div className="studio-list">
+            {siteDraft.meta.socialLinks.map((item, index) => (
+              <div key={`${item.label}-${index}`} className="studio-block">
+                <div className="studio-form__row">
+                  <label className="studio-field">
+                    <span>{copy.socialLabel}</span>
+                    <input
+                      type="text"
+                      value={item.label}
+                      onChange={(event) => handleSocialLinkChange(index, "label", event.target.value)}
+                    />
+                  </label>
+                  <label className="studio-field">
+                    <span>{copy.socialUrl}</span>
+                    <input
+                      type="text"
+                      value={item.url}
+                      onChange={(event) => handleSocialLinkChange(index, "url", event.target.value)}
+                    />
+                  </label>
+                  <label className="studio-field">
+                    <span>{copy.socialIcon}</span>
+                    <input
+                      type="text"
+                      value={item.icon}
+                      onChange={(event) => handleSocialLinkChange(index, "icon", event.target.value)}
+                    />
+                  </label>
+                </div>
+                <div className="studio-inline-actions">
+                  <label className="studio-field studio-field--inline">
+                    <span>{copy.uploadSocialIcon}</span>
+                    <input type="file" accept="image/*" onChange={(event) => handleSocialIconUpload(index, event)} />
+                  </label>
+                  {item.iconDataUrl ? <img className="studio-icon-preview" src={item.iconDataUrl} alt={item.label || "icon"} /> : null}
+                  <button type="button" className="action-button action-button--secondary" onClick={() => handleRemoveSocialLink(index)}>
+                    {copy.removeSocialLink}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+
+        <section id="studio-custom-cards" className="studio-editor glass-card studio-section-card">
+          <div className="studio-editor__head">
+            <div>
+              <p className="micro-label">CARDS</p>
+              <h2>{copy.customCardsTitle}</h2>
+              <p className="body-copy">{copy.customCardsBody}</p>
+            </div>
+            <button type="button" className="action-button action-button--secondary" onClick={handleAddCustomCard}>
+              {copy.addCustomCard}
+            </button>
+          </div>
+
+          <div className="studio-list">
+            {siteDraft.meta.customCards.map((item, index) => (
+              <div key={item.id} className="studio-block">
+                <div className="studio-form__row">
+                  <label className="studio-field">
+                    <span>{copy.cardEyebrow}</span>
+                    <input
+                      type="text"
+                      value={item.eyebrow[editorLanguage] || ""}
+                      onChange={(event) => handleCustomCardLocalizedField(index, "eyebrow", event.target.value)}
+                    />
+                  </label>
+                  <label className="studio-field">
+                    <span>{copy.cardTitle}</span>
+                    <input
+                      type="text"
+                      value={item.title[editorLanguage] || ""}
+                      onChange={(event) => handleCustomCardLocalizedField(index, "title", event.target.value)}
+                    />
+                  </label>
+                  <label className="studio-field">
+                    <span>{copy.cardLinkUrl}</span>
+                    <input
+                      type="text"
+                      value={item.linkUrl}
+                      onChange={(event) => handleCustomCardField(index, "linkUrl", event.target.value)}
+                    />
+                  </label>
+                </div>
+                <label className="studio-field">
+                  <span>{copy.cardBody}</span>
+                  <textarea
+                    rows="4"
+                    value={item.body[editorLanguage] || ""}
+                    onChange={(event) => handleCustomCardLocalizedField(index, "body", event.target.value)}
+                  />
+                </label>
+                <div className="studio-inline-actions">
+                  <label className="studio-field studio-field--inline">
+                    <span>{copy.cardLinkLabel}</span>
+                    <input
+                      type="text"
+                      value={item.linkLabel[editorLanguage] || ""}
+                      onChange={(event) => handleCustomCardLocalizedField(index, "linkLabel", event.target.value)}
+                    />
+                  </label>
+                  <button type="button" className="action-button action-button--secondary" onClick={() => handleRemoveCustomCard(index)}>
+                    {copy.removeCustomCard}
+                  </button>
+                </div>
+              </div>
+            ))}
+          </div>
+        </section>
+        <section id="studio-projects" className="studio-editor glass-card studio-section-card">
           <div className="studio-editor__head">
             <div>
               <p className="micro-label">PROJECTS</p>
@@ -3416,6 +3444,22 @@ function StudioPage({
           </div>
         </section>
         </section>
+
+        <aside className="studio-rail glass-card">
+          <div className="studio-rail__progress">
+            <span className="micro-label">Progress</span>
+            <div className="studio-rail__bar">
+              <div className="studio-rail__fill" style={{ height: `${studioProgress * 100}%` }} />
+            </div>
+          </div>
+          <nav className="studio-rail__nav">
+            {studioSections.map((section) => (
+              <a key={section.id} className="studio-rail__link" href={`#${section.id}`}>
+                {section.label}
+              </a>
+            ))}
+          </nav>
+        </aside>
       </section>
     </main>
   );
