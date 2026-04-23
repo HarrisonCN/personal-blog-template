@@ -348,15 +348,18 @@ select {
   top: 0;
   z-index: 20;
   display: grid;
-  grid-template-columns: auto auto 1fr auto;
+  grid-template-columns: auto auto auto minmax(420px, 1fr);
   gap: 12px;
-  align-items: center;
+  align-items: stretch;
   padding: 18px 0 14px;
   overflow: visible;
 }
 
 .header-panel {
-  padding: 7px;
+  min-height: 72px;
+  display: flex;
+  align-items: center;
+  padding: 7px 10px;
   border-radius: 20px;
 }
 
@@ -364,11 +367,13 @@ select {
   display: inline-flex;
   align-items: center;
   gap: 12px;
-  padding: 10px 12px;
+  min-height: 52px;
+  padding: 0 14px;
   text-decoration: none;
   font-weight: 700;
   letter-spacing: 0.14em;
   text-transform: uppercase;
+  white-space: nowrap;
 }
 
 .brand-mark {
@@ -382,8 +387,9 @@ select {
 .site-nav {
   display: flex;
   justify-content: center;
-  gap: 6px;
-  flex-wrap: wrap;
+  gap: 8px;
+  flex-wrap: nowrap;
+  align-items: center;
 }
 
 .site-nav a,
@@ -397,11 +403,16 @@ select {
 }
 
 .site-nav a {
-  padding: 9px 13px;
+  min-height: 52px;
+  padding: 0 16px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   text-decoration: none;
   color: var(--muted);
   background: color-mix(in srgb, var(--surface-strong) 88%, transparent);
   transition: transform 160ms ease, color 160ms ease, background 160ms ease;
+  white-space: nowrap;
 }
 
 .site-nav a.active,
@@ -412,11 +423,12 @@ select {
 }
 
 .tool-stack {
-  display: flex;
+  width: 100%;
+  display: grid;
+  grid-template-columns: auto minmax(300px, 1fr) auto;
   align-items: center;
-  justify-content: flex-end;
+  justify-content: stretch;
   gap: 8px;
-  flex-wrap: wrap;
 }
 
 .selector {
@@ -425,9 +437,9 @@ select {
 }
 
 .font-slider {
-  min-width: 260px;
-  padding: 10px 12px 12px;
-  border-radius: 22px;
+  min-width: 0;
+  padding: 8px 12px;
+  border-radius: 18px;
   background: color-mix(in srgb, var(--surface-strong) 90%, transparent);
   box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
@@ -437,7 +449,7 @@ select {
   align-items: baseline;
   justify-content: space-between;
   gap: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 6px;
 }
 
 .font-slider__head strong {
@@ -448,7 +460,7 @@ select {
 .font-slider__track {
   --font-progress: 0%;
   position: relative;
-  height: 36px;
+  height: 28px;
   padding: 0 2px;
   display: flex;
   align-items: center;
@@ -488,20 +500,20 @@ select {
 }
 
 .font-slider__track input[type="range"]::-webkit-slider-runnable-track {
-  height: 36px;
+  height: 28px;
   background: transparent;
 }
 
 .font-slider__track input[type="range"]::-moz-range-track {
-  height: 36px;
+  height: 28px;
   background: transparent;
   border: 0;
 }
 
 .font-slider__track input[type="range"]::-webkit-slider-thumb {
-  width: 20px;
-  height: 20px;
-  margin-top: 8px;
+  width: 18px;
+  height: 18px;
+  margin-top: 5px;
   border: 0;
   border-radius: 999px;
   background: #ffffff;
@@ -513,8 +525,8 @@ select {
 }
 
 .font-slider__track input[type="range"]::-moz-range-thumb {
-  width: 20px;
-  height: 20px;
+  width: 18px;
+  height: 18px;
   border: 0;
   border-radius: 999px;
   background: #ffffff;
@@ -524,22 +536,34 @@ select {
 }
 
 .font-slider__scale {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  display: flex;
   gap: 6px;
-  margin-top: 8px;
+  margin-top: 6px;
+  overflow-x: auto;
+  padding-bottom: 2px;
+  scrollbar-width: none;
+}
+
+.font-slider__scale::-webkit-scrollbar {
+  display: none;
 }
 
 .font-slider__tick {
-  padding: 7px 8px;
+  flex: 0 0 auto;
+  min-height: 32px;
+  padding: 0 10px;
   border: 0;
   border-radius: 14px;
   background: color-mix(in srgb, var(--surface) 92%, transparent);
   color: var(--muted);
   font-size: 0.66rem;
-  line-height: 1.25;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+  white-space: nowrap;
 }
 
 .font-slider__tick.active,
@@ -1471,6 +1495,7 @@ select {
   }
 
   .site-header {
+    grid-template-columns: 1fr;
     justify-items: stretch;
   }
 
@@ -1480,8 +1505,7 @@ select {
   }
 
   .tool-stack {
-    justify-content: flex-start;
-    flex-wrap: wrap;
+    grid-template-columns: 1fr;
   }
 
   .intro-panel {
@@ -1542,7 +1566,9 @@ select {
   }
 
   .font-slider__scale {
+    display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
+    overflow: visible;
   }
 
   .palette-trigger {
