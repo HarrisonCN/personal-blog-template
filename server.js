@@ -8,6 +8,7 @@ import { articles as seedArticles, featuredProjects, siteMeta, uiText } from "./
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const app = express();
+app.disable("x-powered-by");
 
 const PORT = Number(process.env.PORT || 8787);
 const SESSION_MS = 45 * 60 * 1000;
@@ -16,6 +17,7 @@ const MAX_ATTEMPTS = 5;
 const SESSION_COOKIE = "studio_session";
 const DEFAULT_USERNAME = process.env.STUDIO_USERNAME || "ADMIN";
 const DEFAULT_PASSWORD = process.env.STUDIO_PASSWORD || "CHANGE_ME_123";
+const DEFAULT_PASSWORD_HASH = process.env.STUDIO_PASSWORD_HASH?.trim() || "";
 const SESSION_SECRET = process.env.SESSION_SECRET || "template-dev-secret-change-me";
 
 const runtimeDir = path.join(__dirname, "server", "data");
@@ -25,7 +27,32 @@ const distDir = path.join(__dirname, "dist");
 const sessions = new Map();
 const loginGuards = new Map();
 
-app.use(express.json({ limit: "50mb" }));
+app.use(express.json({ limit: "25mb" }));
+
+app.use((request, response, next) => {
+  response.setHeader("X-Frame-Options", "DENY");
+  response.setHeader("X-Content-Type-Options", "nosniff");
+  response.setHeader("Referrer-Policy", "same-origin");
+  response.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+  response.setHeader(
+    "Content-Security-Policy",
+    [
+      "default-src 'self'",
+      "base-uri 'self'",
+      "object-src 'none'",
+      "frame-ancestors 'none'",
+      "form-action 'self'",
+      "script-src 'self'",
+      "connect-src 'self'",
+      "img-src 'self' data: blob: https:",
+      "media-src 'self' data: blob: https:",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "font-src 'self' data: https://fonts.gstatic.com",
+      "frame-src https://open.spotify.com"
+    ].join("; ")
+  );
+  next();
+});
 
 function formatArticleDate(date) {
   const year = date.getFullYear();
@@ -188,16 +215,87 @@ function cleanupExpiredSessions() {
   }
 }
 
+function cleanupExpiredLoginGuards() {
+  const now = Date.now();
+  for (const [key, value] of loginGuards.entries()) {
+    if (!value.lockUntil || value.lockUntil <= now) {
+      loginGuards.delete(key);
+    }
+  }
+}
+
+function sha256Hex(value) {
+  return crypto.createHash("sha256").update(value).digest("hex");
+}
+
+function safeEqualText(left, right) {
+  const leftBuffer = Buffer.from(String(left));
+  const rightBuffer = Buffer.from(String(right));
+  return leftBuffer.length === rightBuffer.length && crypto.timingSafeEqual(leftBuffer, rightBuffer);
+}
+
+function verifyPassword(password) {
+  if (DEFAULT_PASSWORD_HASH) {
+    return safeEqualText(sha256Hex(password), DEFAULT_PASSWORD_HASH);
+  }
+
+  return safeEqualText(password, DEFAULT_PASSWORD);
+}
+
+function isTrustedOrigin(request) {
+  const forwardedProto = request.headers["x-forwarded-proto"];
+  const protocol = typeof forwardedProto === "string" ? forwardedProto.split(",")[0].trim() : request.protocol;
+  const host = request.headers["x-forwarded-host"] || request.headers.host;
+  const expectedOrigin = `${protocol}://${host}`;
+  const origin = request.headers.origin;
+  const referer = request.headers.referer;
+
+  if (origin) {
+    return origin === expectedOrigin;
+  }
+
+  if (referer) {
+    return referer.startsWith(`${expectedOrigin}/`) || referer === expectedOrigin;
+  }
+
+  return true;
+}
+
 function setSessionCookie(response, sessionId) {
   const maxAge = Math.floor(SESSION_MS / 1000);
+  const cookieAttributes = [
+    `${SESSION_COOKIE}=${createSignedSession(sessionId)}`,
+    "Path=/",
+    "HttpOnly",
+    "SameSite=Strict",
+    `Max-Age=${maxAge}`,
+  ];
+
+  if (process.env.NODE_ENV === "production") {
+    cookieAttributes.push("Secure");
+  }
+
   response.setHeader(
     "Set-Cookie",
-    `${SESSION_COOKIE}=${createSignedSession(sessionId)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${maxAge}`
+    cookieAttributes.join("; ")
   );
 }
 
 function clearSessionCookie(response) {
-  response.setHeader("Set-Cookie", `${SESSION_COOKIE}=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0`);
+  const cookieAttributes = [`${SESSION_COOKIE}=`, "Path=/", "HttpOnly", "SameSite=Strict", "Max-Age=0"];
+  if (process.env.NODE_ENV === "production") {
+    cookieAttributes.push("Secure");
+  }
+  response.setHeader("Set-Cookie", cookieAttributes.join("; "));
+}
+
+function requireTrustedOrigin(request, response, next) {
+  if (!isTrustedOrigin(request)) {
+    response.status(403).json({ error: "forbidden_origin" });
+    return;
+  }
+
+  next();
 }
 
 function requireStudioAuth(request, response, next) {
@@ -260,6 +358,7 @@ app.get("/api/studio/session", (request, response) => {
 });
 
 app.post("/api/studio/login", (request, response) => {
+  cleanupExpiredLoginGuards();
   const username = String(request.body?.username || "");
   const password = String(request.body?.password || "");
   const guardKey = getGuardKey(username, request);
@@ -271,12 +370,8 @@ app.post("/api/studio/login", (request, response) => {
     return;
   }
 
-  const validUsername =
-    username.length === DEFAULT_USERNAME.length &&
-    crypto.timingSafeEqual(Buffer.from(username), Buffer.from(DEFAULT_USERNAME));
-  const validPassword =
-    password.length === DEFAULT_PASSWORD.length &&
-    crypto.timingSafeEqual(Buffer.from(password), Buffer.from(DEFAULT_PASSWORD));
+  const validUsername = safeEqualText(username, DEFAULT_USERNAME);
+  const validPassword = verifyPassword(password);
 
   if (!validUsername || !validPassword) {
     const attempts = currentGuard.attempts + 1;
@@ -303,7 +398,7 @@ app.post("/api/studio/login", (request, response) => {
   response.json({ ok: true });
 });
 
-app.post("/api/studio/logout", (request, response) => {
+app.post("/api/studio/logout", requireTrustedOrigin, (request, response) => {
   const cookies = parseCookies(request);
   const sessionId = verifySignedSession(cookies[SESSION_COOKIE]);
   if (sessionId) {
@@ -313,7 +408,7 @@ app.post("/api/studio/logout", (request, response) => {
   response.json({ ok: true });
 });
 
-app.post("/api/studio/articles", requireStudioAuth, (request, response) => {
+app.post("/api/studio/articles", requireTrustedOrigin, requireStudioAuth, (request, response) => {
   const { article, previousSlug = null } = request.body || {};
   if (!article || typeof article !== "object") {
     response.status(400).json({ error: "invalid_article" });
@@ -337,7 +432,7 @@ app.post("/api/studio/articles", requireStudioAuth, (request, response) => {
   response.json({ ok: true, articles: store.articles });
 });
 
-app.post("/api/studio/projects", requireStudioAuth, (request, response) => {
+app.post("/api/studio/projects", requireTrustedOrigin, requireStudioAuth, (request, response) => {
   const { project, previousSlug = null } = request.body || {};
   if (!project || typeof project !== "object") {
     response.status(400).json({ error: "invalid_project" });
@@ -356,7 +451,7 @@ app.post("/api/studio/projects", requireStudioAuth, (request, response) => {
   response.json({ ok: true, projects: store.projects });
 });
 
-app.post("/api/studio/site-content", requireStudioAuth, (request, response) => {
+app.post("/api/studio/site-content", requireTrustedOrigin, requireStudioAuth, (request, response) => {
   const { siteContent } = request.body || {};
   if (!siteContent || typeof siteContent !== "object") {
     response.status(400).json({ error: "invalid_site_content" });
@@ -369,7 +464,7 @@ app.post("/api/studio/site-content", requireStudioAuth, (request, response) => {
   response.json({ ok: true, siteContent: store.siteContent });
 });
 
-app.post("/api/guestbook", (request, response) => {
+app.post("/api/guestbook", requireTrustedOrigin, (request, response) => {
   const name = String(request.body?.name || "").trim();
   const message = String(request.body?.message || "").trim();
 
