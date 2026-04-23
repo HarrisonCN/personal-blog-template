@@ -1504,6 +1504,20 @@ function formatTime(value) {
   return `${minutes}:${seconds}`;
 }
 
+function getTrackCoverStyle(track, customSource) {
+  if (customSource?.type === "spotify") {
+    return {
+      background:
+        "radial-gradient(circle at 24% 18%, rgba(255,255,255,.34), transparent 26%), linear-gradient(135deg, #42d392 0%, #19392f 48%, #0d1411 100%)",
+    };
+  }
+
+  const colors = track?.cover?.colors || ["#dbeafe", "#9dc9ff", "#283759"];
+  return {
+    background: `radial-gradient(circle at 24% 18%, rgba(255,255,255,.34), transparent 24%), linear-gradient(135deg, ${colors[0]} 0%, ${colors[1]} 46%, ${colors[2]} 100%)`,
+  };
+}
+
 function parseSource(input) {
   const value = input.trim();
   if (!value) {
@@ -1599,6 +1613,20 @@ function MusicDock({ text }) {
   const [expanded, setExpanded] = useState(false);
 
   const currentTrack = customSource?.type === "direct" ? customSource : playlist[trackIndex];
+  const progressPercent = duration > 0 ? Math.min(100, Math.max(0, (currentTime / duration) * 100)) : 0;
+  const coverStyle = getTrackCoverStyle(currentTrack, customSource);
+  const compactTitle =
+    customSource?.type === "spotify"
+      ? "Spotify"
+      : customSource?.type === "unsupported"
+        ? text.directSource
+        : currentTrack.title;
+  const compactSubtitle =
+    customSource?.type === "spotify"
+      ? "Spotify"
+      : customSource?.type === "unsupported"
+        ? text.unsupportedSource
+        : currentTrack.artist;
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -1698,24 +1726,22 @@ function MusicDock({ text }) {
     <aside className={`music-dock glass-card ${expanded ? "expanded" : "collapsed"}`}>
       <audio ref={audioRef} preload="metadata" />
       <button type="button" className="music-dock__toggle" onClick={() => setExpanded((prev) => !prev)}>
-        <div className="music-dock__head">
-          <span className="micro-label">{text.nowPlaying}</span>
-          <strong>
-            {customSource?.type === "spotify"
-              ? "Spotify Embed"
-              : customSource?.type === "unsupported"
-                ? text.directSource
-                : currentTrack.title}
-          </strong>
-          <span className="music-dock__artist">
-            {customSource?.type === "spotify"
-              ? "Spotify"
-              : customSource?.type === "unsupported"
-                ? text.unsupportedSource
-                : currentTrack.artist}
-          </span>
+        <div className="music-dock__compact">
+          <div className="music-dock__cover music-dock__cover--compact" style={coverStyle} aria-hidden="true">
+            <span>{compactTitle.slice(0, 1)}</span>
+          </div>
+          <div className="music-dock__head">
+            <span className="micro-label">{text.nowPlaying}</span>
+            <strong>{compactTitle}</strong>
+            <span className="music-dock__artist">{compactSubtitle}</span>
+          </div>
         </div>
-        <span className="music-dock__caret">{expanded ? "−" : "+"}</span>
+        <div className="music-dock__toggle-side">
+          <div className="music-dock__mini-progress">
+            <span style={{ width: `${progressPercent}%` }} />
+          </div>
+          <span className="music-dock__caret">{expanded ? "-" : "+"}</span>
+        </div>
       </button>
 
       <div className="music-dock__body">
@@ -1761,31 +1787,42 @@ function MusicDock({ text }) {
             </div>
           ) : (
             <div className="music-dock__media-shell">
-              <div className="music-dock__controls">
-                <button
-                  type="button"
-                  className="dock-button dock-button--icon"
-                  onClick={() => usePlaylistTrack(-1)}
-                  aria-label={text.previousTrack}
-                >
-                  Prev
-                </button>
-                <button
-                  type="button"
-                  className="dock-button dock-button--play"
-                  onClick={togglePlayback}
-                  aria-label={isPlaying ? text.pauseTrack : text.playTrack}
-                >
-                  {isPlaying ? "Pause" : "Play"}
-                </button>
-                <button
-                  type="button"
-                  className="dock-button dock-button--icon"
-                  onClick={() => usePlaylistTrack(1)}
-                  aria-label={text.nextTrack}
-                >
-                  Next
-                </button>
+              <div className="music-dock__player">
+                <div className="music-dock__cover" style={coverStyle} aria-hidden="true">
+                  <span>{currentTrack.title.slice(0, 1)}</span>
+                </div>
+                <div className="music-dock__player-main">
+                  <div className="music-dock__meta">
+                    <strong>{currentTrack.title}</strong>
+                    <span>{currentTrack.artist}</span>
+                  </div>
+                  <div className="music-dock__controls">
+                    <button
+                      type="button"
+                      className="dock-button dock-button--icon"
+                      onClick={() => usePlaylistTrack(-1)}
+                      aria-label={text.previousTrack}
+                    >
+                      Prev
+                    </button>
+                    <button
+                      type="button"
+                      className="dock-button dock-button--play"
+                      onClick={togglePlayback}
+                      aria-label={isPlaying ? text.pauseTrack : text.playTrack}
+                    >
+                      {isPlaying ? "Pause" : "Play"}
+                    </button>
+                    <button
+                      type="button"
+                      className="dock-button dock-button--icon"
+                      onClick={() => usePlaylistTrack(1)}
+                      aria-label={text.nextTrack}
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
               </div>
 
               <div className="music-dock__progress">
