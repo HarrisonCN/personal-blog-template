@@ -10,6 +10,12 @@ export const fonts = [
   { code: "manrope", label: "Manrope" },
   { code: "sora", label: "Sora" },
   { code: "serif", label: "Serif" },
+  { code: "space", label: "Space Grotesk" },
+  { code: "jakarta", label: "Plus Jakarta Sans" },
+  { code: "dmsans", label: "DM Sans" },
+  { code: "urbanist", label: "Urbanist" },
+  { code: "fraunces", label: "Fraunces" },
+  { code: "ibmplex", label: "IBM Plex Sans" },
 ];
 
 export const uiText = {

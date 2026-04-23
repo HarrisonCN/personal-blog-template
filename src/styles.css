@@ -58,6 +58,36 @@
   --font-display: "Cormorant Garamond", serif;
 }
 
+:root[data-font="space"] {
+  --font-body: "Space Grotesk", sans-serif;
+  --font-display: "Space Grotesk", sans-serif;
+}
+
+:root[data-font="jakarta"] {
+  --font-body: "Plus Jakarta Sans", sans-serif;
+  --font-display: "Plus Jakarta Sans", sans-serif;
+}
+
+:root[data-font="dmsans"] {
+  --font-body: "DM Sans", sans-serif;
+  --font-display: "DM Sans", sans-serif;
+}
+
+:root[data-font="urbanist"] {
+  --font-body: "Urbanist", sans-serif;
+  --font-display: "Urbanist", sans-serif;
+}
+
+:root[data-font="fraunces"] {
+  --font-body: "Fraunces", serif;
+  --font-display: "Fraunces", serif;
+}
+
+:root[data-font="ibmplex"] {
+  --font-body: "IBM Plex Sans", sans-serif;
+  --font-display: "IBM Plex Sans", sans-serif;
+}
+
 * {
   box-sizing: border-box;
 }
@@ -392,6 +422,131 @@ select {
 .selector {
   position: relative;
   z-index: 12;
+}
+
+.font-slider {
+  min-width: 260px;
+  padding: 10px 12px 12px;
+  border-radius: 22px;
+  background: color-mix(in srgb, var(--surface-strong) 90%, transparent);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.font-slider__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.font-slider__head strong {
+  font-size: 0.86rem;
+  font-weight: 600;
+}
+
+.font-slider__track {
+  --font-progress: 0%;
+  position: relative;
+  height: 36px;
+  padding: 0 2px;
+  display: flex;
+  align-items: center;
+}
+
+.font-slider__track::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  right: 2px;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 54%, #ffffff), color-mix(in srgb, var(--accent-warm) 54%, #ffffff));
+  opacity: 0.24;
+}
+
+.font-slider__track::after {
+  content: "";
+  position: absolute;
+  left: 2px;
+  width: calc(var(--font-progress) - 4px);
+  min-width: 10px;
+  height: 10px;
+  border-radius: 999px;
+  background: linear-gradient(90deg, var(--accent), var(--accent-warm));
+  box-shadow: 0 0 18px color-mix(in srgb, var(--accent) 22%, transparent);
+}
+
+.font-slider__track input[type="range"] {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  margin: 0;
+  background: transparent;
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.font-slider__track input[type="range"]::-webkit-slider-runnable-track {
+  height: 36px;
+  background: transparent;
+}
+
+.font-slider__track input[type="range"]::-moz-range-track {
+  height: 36px;
+  background: transparent;
+  border: 0;
+}
+
+.font-slider__track input[type="range"]::-webkit-slider-thumb {
+  width: 20px;
+  height: 20px;
+  margin-top: 8px;
+  border: 0;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow:
+    0 0 0 4px rgba(255, 255, 255, 0.14),
+    0 10px 20px color-mix(in srgb, var(--shadow) 72%, transparent);
+  -webkit-appearance: none;
+  appearance: none;
+}
+
+.font-slider__track input[type="range"]::-moz-range-thumb {
+  width: 20px;
+  height: 20px;
+  border: 0;
+  border-radius: 999px;
+  background: #ffffff;
+  box-shadow:
+    0 0 0 4px rgba(255, 255, 255, 0.14),
+    0 10px 20px color-mix(in srgb, var(--shadow) 72%, transparent);
+}
+
+.font-slider__scale {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.font-slider__tick {
+  padding: 7px 8px;
+  border: 0;
+  border-radius: 14px;
+  background: color-mix(in srgb, var(--surface) 92%, transparent);
+  color: var(--muted);
+  font-size: 0.66rem;
+  line-height: 1.25;
+  text-align: center;
+  transition: background 160ms ease, color 160ms ease, transform 160ms ease;
+}
+
+.font-slider__tick.active,
+.font-slider__tick:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-strong));
+  transform: translateY(-1px);
 }
 
 .palette-picker {
@@ -1373,6 +1528,21 @@ select {
   .palette-panel,
   .palette-trigger {
     width: 100%;
+  }
+
+  .font-slider {
+    min-width: 0;
+    width: 100%;
+  }
+
+  .font-slider__head {
+    align-items: flex-start;
+    flex-direction: column;
+    gap: 4px;
+  }
+
+  .font-slider__scale {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .palette-trigger {
