@@ -8,9 +8,9 @@ if (-not (Test-Path $pidFile)) {
   exit 0
 }
 
-$pid = Get-Content $pidFile -ErrorAction SilentlyContinue
-if ($pid) {
-  Stop-Process -Id $pid -ErrorAction SilentlyContinue
+$previewPid = Get-Content $pidFile -ErrorAction SilentlyContinue
+if ($previewPid) {
+  Stop-Process -Id $previewPid -ErrorAction SilentlyContinue
 }
 
 Remove-Item $pidFile -ErrorAction SilentlyContinue

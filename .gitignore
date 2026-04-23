@@ -1,5 +1,8 @@
 node_modules/
 dist/
 .blog-preview.pid
+.cover-preview.pid
+.env
+server/data/
 .DS_Store
 Thumbs.db

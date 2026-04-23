@@ -12,19 +12,10 @@ import {
   uiText,
 } from "./data/siteContent";
 
-const ARTICLES_STORAGE_KEY = "template-articles";
-const STUDIO_AUTH_KEY = "template-studio-auth";
-const STUDIO_AUTH_META_KEY = "template-studio-auth-meta";
-const STUDIO_LOGIN_GUARD_KEY = "template-studio-login-guard";
-const SITE_CONTENT_STORAGE_KEY = "template-site-content";
-const PROJECTS_STORAGE_KEY = "template-projects";
 const PALETTE_STORAGE_KEY = "template-palette";
 const GUESTBOOK_STORAGE_KEY = "template-guestbook";
-const STUDIO_AUTH_HASH = "c362a3917539d8e0483c9cc9a59a953928f8fa859227b4cfbebcf454132ef2e0";
-const STUDIO_AUTH_SALT = "studio-v1";
 const STUDIO_MAX_ATTEMPTS = 5;
 const STUDIO_LOCK_MS = 15 * 60 * 1000;
-const STUDIO_SESSION_MS = 45 * 60 * 1000;
 const EDITABLE_TEXT_KEYS = [
   "navHome",
   "navArticles",
@@ -135,9 +126,9 @@ const fallbackCopy = {
     manageArticles: "管理文章",
     studioTitle: "文章后台",
     studioBody: "在这里新增文章、补充图片和音频文件，也能继续编辑以前写过的内容。",
-    studioHint: "当前登录仅在本机浏览器本地生效。",
+    studioHint: "写作台登录和内容保存现在由服务端处理，不再暴露在前端。",
     loginTitle: "登录写作台",
-    loginBody: "输入账户名和密码后才能进入文章编辑后台。",
+    loginBody: "输入由服务端校验的账户名和密码后才能进入写作台。",
     username: "账户名",
     password: "密码",
     login: "登录",
@@ -217,9 +208,9 @@ const fallbackCopy = {
     manageArticles: "Manage Articles",
     studioTitle: "Writing Studio",
     studioBody: "Create, revise, and attach media to articles from one local dashboard.",
-    studioHint: "This login is only stored in the current browser locally.",
+    studioHint: "Studio login and content writes are now handled by the server instead of front-end storage.",
     loginTitle: "Studio Login",
-    loginBody: "Sign in to create and edit articles.",
+    loginBody: "Sign in with server-validated credentials to enter the studio.",
     username: "Username",
     password: "Password",
     login: "Sign In",
@@ -540,12 +531,6 @@ function fileToAttachment(file) {
   });
 }
 
-async function sha256Hex(value) {
-  const bytes = new TextEncoder().encode(value);
-  const digest = await window.crypto.subtle.digest("SHA-256", bytes);
-  return Array.from(new Uint8Array(digest), (item) => item.toString(16).padStart(2, "0")).join("");
-}
-
 function getAttachmentToken(id) {
   return `[[attachment:${id}]]`;
 }
@@ -820,193 +805,239 @@ function useInteractionGuard() {
   return message;
 }
 
-function useStudioAuth() {
-  const [isAuthenticated, setIsAuthenticated] = useState(() => {
-    const raw = window.localStorage.getItem(STUDIO_AUTH_META_KEY);
-    if (!raw) {
-      return false;
+async function apiRequest(path, options = {}) {
+  const response = await fetch(path, {
+    credentials: "include",
+    headers: {
+      "Content-Type": "application/json",
+      ...(options.headers ?? {}),
+    },
+    ...options,
+  });
+
+  const isJson = response.headers.get("content-type")?.includes("application/json");
+  const payload = isJson ? await response.json() : null;
+
+  if (!response.ok) {
+    const error = new Error(payload?.error || "request_failed");
+    error.status = response.status;
+    error.payload = payload;
+    throw error;
+  }
+
+  return payload;
+}
+
+function useBackendContent() {
+  const [articles, setArticles] = useState(() => sortArticles(seedArticles.map(normalizeArticle)));
+  const [projects, setProjects] = useState(() => featuredProjects.map(normalizeProject));
+  const [siteContent, setSiteContent] = useState(() => buildDefaultSiteContent());
+  const [entries, setEntries] = useState(() => {
+    const stored = window.localStorage.getItem(GUESTBOOK_STORAGE_KEY);
+    if (!stored) {
+      return [];
     }
 
     try {
-      const parsed = JSON.parse(raw);
-      return Number(parsed.expiresAt) > Date.now();
+      return JSON.parse(stored);
     } catch {
-      return false;
+      return [];
     }
   });
-  const [sessionExpired, setSessionExpired] = useState(false);
-  const [lockUntil, setLockUntil] = useState(() => {
-    const raw = window.localStorage.getItem(STUDIO_LOGIN_GUARD_KEY);
-    if (!raw) {
-      return 0;
-    }
-
-    try {
-      const parsed = JSON.parse(raw);
-      return Number(parsed.lockUntil) || 0;
-    } catch {
-      return 0;
-    }
-  });
+  const [studioAvailable, setStudioAvailable] = useState(false);
+  const [contentReady, setContentReady] = useState(false);
 
   useEffect(() => {
-    const intervalId = window.setInterval(() => {
-      const raw = window.localStorage.getItem(STUDIO_AUTH_META_KEY);
-      if (!raw) {
-        return;
-      }
+    let cancelled = false;
 
+    const loadBootstrap = async () => {
       try {
-        const parsed = JSON.parse(raw);
-        if (Number(parsed.expiresAt) <= Date.now()) {
-          setIsAuthenticated(false);
-          setSessionExpired(true);
-          window.localStorage.removeItem(STUDIO_AUTH_KEY);
-          window.localStorage.removeItem(STUDIO_AUTH_META_KEY);
+        const payload = await apiRequest("/api/bootstrap");
+        if (cancelled) {
+          return;
         }
-      } catch {
-        setIsAuthenticated(false);
-      }
-    }, 15000);
 
-    return () => window.clearInterval(intervalId);
+        setArticles(sortArticles((payload.articles ?? []).map(normalizeArticle)));
+        setProjects((payload.projects ?? []).map(normalizeProject));
+        setSiteContent(payload.siteContent ?? buildDefaultSiteContent());
+        setEntries(Array.isArray(payload.guestbook) ? payload.guestbook : []);
+        setStudioAvailable(Boolean(payload.studioAvailable));
+      } catch {
+        if (!cancelled) {
+          setStudioAvailable(false);
+        }
+      } finally {
+        if (!cancelled) {
+          setContentReady(true);
+        }
+      }
+    };
+
+    loadBootstrap();
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
-  const login = async (username, password) => {
-    const now = Date.now();
-    const guardRaw = window.localStorage.getItem(STUDIO_LOGIN_GUARD_KEY);
-    let guard = { attempts: 0, lockUntil: 0 };
+  useEffect(() => {
+    if (!studioAvailable) {
+      window.localStorage.setItem(GUESTBOOK_STORAGE_KEY, JSON.stringify(entries));
+    }
+  }, [entries, studioAvailable]);
 
-    if (guardRaw) {
-      try {
-        guard = { ...guard, ...JSON.parse(guardRaw) };
-      } catch {
-        guard = { attempts: 0, lockUntil: 0 };
-      }
+  const saveArticle = async (incoming, previousSlug = null) => {
+    if (!studioAvailable) {
+      return { ok: false, reason: "studio_unavailable" };
     }
 
-    if (guard.lockUntil && guard.lockUntil > now) {
-      setLockUntil(guard.lockUntil);
-      return { ok: false, reason: "locked" };
+    try {
+      const payload = await apiRequest("/api/studio/articles", {
+        method: "POST",
+        body: JSON.stringify({ article: incoming, previousSlug }),
+      });
+      setArticles(sortArticles((payload.articles ?? []).map(normalizeArticle)));
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, reason: error.status === 401 ? "unauthorized" : "request_failed" };
+    }
+  };
+
+  const saveProject = async (incoming, previousSlug = null) => {
+    if (!studioAvailable) {
+      return { ok: false, reason: "studio_unavailable" };
     }
 
-    const digest = await sha256Hex(`${username}:${password}:${STUDIO_AUTH_SALT}`);
-    if (digest === STUDIO_AUTH_HASH) {
-      const expiresAt = Date.now() + STUDIO_SESSION_MS;
-      setIsAuthenticated(true);
-      setSessionExpired(false);
-      setLockUntil(0);
-      window.localStorage.setItem(STUDIO_AUTH_KEY, "1");
-      window.localStorage.setItem(
-        STUDIO_AUTH_META_KEY,
-        JSON.stringify({ expiresAt })
-      );
-      window.localStorage.setItem(
-        STUDIO_LOGIN_GUARD_KEY,
-        JSON.stringify({ attempts: 0, lockUntil: 0 })
-      );
+    try {
+      const payload = await apiRequest("/api/studio/projects", {
+        method: "POST",
+        body: JSON.stringify({ project: incoming, previousSlug }),
+      });
+      setProjects((payload.projects ?? []).map(normalizeProject));
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, reason: error.status === 401 ? "unauthorized" : "request_failed" };
+    }
+  };
+
+  const saveContent = async (nextContent) => {
+    if (!studioAvailable) {
+      return { ok: false, reason: "studio_unavailable" };
+    }
+
+    try {
+      const payload = await apiRequest("/api/studio/site-content", {
+        method: "POST",
+        body: JSON.stringify({ siteContent: nextContent }),
+      });
+      setSiteContent(payload.siteContent ?? nextContent);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, reason: error.status === 401 ? "unauthorized" : "request_failed" };
+    }
+  };
+
+  const addEntry = async (entry) => {
+    if (!studioAvailable) {
+      setEntries((current) => [
+        {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          createdAt: new Date().toISOString(),
+          ...entry,
+        },
+        ...current,
+      ]);
       return { ok: true };
     }
 
-    const attempts = Number(guard.attempts || 0) + 1;
-    const nextGuard = {
-      attempts,
-      lockUntil: attempts >= STUDIO_MAX_ATTEMPTS ? now + STUDIO_LOCK_MS : 0,
-    };
-    window.localStorage.setItem(STUDIO_LOGIN_GUARD_KEY, JSON.stringify(nextGuard));
-    setLockUntil(nextGuard.lockUntil);
-
-    return {
-      ok: false,
-      reason: nextGuard.lockUntil ? "locked" : "invalid",
-    };
+    const payload = await apiRequest("/api/guestbook", {
+      method: "POST",
+      body: JSON.stringify(entry),
+    });
+    setEntries(Array.isArray(payload.guestbook) ? payload.guestbook : []);
+    return { ok: true };
   };
 
-  const logout = () => {
+  return { articles, projects, siteContent, entries, saveArticle, saveProject, saveContent, addEntry, studioAvailable, contentReady };
+}
+
+function useStudioAuth(studioAvailable) {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [sessionExpired, setSessionExpired] = useState(false);
+  const [lockUntil, setLockUntil] = useState(0);
+  const [authReady, setAuthReady] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!studioAvailable) {
+      setIsAuthenticated(false);
+      setSessionExpired(false);
+      setLockUntil(0);
+      setAuthReady(true);
+      return;
+    }
+
+    const readSession = async () => {
+      try {
+        const payload = await apiRequest("/api/studio/session");
+        if (cancelled) {
+          return;
+        }
+        setIsAuthenticated(Boolean(payload.authenticated));
+        setLockUntil(Number(payload.lockUntil) || 0);
+      } catch {
+        if (!cancelled) {
+          setIsAuthenticated(false);
+        }
+      } finally {
+        if (!cancelled) {
+          setAuthReady(true);
+        }
+      }
+    };
+
+    readSession();
+    return () => {
+      cancelled = true;
+    };
+  }, [studioAvailable]);
+
+  const login = async (username, password) => {
+    if (!studioAvailable) {
+      return { ok: false, reason: "unavailable" };
+    }
+
+    try {
+      await apiRequest("/api/studio/login", {
+        method: "POST",
+        body: JSON.stringify({ username, password }),
+      });
+      setIsAuthenticated(true);
+      setSessionExpired(false);
+      setLockUntil(0);
+      return { ok: true };
+    } catch (error) {
+      if (error.status === 429) {
+        setLockUntil(Number(error.payload?.lockUntil) || Date.now() + STUDIO_LOCK_MS);
+        return { ok: false, reason: "locked" };
+      }
+
+      return { ok: false, reason: error.status === 401 ? "invalid" : "unavailable" };
+    }
+  };
+
+  const logout = async () => {
+    if (studioAvailable) {
+      try {
+        await apiRequest("/api/studio/logout", { method: "POST", body: "{}" });
+      } catch {}
+    }
+
     setIsAuthenticated(false);
     setSessionExpired(false);
-    window.localStorage.removeItem(STUDIO_AUTH_KEY);
-    window.localStorage.removeItem(STUDIO_AUTH_META_KEY);
   };
 
-  return { isAuthenticated, login, logout, sessionExpired, lockUntil };
-}
-
-function useArticlesManager() {
-  const [articles, setArticles] = useState(() => {
-    const stored = window.localStorage.getItem(ARTICLES_STORAGE_KEY);
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        return sortArticles(parsed.map(normalizeArticle));
-      } catch {
-        return sortArticles(seedArticles.map(normalizeArticle));
-      }
-    }
-
-    return sortArticles(seedArticles.map(normalizeArticle));
-  });
-
-  useEffect(() => {
-    window.localStorage.setItem(ARTICLES_STORAGE_KEY, JSON.stringify(articles));
-  }, [articles]);
-
-  const saveArticle = (incoming, previousSlug = null) => {
-    const stamped = {
-      ...incoming,
-      date: formatArticleDate(new Date()),
-      updatedAt: new Date().toISOString(),
-    };
-
-    setArticles((current) => {
-      const next = [...current];
-      const existingIndex = next.findIndex((item) => item.slug === (previousSlug || stamped.slug));
-
-      if (existingIndex >= 0) {
-        next[existingIndex] = stamped;
-      } else {
-        next.unshift(stamped);
-      }
-
-      return sortArticles(next);
-    });
-  };
-
-  return { articles, saveArticle };
-}
-
-function useProjectsManager() {
-  const [projects, setProjects] = useState(() => {
-    const stored = window.localStorage.getItem(PROJECTS_STORAGE_KEY);
-    if (stored) {
-      try {
-        return JSON.parse(stored).map(normalizeProject);
-      } catch {
-        return featuredProjects.map(normalizeProject);
-      }
-    }
-
-    return featuredProjects.map(normalizeProject);
-  });
-
-  useEffect(() => {
-    window.localStorage.setItem(PROJECTS_STORAGE_KEY, JSON.stringify(projects));
-  }, [projects]);
-
-  const saveProject = (incoming, previousSlug = null) => {
-    setProjects((current) => {
-      const next = [...current];
-      const existingIndex = next.findIndex((item) => item.slug === (previousSlug || incoming.slug));
-      if (existingIndex >= 0) {
-        next[existingIndex] = incoming;
-      } else {
-        next.unshift(incoming);
-      }
-      return next;
-    });
-  };
-
-  return { projects, saveProject };
+  return { isAuthenticated, login, logout, sessionExpired, lockUntil, studioAvailable, authReady };
 }
 
 function buildDefaultSiteContent() {
@@ -1029,53 +1060,6 @@ function buildDefaultSiteContent() {
     },
     text: textContent,
   };
-}
-
-function useSiteContent(language) {
-  const [content, setContent] = useState(() => {
-    const fallback = buildDefaultSiteContent();
-    const stored = window.localStorage.getItem(SITE_CONTENT_STORAGE_KEY);
-    if (!stored) {
-      return fallback;
-    }
-
-    try {
-      const parsed = JSON.parse(stored);
-      return {
-        meta: {
-          ...fallback.meta,
-          ...parsed.meta,
-          role: ensureLocalizedMap(parsed.meta?.role ?? fallback.meta.role, ""),
-          intro: ensureLocalizedMap(parsed.meta?.intro ?? fallback.meta.intro, ""),
-          stats: { ...fallback.meta.stats, ...(parsed.meta?.stats ?? {}) },
-          socialLinks: Array.isArray(parsed.meta?.socialLinks) ? parsed.meta.socialLinks : fallback.meta.socialLinks,
-        },
-        text: Object.fromEntries(
-          Object.entries(fallback.text).map(([lang, value]) => [
-            lang,
-            {
-              ...value,
-              ...(parsed.text?.[lang] ?? {}),
-            },
-          ])
-        ),
-      };
-    } catch {
-      return fallback;
-    }
-  });
-
-  useEffect(() => {
-    window.localStorage.setItem(SITE_CONTENT_STORAGE_KEY, JSON.stringify(content));
-  }, [content]);
-
-  const saveContent = (nextContent) => setContent(nextContent);
-  const text = {
-    ...uiText[language],
-    ...(content.text[language] ?? {}),
-  };
-
-  return { siteContent: content, meta: content.meta, text, saveContent };
 }
 
 function ThemeToggle({ theme, setTheme, text }) {
@@ -1757,38 +1741,6 @@ function useSeo({ title, description, image }) {
   }, [description, image, title]);
 }
 
-function useGuestbook() {
-  const [entries, setEntries] = useState(() => {
-    const stored = window.localStorage.getItem(GUESTBOOK_STORAGE_KEY);
-    if (!stored) {
-      return [];
-    }
-
-    try {
-      return JSON.parse(stored);
-    } catch {
-      return [];
-    }
-  });
-
-  useEffect(() => {
-    window.localStorage.setItem(GUESTBOOK_STORAGE_KEY, JSON.stringify(entries));
-  }, [entries]);
-
-  const addEntry = (entry) => {
-    setEntries((current) => [
-      {
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        createdAt: new Date().toISOString(),
-        ...entry,
-      },
-      ...current,
-    ]);
-  };
-
-  return { entries, addEntry };
-}
-
 function HomePage({ language, text, copy, articles, meta, projects, guestbookEntries, addGuestbookEntry }) {
   const [guestbookForm, setGuestbookForm] = useState({ name: "", message: "" });
   useSeo({
@@ -1803,12 +1755,12 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
     return [...pinned, ...rest].slice(0, 3);
   }, [articles]);
 
-  const submitGuestbook = (event) => {
+  const submitGuestbook = async (event) => {
     event.preventDefault();
     if (!guestbookForm.name.trim() || !guestbookForm.message.trim()) {
       return;
     }
-    addGuestbookEntry({
+    await addGuestbookEntry({
       name: guestbookForm.name.trim(),
       message: guestbookForm.message.trim(),
     });
@@ -2287,6 +2239,8 @@ function StudioPage({
   logout,
   sessionExpired,
   lockUntil,
+  studioAvailable,
+  authReady,
   siteContent,
   saveSiteContent,
 }) {
@@ -2342,7 +2296,13 @@ function StudioPage({
       return;
     }
 
-    setLoginError(result.reason === "locked" ? copy.loginLocked : copy.loginError);
+    setLoginError(
+      result.reason === "locked"
+        ? copy.loginLocked
+        : result.reason === "unavailable"
+          ? "Studio requires the Node server API."
+          : copy.loginError
+    );
   };
 
   const handleLocalizedField = (section, value) => {
@@ -2392,7 +2352,7 @@ function StudioPage({
     }));
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     const preferredTitle =
       draft.title.en || draft.title.zh || draft.title.ja || draft.title.ko || copy.newDraftTitle;
     let nextSlug = slugify(draft.slug || preferredTitle);
@@ -2421,7 +2381,12 @@ function StudioPage({
       content: ensureLocalizedMap(draft.content, ""),
     };
 
-    saveArticle(nextDraft, selectedSlug === "__new__" ? null : selectedSlug);
+    const result = await saveArticle(nextDraft, selectedSlug === "__new__" ? null : selectedSlug);
+    if (!result.ok) {
+      setFlash(result.reason === "unauthorized" ? copy.sessionExpired : "Studio save is unavailable without the backend server.");
+      window.setTimeout(() => setFlash(""), 1800);
+      return;
+    }
     setSelectedSlug(nextSlug);
     setFlash(copy.articleSaved);
     window.setTimeout(() => setFlash(""), 1600);
@@ -2463,8 +2428,13 @@ function StudioPage({
     }));
   };
 
-  const handleSaveSiteContent = () => {
-    saveSiteContent(siteDraft);
+  const handleSaveSiteContent = async () => {
+    const result = await saveSiteContent(siteDraft);
+    if (!result.ok) {
+      setSiteFlash(result.reason === "unauthorized" ? copy.sessionExpired : "Studio save is unavailable without the backend server.");
+      window.setTimeout(() => setSiteFlash(""), 1800);
+      return;
+    }
     setSiteFlash(copy.siteContentSaved);
     window.setTimeout(() => setSiteFlash(""), 1600);
   };
@@ -2479,7 +2449,7 @@ function StudioPage({
     }));
   };
 
-  const handleSaveProject = () => {
+  const handleSaveProject = async () => {
     const baseSlug = slugify(projectDraft.slug || projectDraft.title || `project-${Date.now()}`);
     let nextSlug = baseSlug || `project-${Date.now()}`;
 
@@ -2504,11 +2474,40 @@ function StudioPage({
       metrics: projectDraft.metrics.filter(Boolean),
     };
 
-    saveProject(nextProject, selectedProjectSlug === "__new_project__" ? null : selectedProjectSlug);
+    const result = await saveProject(nextProject, selectedProjectSlug === "__new_project__" ? null : selectedProjectSlug);
+    if (!result.ok) {
+      setFlash(result.reason === "unauthorized" ? copy.sessionExpired : "Studio save is unavailable without the backend server.");
+      window.setTimeout(() => setFlash(""), 1800);
+      return;
+    }
     setSelectedProjectSlug(nextSlug);
     setFlash(copy.projectSaved);
     window.setTimeout(() => setFlash(""), 1600);
   };
+
+  if (!studioAvailable) {
+    return (
+      <main className="page">
+        <section className="page-banner glass-card auth-card">
+          <p className="micro-label">STUDIO</p>
+          <h1>{copy.loginTitle}</h1>
+          <p className="body-copy">This route is read-only without the Node backend. Run <code>npm run dev:full</code> or <code>npm run start</code>.</p>
+        </section>
+      </main>
+    );
+  }
+
+  if (!authReady) {
+    return (
+      <main className="page">
+        <section className="page-banner glass-card auth-card">
+          <p className="micro-label">STUDIO</p>
+          <h1>{copy.loginTitle}</h1>
+          <p className="body-copy">Loading secure studio session...</p>
+        </section>
+      </main>
+    );
+  }
 
   if (!isAuthenticated) {
     return (
@@ -2982,11 +2981,22 @@ export default function App() {
   const { theme, setTheme, language, setLanguage, font, setFont } = usePreferences();
   const { palette, setPalette } = usePalette();
   const copy = getCopy(language);
-  const { isAuthenticated, login, logout, sessionExpired, lockUntil } = useStudioAuth();
-  const { articles, saveArticle } = useArticlesManager();
-  const { projects, saveProject } = useProjectsManager();
-  const { siteContent, meta, text, saveContent } = useSiteContent(language);
-  const { entries, addEntry } = useGuestbook();
+  const { articles, projects, siteContent, entries, saveArticle, saveProject, saveContent, addEntry, studioAvailable } = useBackendContent();
+  const { isAuthenticated, login, logout, sessionExpired, lockUntil, authReady } = useStudioAuth(studioAvailable);
+  const text = {
+    ...uiText[language],
+    ...(siteContent.text?.[language] ?? {}),
+  };
+  const meta = {
+    ...(siteContent.meta ?? {}),
+    role: ensureLocalizedMap(siteContent.meta?.role, ""),
+    intro: ensureLocalizedMap(siteContent.meta?.intro, ""),
+    stats: {
+      ...siteMeta.stats,
+      ...(siteContent.meta?.stats ?? {}),
+    },
+    socialLinks: Array.isArray(siteContent.meta?.socialLinks) ? siteContent.meta.socialLinks : siteMeta.socialLinks,
+  };
 
   return (
     <Shell
@@ -3037,6 +3047,8 @@ export default function App() {
               logout={logout}
               sessionExpired={sessionExpired}
               lockUntil={lockUntil}
+              studioAvailable={studioAvailable}
+              authReady={authReady}
               siteContent={siteContent}
               saveSiteContent={saveContent}
             />

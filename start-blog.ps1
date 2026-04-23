@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 $projectRoot = Split-Path -Parent $MyInvocation.MyCommand.Path
 $distPath = Join-Path $projectRoot "dist"
 $pidFile = Join-Path $projectRoot ".blog-preview.pid"
-$port = 4173
+$port = 8787
 $url = "http://127.0.0.1:$port"
 
 if (-not (Test-Path $distPath)) {
@@ -23,9 +23,10 @@ if (Test-Path $pidFile) {
   }
 }
 
+$env:PORT = "$port"
 $process = Start-Process `
-  -FilePath "python" `
-  -ArgumentList @("-m", "http.server", "$port", "--bind", "127.0.0.1", "--directory", $distPath) `
+  -FilePath "node" `
+  -ArgumentList @("server.js") `
   -WorkingDirectory $projectRoot `
   -PassThru `
   -WindowStyle Hidden

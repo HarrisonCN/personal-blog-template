@@ -1,19 +1,14 @@
 Personal Blog Template
 
-Default studio login
+Quick notes
+- Static preview: npm run dev
+- Full secure studio: npm run dev:full
+- Production server: npm run build && npm run start
+
+Default development credentials
 - Username: ADMIN
 - Password: CHANGE_ME_123
 
-Quick start
-1. Open a terminal in this folder.
-2. Run: npm install
-3. Run: npm run dev
-
-Build and preview
-1. Run: npm run build
-2. Run: powershell -ExecutionPolicy Bypass -File .\start-blog.ps1
-
-Main editable files
-- src/data/siteContent.js
-- src/App.jsx
-- src/styles.css
+Important
+- Change the studio credentials before real deployment.
+- GitHub Pages is static only and does not run the Node backend.
