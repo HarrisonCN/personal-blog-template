@@ -1719,77 +1719,85 @@ function MusicDock({ text }) {
       </button>
 
       <div className="music-dock__body">
-        <div className="music-dock__input">
-          <label className="micro-label" htmlFor="music-source-input">
-            {text.sourceLabel}
-          </label>
-          <div className="music-dock__input-row">
-            <input
-              id="music-source-input"
-              type="text"
-              value={input}
-              onChange={(event) => setInput(event.target.value)}
-              placeholder={text.sourcePlaceholder}
-            />
-            <button type="button" className="dock-button" onClick={applySource}>
-              {text.applySource}
-            </button>
-            <button type="button" className="dock-button" onClick={resetSource}>
-              {text.resetSource}
-            </button>
-          </div>
-        </div>
-
-        {customSource?.type === "spotify" ? (
-          <iframe
-            className="music-dock__embed"
-            src={customSource.embedSrc}
-            width="100%"
-            height="152"
-            allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
-            loading="lazy"
-            title="Spotify Embed"
-          />
-        ) : customSource?.type === "unsupported" ? (
-          <div className="music-dock__message">{text.unsupportedSource}</div>
-        ) : (
-          <>
-            <div className="music-dock__controls">
-              <button
-                type="button"
-                className="dock-button dock-button--icon"
-                onClick={() => usePlaylistTrack(-1)}
-                aria-label={text.previousTrack}
-              >
-                Prev
-              </button>
-              <button
-                type="button"
-                className="dock-button dock-button--play"
-                onClick={togglePlayback}
-                aria-label={isPlaying ? text.pauseTrack : text.playTrack}
-              >
-                {isPlaying ? "Pause" : "Play"}
-              </button>
-              <button
-                type="button"
-                className="dock-button dock-button--icon"
-                onClick={() => usePlaylistTrack(1)}
-                aria-label={text.nextTrack}
-              >
-                Next
-              </button>
-            </div>
-
-            <div className="music-dock__progress">
-              <input type="range" min="0" max={duration || 0} step="0.1" value={currentTime} onChange={seek} />
-              <div className="music-dock__time">
-                <span>{formatTime(currentTime)}</span>
-                <span>{formatTime(duration)}</span>
+        <div className="music-dock__surface">
+          <div className="music-dock__input">
+            <label className="micro-label" htmlFor="music-source-input">
+              {text.sourceLabel}
+            </label>
+            <div className="music-dock__input-row">
+              <input
+                id="music-source-input"
+                type="text"
+                value={input}
+                onChange={(event) => setInput(event.target.value)}
+                placeholder={text.sourcePlaceholder}
+              />
+              <div className="music-dock__action-group">
+                <button type="button" className="dock-button" onClick={applySource}>
+                  {text.applySource}
+                </button>
+                <button type="button" className="dock-button" onClick={resetSource}>
+                  {text.resetSource}
+                </button>
               </div>
             </div>
-          </>
-        )}
+          </div>
+
+          {customSource?.type === "spotify" ? (
+            <div className="music-dock__media-shell music-dock__media-shell--embed">
+              <iframe
+                className="music-dock__embed"
+                src={customSource.embedSrc}
+                width="100%"
+                height="152"
+                allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture"
+                loading="lazy"
+                title="Spotify Embed"
+              />
+            </div>
+          ) : customSource?.type === "unsupported" ? (
+            <div className="music-dock__media-shell">
+              <div className="music-dock__message">{text.unsupportedSource}</div>
+            </div>
+          ) : (
+            <div className="music-dock__media-shell">
+              <div className="music-dock__controls">
+                <button
+                  type="button"
+                  className="dock-button dock-button--icon"
+                  onClick={() => usePlaylistTrack(-1)}
+                  aria-label={text.previousTrack}
+                >
+                  Prev
+                </button>
+                <button
+                  type="button"
+                  className="dock-button dock-button--play"
+                  onClick={togglePlayback}
+                  aria-label={isPlaying ? text.pauseTrack : text.playTrack}
+                >
+                  {isPlaying ? "Pause" : "Play"}
+                </button>
+                <button
+                  type="button"
+                  className="dock-button dock-button--icon"
+                  onClick={() => usePlaylistTrack(1)}
+                  aria-label={text.nextTrack}
+                >
+                  Next
+                </button>
+              </div>
+
+              <div className="music-dock__progress">
+                <input type="range" min="0" max={duration || 0} step="0.1" value={currentTime} onChange={seek} />
+                <div className="music-dock__time">
+                  <span>{formatTime(currentTime)}</span>
+                  <span>{formatTime(duration)}</span>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </aside>
   );

@@ -1263,13 +1263,22 @@ select {
   right: 20px;
   bottom: 20px;
   z-index: 30;
-  width: min(300px, calc(100vw - 32px));
+  width: min(330px, calc(100vw - 32px));
   display: grid;
-  gap: 10px;
-  padding: 12px;
-  border-radius: 22px;
+  gap: 8px;
+  padding: 10px;
+  border-radius: 30px;
   transform-origin: bottom right;
   will-change: transform;
+  overflow: hidden;
+  backdrop-filter: blur(24px) saturate(150%);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.08)),
+    color-mix(in srgb, var(--surface-strong) 72%, transparent);
+  box-shadow:
+    0 22px 58px rgba(9, 12, 20, 0.32),
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.05);
 }
 
 .music-dock__toggle {
@@ -1277,7 +1286,7 @@ select {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 0;
+  padding: 4px 4px 2px;
   border: 0;
   background: transparent;
   color: inherit;
@@ -1292,23 +1301,27 @@ select {
 
 .music-dock__head strong {
   font-family: var(--font-display);
-  font-size: 0.92rem;
+  font-size: 0.98rem;
+  letter-spacing: -0.01em;
 }
 
 .music-dock__caret {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: 34px;
+  height: 34px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--surface-strong) 92%, transparent);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.04)),
+    color-mix(in srgb, var(--surface-strong) 84%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line-strong) 54%, transparent);
   transition: transform 220ms cubic-bezier(0.16, 1, 0.3, 1), background 180ms ease;
 }
 
 .music-dock__body {
   display: grid;
-  gap: 12px;
+  gap: 0;
   transform-origin: top center;
   will-change: transform, opacity;
 }
@@ -1335,25 +1348,48 @@ select {
   line-height: 1.45;
 }
 
+.music-dock__surface {
+  display: grid;
+  gap: 10px;
+  padding: 10px;
+  border-radius: 24px;
+  background:
+    radial-gradient(circle at top left, rgba(255, 255, 255, 0.16), transparent 48%),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03)),
+    color-mix(in srgb, var(--surface-strong) 66%, transparent);
+  border: 1px solid color-mix(in srgb, rgba(255, 255, 255, 0.34) 54%, transparent);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.04);
+}
+
 .music-dock__input,
-.music-dock__progress {
+.music-dock__progress,
+.music-dock__media-shell {
   display: grid;
   gap: 6px;
 }
 
 .music-dock__input-row {
-  display: grid;
-  grid-template-columns: 1fr auto auto;
+  display: flex;
+  align-items: center;
   gap: 8px;
+  padding: 4px;
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03)),
+    color-mix(in srgb, var(--surface-strong) 82%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line-strong) 44%, transparent);
 }
 
 .music-dock__input input {
+  flex: 1;
   min-width: 0;
-  height: 36px;
-  padding: 0 12px;
-  border: 1px solid color-mix(in srgb, var(--line-strong) 76%, transparent);
-  border-radius: var(--radius-pill);
-  background: color-mix(in srgb, var(--surface-strong) 92%, transparent);
+  height: 42px;
+  padding: 0 14px;
+  border: 0;
+  border-radius: 18px;
+  background: transparent;
   color: var(--text);
   outline: none;
   font-size: 0.82rem;
@@ -1366,17 +1402,47 @@ select {
 .music-dock__controls {
   display: flex;
   gap: 8px;
+  padding: 4px;
+  border-radius: 20px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.03)),
+    color-mix(in srgb, var(--surface-strong) 78%, transparent);
+  border: 1px solid color-mix(in srgb, var(--line-strong) 36%, transparent);
+}
+
+.music-dock__action-group {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.music-dock__media-shell {
+  padding: 8px;
+  border-radius: 22px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.14), rgba(255, 255, 255, 0.04)),
+    color-mix(in srgb, var(--surface-strong) 74%, transparent);
+  border: 1px solid color-mix(in srgb, rgba(255, 255, 255, 0.28) 42%, transparent);
+}
+
+.music-dock__media-shell--embed {
+  padding: 6px;
 }
 
 .dock-button {
-  min-width: 36px;
-  height: 36px;
-  padding: 8px 10px;
+  min-width: 40px;
+  height: 40px;
+  padding: 8px 12px;
   font-size: 0.78rem;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--line-strong) 30%, transparent);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.16), rgba(255, 255, 255, 0.05)),
+    color-mix(in srgb, var(--surface-strong) 72%, transparent);
 }
 
 .dock-button--play {
-  min-width: 46px;
+  min-width: 70px;
 }
 
 .music-dock__progress input[type="range"] {
@@ -1394,6 +1460,7 @@ select {
 .music-dock__embed {
   border: 0;
   border-radius: 18px;
+  display: block;
 }
 
 .music-dock__message {
@@ -1595,13 +1662,22 @@ select {
   .music-dock {
     right: 12px;
     bottom: 12px;
-    width: min(320px, calc(100vw - 24px));
+    width: min(332px, calc(100vw - 24px));
     max-height: calc(100vh - 24px);
     overflow: auto;
   }
 
   .music-dock__input-row {
-    grid-template-columns: 1fr;
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .music-dock__action-group {
+    width: 100%;
+  }
+
+  .music-dock__action-group .dock-button {
+    flex: 1;
   }
 
   .site-nav {
