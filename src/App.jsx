@@ -3501,18 +3501,17 @@ function StudioPage({
         </section>
 
         <aside className="studio-rail glass-card">
-          <div className="studio-rail__progress">
-            <span className="micro-label">Progress</span>
-            <div className="studio-rail__bar">
-              <div
-                className="studio-rail__fill"
-                style={{
-                  height: `${studioProgress * 100}%`,
-                  width: `${studioProgress * 100}%`,
-                }}
-              />
+            <div className="studio-rail__progress">
+              <span className="micro-label">Progress</span>
+              <div className="studio-rail__bar">
+                <div
+                  className="studio-rail__fill"
+                  style={{
+                    "--studio-progress": studioProgress,
+                  }}
+                />
+              </div>
             </div>
-          </div>
           <nav className="studio-rail__nav">
             {studioSections.map((section) => (
               <button
