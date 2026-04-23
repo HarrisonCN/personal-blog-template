@@ -2540,6 +2540,7 @@ function StudioPage({
   const [loginError, setLoginError] = useState("");
   const [flash, setFlash] = useState("");
   const [siteFlash, setSiteFlash] = useState("");
+  const [authFocusField, setAuthFocusField] = useState("idle");
 
   useEffect(() => {
     setEditorLanguage(language);
@@ -2942,8 +2943,22 @@ function StudioPage({
     return (
       <main className="page">
         <section className="auth-shell glass-card">
-          <div className="auth-hero">
+          <div className={`auth-hero auth-hero--${authFocusField}`}>
             <p className="micro-label">DEVELOPER ACCESS</p>
+            <div className="auth-mascot" aria-hidden="true">
+              <div className="auth-mascot__halo" />
+              <div className="auth-mascot__orb" />
+              <div className="auth-mascot__head">
+                <div className="auth-mascot__eyes">
+                  <span className="auth-mascot__eye" />
+                  <span className="auth-mascot__eye" />
+                </div>
+                <div className="auth-mascot__mouth" />
+              </div>
+              <div className="auth-mascot__body" />
+              <div className="auth-mascot__arm auth-mascot__arm--left" />
+              <div className="auth-mascot__arm auth-mascot__arm--right" />
+            </div>
             <h1>{copy.loginTitle}</h1>
             <p className="body-copy">{copy.loginBody}</p>
             <div className="auth-hero__chips">
@@ -2981,6 +2996,8 @@ function StudioPage({
                   type="text"
                   value={loginForm.username}
                   onChange={(event) => setLoginForm((current) => ({ ...current, username: event.target.value }))}
+                  onFocus={() => setAuthFocusField("username")}
+                  onBlur={() => setAuthFocusField("idle")}
                 />
               </label>
               <label className="studio-field">
@@ -2989,6 +3006,8 @@ function StudioPage({
                   type="password"
                   value={loginForm.password}
                   onChange={(event) => setLoginForm((current) => ({ ...current, password: event.target.value }))}
+                  onFocus={() => setAuthFocusField("password")}
+                  onBlur={() => setAuthFocusField("idle")}
                 />
               </label>
               {sessionExpired ? <p className="studio-error">{copy.sessionExpired}</p> : null}
