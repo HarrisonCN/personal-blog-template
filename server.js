@@ -79,6 +79,26 @@ function ensureLocalizedMap(value, fallback = "") {
   };
 }
 
+function normalizeSocialLink(link, index = 0) {
+  return {
+    label: String(link?.label || `Link ${index + 1}`),
+    url: String(link?.url || ""),
+    icon: String(link?.icon || "link"),
+    iconDataUrl: typeof link?.iconDataUrl === "string" ? link.iconDataUrl : "",
+  };
+}
+
+function normalizeCustomCard(card, index = 0) {
+  return {
+    id: String(card?.id || `card-${index + 1}`),
+    eyebrow: ensureLocalizedMap(card?.eyebrow, ""),
+    title: ensureLocalizedMap(card?.title, `Card ${index + 1}`),
+    body: ensureLocalizedMap(card?.body, ""),
+    linkLabel: ensureLocalizedMap(card?.linkLabel, ""),
+    linkUrl: String(card?.linkUrl || ""),
+  };
+}
+
 function buildDefaultSiteContent() {
   const editableKeys = [
     "navHome",
@@ -108,7 +128,8 @@ function buildDefaultSiteContent() {
       role: ensureLocalizedMap(siteMeta.role, ""),
       intro: ensureLocalizedMap(siteMeta.intro, ""),
       stats: { ...siteMeta.stats },
-      socialLinks: [...siteMeta.socialLinks],
+      socialLinks: siteMeta.socialLinks.map(normalizeSocialLink),
+      customCards: Array.isArray(siteMeta.customCards) ? siteMeta.customCards.map(normalizeCustomCard) : [],
     },
     text: Object.fromEntries(
       Object.entries(uiText).map(([lang, value]) => [

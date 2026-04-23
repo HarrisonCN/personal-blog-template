@@ -118,16 +118,16 @@ function parseStoredPalette(value) {
 
 const fallbackCopy = {
   zh: {
-    navStudio: "写作台",
+    navStudio: "开发者编辑",
     editedLabel: "最后编辑于",
     saveArticle: "保存文章",
     createArticle: "新建文章",
     openArticle: "查看文章",
     manageArticles: "管理文章",
-    studioTitle: "文章后台",
+    studioTitle: "开发者编辑",
     studioBody: "在这里新增文章、补充图片和音频文件，也能继续编辑以前写过的内容。",
     studioHint: "写作台登录和内容保存现在由服务端处理，不再暴露在前端。",
-    loginTitle: "登录写作台",
+    loginTitle: "登录开发者编辑",
     loginBody: "输入由服务端校验的账户名和密码后才能进入写作台。",
     username: "账户名",
     password: "密码",
@@ -198,18 +198,35 @@ const fallbackCopy = {
     nowStatusA: "写博客后台",
     nowStatusB: "做项目重构",
     nowStatusC: "整理内容资产",
+    socialEditorTitle: "社交平台链接",
+    socialEditorBody: "这里可以修改社交平台名称、链接和图标，支持上传自定义图标。",
+    addSocialLink: "新增社交链接",
+    socialLabel: "平台名称",
+    socialUrl: "平台链接",
+    socialIcon: "图标类型",
+    uploadSocialIcon: "上传图标",
+    removeSocialLink: "删除链接",
+    customCardsTitle: "自定义卡片",
+    customCardsBody: "新增首页卡片，自定义标题、正文和跳转链接。",
+    addCustomCard: "新增卡片",
+    removeCustomCard: "删除卡片",
+    cardEyebrow: "卡片眉标",
+    cardTitle: "卡片标题",
+    cardBody: "卡片正文",
+    cardLinkLabel: "按钮文字",
+    cardLinkUrl: "按钮链接",
   },
   en: {
-    navStudio: "Studio",
+    navStudio: "Developer Editor",
     editedLabel: "Last edited",
     saveArticle: "Save Article",
     createArticle: "New Article",
     openArticle: "Open Article",
     manageArticles: "Manage Articles",
-    studioTitle: "Writing Studio",
+    studioTitle: "Developer Editor",
     studioBody: "Create, revise, and attach media to articles from one local dashboard.",
     studioHint: "Studio login and content writes are now handled by the server instead of front-end storage.",
-    loginTitle: "Studio Login",
+    loginTitle: "Developer Editor Login",
     loginBody: "Sign in with server-validated credentials to enter the studio.",
     username: "Username",
     password: "Password",
@@ -280,6 +297,23 @@ const fallbackCopy = {
     nowStatusA: "Shipping the studio",
     nowStatusB: "Refining project pages",
     nowStatusC: "Organizing content assets",
+    socialEditorTitle: "Social Links",
+    socialEditorBody: "Edit platform names, URLs, and icons here. Custom icon uploads are supported.",
+    addSocialLink: "Add Social Link",
+    socialLabel: "Platform Name",
+    socialUrl: "Platform URL",
+    socialIcon: "Icon Type",
+    uploadSocialIcon: "Upload Icon",
+    removeSocialLink: "Remove Link",
+    customCardsTitle: "Custom Cards",
+    customCardsBody: "Create homepage cards with your own title, copy, and destination link.",
+    addCustomCard: "Add Card",
+    removeCustomCard: "Remove Card",
+    cardEyebrow: "Card Eyebrow",
+    cardTitle: "Card Title",
+    cardBody: "Card Body",
+    cardLinkLabel: "Button Label",
+    cardLinkUrl: "Button URL",
     paletteLabel: "Palette",
     coverImage: "Cover Image",
     uploadCover: "Upload Cover",
@@ -420,6 +454,46 @@ function cloneProject(project) {
     challenge: { ...project.challenge },
     solution: { ...project.solution },
     outcome: { ...project.outcome },
+  };
+}
+
+function normalizeSocialLink(link, index = 0) {
+  return {
+    label: String(link?.label || `Link ${index + 1}`),
+    url: String(link?.url || ""),
+    icon: String(link?.icon || "link"),
+    iconDataUrl: typeof link?.iconDataUrl === "string" ? link.iconDataUrl : "",
+  };
+}
+
+function createBlankSocialLink() {
+  return {
+    label: "",
+    url: "",
+    icon: "link",
+    iconDataUrl: "",
+  };
+}
+
+function normalizeCustomCard(card, index = 0) {
+  return {
+    id: String(card?.id || `card-${index + 1}`),
+    eyebrow: ensureLocalizedMap(card?.eyebrow, ""),
+    title: ensureLocalizedMap(card?.title, `Card ${index + 1}`),
+    body: ensureLocalizedMap(card?.body, ""),
+    linkLabel: ensureLocalizedMap(card?.linkLabel, ""),
+    linkUrl: String(card?.linkUrl || ""),
+  };
+}
+
+function createBlankCustomCard() {
+  return {
+    id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    eyebrow: { zh: "", en: "", ja: "", ko: "" },
+    title: { zh: "", en: "", ja: "", ko: "" },
+    body: { zh: "", en: "", ja: "", ko: "" },
+    linkLabel: { zh: "", en: "", ja: "", ko: "" },
+    linkUrl: "",
   };
 }
 
@@ -887,7 +961,7 @@ async function apiRequest(path, options = {}) {
 function useBackendContent() {
   const [articles, setArticles] = useState(() => sortArticles(seedArticles.map(normalizeArticle)));
   const [projects, setProjects] = useState(() => featuredProjects.map(normalizeProject));
-  const [siteContent, setSiteContent] = useState(() => buildDefaultSiteContent());
+  const [siteContent, setSiteContent] = useState(() => normalizeSiteContent(buildDefaultSiteContent()));
   const [entries, setEntries] = useState(() => {
     const stored = window.localStorage.getItem(GUESTBOOK_STORAGE_KEY);
     if (!stored) {
@@ -915,7 +989,7 @@ function useBackendContent() {
 
         setArticles(sortArticles((payload.articles ?? []).map(normalizeArticle)));
         setProjects((payload.projects ?? []).map(normalizeProject));
-        setSiteContent(payload.siteContent ?? buildDefaultSiteContent());
+        setSiteContent(normalizeSiteContent(payload.siteContent ?? buildDefaultSiteContent()));
         setEntries(Array.isArray(payload.guestbook) ? payload.guestbook : []);
         setStudioAvailable(Boolean(payload.studioAvailable));
       } catch {
@@ -985,7 +1059,7 @@ function useBackendContent() {
         method: "POST",
         body: JSON.stringify({ siteContent: nextContent }),
       });
-      setSiteContent(payload.siteContent ?? nextContent);
+      setSiteContent(normalizeSiteContent(payload.siteContent ?? nextContent));
       return { ok: true };
     } catch (error) {
       return { ok: false, reason: error.status === 401 ? "unauthorized" : "request_failed" };
@@ -1112,9 +1186,41 @@ function buildDefaultSiteContent() {
       role: ensureLocalizedMap(siteMeta.role, ""),
       intro: ensureLocalizedMap(siteMeta.intro, ""),
       stats: { ...siteMeta.stats },
-      socialLinks: [...siteMeta.socialLinks],
+      socialLinks: siteMeta.socialLinks.map(normalizeSocialLink),
+      customCards: Array.isArray(siteMeta.customCards) ? siteMeta.customCards.map(normalizeCustomCard) : [],
     },
     text: textContent,
+  };
+}
+
+function normalizeSiteContent(content) {
+  const defaults = buildDefaultSiteContent();
+  return {
+    meta: {
+      ...defaults.meta,
+      ...(content?.meta ?? {}),
+      role: ensureLocalizedMap(content?.meta?.role ?? defaults.meta.role, ""),
+      intro: ensureLocalizedMap(content?.meta?.intro ?? defaults.meta.intro, ""),
+      stats: {
+        ...defaults.meta.stats,
+        ...(content?.meta?.stats ?? {}),
+      },
+      socialLinks: Array.isArray(content?.meta?.socialLinks)
+        ? content.meta.socialLinks.map(normalizeSocialLink)
+        : defaults.meta.socialLinks.map(normalizeSocialLink),
+      customCards: Array.isArray(content?.meta?.customCards)
+        ? content.meta.customCards.map(normalizeCustomCard)
+        : defaults.meta.customCards.map(normalizeCustomCard),
+    },
+    text: Object.fromEntries(
+      Object.keys(defaults.text).map((lang) => [
+        lang,
+        {
+          ...defaults.text[lang],
+          ...(content?.text?.[lang] ?? {}),
+        },
+      ])
+    ),
   };
 }
 
@@ -1324,6 +1430,18 @@ function PalettePicker({ label, value, onChange }) {
 }
 
 function SocialIcon({ type }) {
+  if (typeof type === "object" && type?.iconDataUrl) {
+    return <img className="social-pill__icon-image" src={type.iconDataUrl} alt="" aria-hidden="true" />;
+  }
+
+  if (type === "link") {
+    return (
+      <svg viewBox="0 0 24 24" aria-hidden="true">
+        <path d="M10.6 13.4a1 1 0 0 1 0-1.4l4-4a3 3 0 1 1 4.2 4.2l-2.3 2.3a1 1 0 1 1-1.4-1.4l2.3-2.3a1 1 0 1 0-1.4-1.4l-4 4a1 1 0 0 1-1.4 0ZM13.4 10.6a1 1 0 0 1 0 1.4l-4 4a3 3 0 1 1-4.2-4.2l2.3-2.3a1 1 0 0 1 1.4 1.4l-2.3 2.3a1 1 0 1 0 1.4 1.4l4-4a1 1 0 0 1 1.4 0Z" />
+      </svg>
+    );
+  }
+
   if (type === "tiktok") {
     return (
       <svg viewBox="0 0 24 24" aria-hidden="true">
@@ -1900,22 +2018,35 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
         </Reveal>
       </section>
 
-      <section className="ticker-strip glass-card">
-        <div className="ticker-strip__track">
-          {[...text.ticker, ...text.ticker].map((item, index) => (
-            <span key={`${item}-${index}`}>{item}</span>
-          ))}
-        </div>
-      </section>
-
       <section className="social-strip glass-card">
         {meta.socialLinks.map((item) => (
           <a key={item.label} className="social-pill" href={item.url} target="_blank" rel="noreferrer" aria-label={item.label}>
-            <SocialIcon type={item.icon} />
+            <SocialIcon type={item.iconDataUrl ? item : item.icon} />
             <span>{item.label}</span>
           </a>
         ))}
       </section>
+
+      {meta.customCards?.length ? (
+        <section className="section">
+          <div className="card-grid custom-card-grid">
+            {meta.customCards.map((card, index) => (
+              <Reveal key={card.id} delay={index * 90}>
+                <article className="project-card glass-card">
+                  <span className="micro-label">{card.eyebrow[language] || card.eyebrow.en}</span>
+                  <h3>{card.title[language] || card.title.en}</h3>
+                  <p className="body-copy">{card.body[language] || card.body.en}</p>
+                  {card.linkUrl ? (
+                    <a className="inline-link" href={card.linkUrl} target="_blank" rel="noreferrer">
+                      {card.linkLabel[language] || card.linkLabel.en || "Open"}
+                    </a>
+                  ) : null}
+                </article>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+      ) : null}
 
       <section className="section">
         <Reveal className="about-panel glass-card now-panel">
@@ -2063,7 +2194,7 @@ function ArticlesPage({ language, text, copy, articles }) {
   useSeo({
     title: `${text.articleIndexTitle} / ${siteMeta.name}`,
     description: text.articleIndexBody,
-    image: templateAvatar,
+    image: winstonAvatar,
   });
 
   const tags = useMemo(
@@ -2345,7 +2476,7 @@ function StudioPage({
   const [editorLanguage, setEditorLanguage] = useState(language);
   const [draft, setDraft] = useState(() => cloneArticle(articles[0] ?? createBlankArticle()));
   const [projectDraft, setProjectDraft] = useState(() => cloneProject(projects[0] ?? createBlankProject()));
-  const [siteDraft, setSiteDraft] = useState(() => JSON.parse(JSON.stringify(siteContent)));
+  const [siteDraft, setSiteDraft] = useState(() => normalizeSiteContent(siteContent));
   const [loginForm, setLoginForm] = useState({ username: "", password: "" });
   const [loginError, setLoginError] = useState("");
   const [flash, setFlash] = useState("");
@@ -2356,7 +2487,7 @@ function StudioPage({
   }, [language]);
 
   useEffect(() => {
-    setSiteDraft(JSON.parse(JSON.stringify(siteContent)));
+    setSiteDraft(normalizeSiteContent(siteContent));
   }, [siteContent]);
 
   useEffect(() => {
@@ -2520,6 +2651,100 @@ function StudioPage({
       meta: {
         ...current.meta,
         [key]: value,
+      },
+    }));
+  };
+
+  const handleSocialLinkChange = (index, key, value) => {
+    setSiteDraft((current) => ({
+      ...current,
+      meta: {
+        ...current.meta,
+        socialLinks: current.meta.socialLinks.map((item, itemIndex) =>
+          itemIndex === index ? { ...item, [key]: value } : item
+        ),
+      },
+    }));
+  };
+
+  const handleSocialIconUpload = async (index, event) => {
+    const [file] = Array.from(event.target.files ?? []);
+    if (!file) {
+      return;
+    }
+    const [icon] = await Promise.all([fileToAttachment(file)]);
+    handleSocialLinkChange(index, "iconDataUrl", icon.dataUrl);
+    event.target.value = "";
+  };
+
+  const handleAddSocialLink = () => {
+    setSiteDraft((current) => ({
+      ...current,
+      meta: {
+        ...current.meta,
+        socialLinks: [...current.meta.socialLinks, createBlankSocialLink()],
+      },
+    }));
+  };
+
+  const handleRemoveSocialLink = (index) => {
+    setSiteDraft((current) => ({
+      ...current,
+      meta: {
+        ...current.meta,
+        socialLinks: current.meta.socialLinks.filter((_, itemIndex) => itemIndex !== index),
+      },
+    }));
+  };
+
+  const handleCustomCardLocalizedField = (index, key, value) => {
+    setSiteDraft((current) => ({
+      ...current,
+      meta: {
+        ...current.meta,
+        customCards: current.meta.customCards.map((item, itemIndex) =>
+          itemIndex === index
+            ? {
+                ...item,
+                [key]: {
+                  ...item[key],
+                  [editorLanguage]: value,
+                },
+              }
+            : item
+        ),
+      },
+    }));
+  };
+
+  const handleCustomCardField = (index, key, value) => {
+    setSiteDraft((current) => ({
+      ...current,
+      meta: {
+        ...current.meta,
+        customCards: current.meta.customCards.map((item, itemIndex) =>
+          itemIndex === index ? { ...item, [key]: value } : item
+        ),
+      },
+    }));
+  };
+
+  const handleAddCustomCard = () => {
+    setSiteDraft((current) => ({
+      ...current,
+      meta: {
+        ...current.meta,
+        customCards: [...current.meta.customCards, createBlankCustomCard()],
+      },
+    }));
+  };
+
+  const handleRemoveCustomCard = (index) => {
+    setSiteDraft((current) => ({
+      ...current,
+      meta: {
+        ...current.meta,
+        customCards: current.meta.customCards.filter((_, itemIndex) => itemIndex !== index),
       },
     }));
   };
@@ -2951,6 +3176,129 @@ function StudioPage({
                 )}
               </label>
             ))}
+
+            <div className="studio-subsection">
+              <div className="studio-editor__head">
+                <div>
+                  <p className="micro-label">SOCIAL</p>
+                  <h2>{copy.socialEditorTitle}</h2>
+                  <p className="body-copy">{copy.socialEditorBody}</p>
+                </div>
+                <button type="button" className="action-button action-button--secondary" onClick={handleAddSocialLink}>
+                  {copy.addSocialLink}
+                </button>
+              </div>
+
+              <div className="studio-list">
+                {siteDraft.meta.socialLinks.map((item, index) => (
+                  <div key={`${item.label}-${index}`} className="studio-block">
+                    <div className="studio-form__row">
+                      <label className="studio-field">
+                        <span>{copy.socialLabel}</span>
+                        <input
+                          type="text"
+                          value={item.label}
+                          onChange={(event) => handleSocialLinkChange(index, "label", event.target.value)}
+                        />
+                      </label>
+                      <label className="studio-field">
+                        <span>{copy.socialUrl}</span>
+                        <input
+                          type="text"
+                          value={item.url}
+                          onChange={(event) => handleSocialLinkChange(index, "url", event.target.value)}
+                        />
+                      </label>
+                      <label className="studio-field">
+                        <span>{copy.socialIcon}</span>
+                        <input
+                          type="text"
+                          value={item.icon}
+                          onChange={(event) => handleSocialLinkChange(index, "icon", event.target.value)}
+                        />
+                      </label>
+                    </div>
+                    <div className="studio-inline-actions">
+                      <label className="studio-field studio-field--inline">
+                        <span>{copy.uploadSocialIcon}</span>
+                        <input type="file" accept="image/*" onChange={(event) => handleSocialIconUpload(index, event)} />
+                      </label>
+                      {item.iconDataUrl ? <img className="studio-icon-preview" src={item.iconDataUrl} alt={item.label || "icon"} /> : null}
+                      <button type="button" className="action-button action-button--secondary" onClick={() => handleRemoveSocialLink(index)}>
+                        {copy.removeSocialLink}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="studio-subsection">
+              <div className="studio-editor__head">
+                <div>
+                  <p className="micro-label">CARDS</p>
+                  <h2>{copy.customCardsTitle}</h2>
+                  <p className="body-copy">{copy.customCardsBody}</p>
+                </div>
+                <button type="button" className="action-button action-button--secondary" onClick={handleAddCustomCard}>
+                  {copy.addCustomCard}
+                </button>
+              </div>
+
+              <div className="studio-list">
+                {siteDraft.meta.customCards.map((item, index) => (
+                  <div key={item.id} className="studio-block">
+                    <div className="studio-form__row">
+                      <label className="studio-field">
+                        <span>{copy.cardEyebrow}</span>
+                        <input
+                          type="text"
+                          value={item.eyebrow[editorLanguage] || ""}
+                          onChange={(event) => handleCustomCardLocalizedField(index, "eyebrow", event.target.value)}
+                        />
+                      </label>
+                      <label className="studio-field">
+                        <span>{copy.cardTitle}</span>
+                        <input
+                          type="text"
+                          value={item.title[editorLanguage] || ""}
+                          onChange={(event) => handleCustomCardLocalizedField(index, "title", event.target.value)}
+                        />
+                      </label>
+                      <label className="studio-field">
+                        <span>{copy.cardLinkUrl}</span>
+                        <input
+                          type="text"
+                          value={item.linkUrl}
+                          onChange={(event) => handleCustomCardField(index, "linkUrl", event.target.value)}
+                        />
+                      </label>
+                    </div>
+                    <label className="studio-field">
+                      <span>{copy.cardBody}</span>
+                      <textarea
+                        rows="4"
+                        value={item.body[editorLanguage] || ""}
+                        onChange={(event) => handleCustomCardLocalizedField(index, "body", event.target.value)}
+                      />
+                    </label>
+                    <div className="studio-inline-actions">
+                      <label className="studio-field studio-field--inline">
+                        <span>{copy.cardLinkLabel}</span>
+                        <input
+                          type="text"
+                          value={item.linkLabel[editorLanguage] || ""}
+                          onChange={(event) => handleCustomCardLocalizedField(index, "linkLabel", event.target.value)}
+                        />
+                      </label>
+                      <button type="button" className="action-button action-button--secondary" onClick={() => handleRemoveCustomCard(index)}>
+                        {copy.removeCustomCard}
+                      </button>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
           </div>
         </section>
         <section className="studio-editor glass-card">
@@ -3091,7 +3439,8 @@ export default function App() {
       ...siteMeta.stats,
       ...(siteContent.meta?.stats ?? {}),
     },
-    socialLinks: Array.isArray(siteContent.meta?.socialLinks) ? siteContent.meta.socialLinks : siteMeta.socialLinks,
+    socialLinks: Array.isArray(siteContent.meta?.socialLinks) ? siteContent.meta.socialLinks.map(normalizeSocialLink) : siteMeta.socialLinks.map(normalizeSocialLink),
+    customCards: Array.isArray(siteContent.meta?.customCards) ? siteContent.meta.customCards.map(normalizeCustomCard) : [],
   };
 
   return (
