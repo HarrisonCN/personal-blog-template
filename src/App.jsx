@@ -2541,6 +2541,7 @@ function StudioPage({
   const [flash, setFlash] = useState("");
   const [siteFlash, setSiteFlash] = useState("");
   const [authFocusField, setAuthFocusField] = useState("idle");
+  const [authPointer, setAuthPointer] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     setEditorLanguage(language);
@@ -2915,6 +2916,20 @@ function StudioPage({
     window.scrollTo({ top, behavior: "smooth" });
   };
 
+  const handleAuthHeroPointerMove = (event) => {
+    const rect = event.currentTarget.getBoundingClientRect();
+    const x = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
+    const y = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
+    setAuthPointer({
+      x: Math.max(-1, Math.min(1, x)),
+      y: Math.max(-1, Math.min(1, y)),
+    });
+  };
+
+  const resetAuthHeroPointer = () => {
+    setAuthPointer({ x: 0, y: 0 });
+  };
+
   if (!studioAvailable) {
     return (
       <main className="page">
@@ -2943,7 +2958,15 @@ function StudioPage({
     return (
       <main className="page">
         <section className="auth-shell glass-card">
-          <div className={`auth-hero auth-hero--${authFocusField}`}>
+          <div
+            className={`auth-hero auth-hero--${authFocusField}`}
+            onPointerMove={handleAuthHeroPointerMove}
+            onPointerLeave={resetAuthHeroPointer}
+            style={{
+              "--auth-look-x": authPointer.x.toFixed(3),
+              "--auth-look-y": authPointer.y.toFixed(3),
+            }}
+          >
             <p className="micro-label">DEVELOPER ACCESS</p>
             <div className="auth-mascot" aria-hidden="true">
               <div className="auth-mascot__halo auth-mascot__halo--back" />
