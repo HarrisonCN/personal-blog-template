@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink, Route, Routes, useLocation, useParams } from "react-router-dom";
 import AntigravityBackground from "./components/AntigravityBackground";
+import InteractiveSceneBackground from "./components/InteractiveSceneBackground";
 import Reveal from "./components/Reveal";
 import templateAvatar from "./assets/template-avatar.svg";
 import {
@@ -563,14 +564,7 @@ function SiteBackground({ presetCode, imageSrc }) {
   if (presetCode === "aurora") {
     return (
       <div className="site-background site-background--aurora" aria-hidden="true">
-        <span className="site-background__veil site-background__veil--left" />
-        <span className="site-background__veil site-background__veil--right" />
-        <span className="site-background__veil site-background__veil--pulse" />
-        <span className="site-background__spark site-background__spark--one" />
-        <span className="site-background__spark site-background__spark--two" />
-        <span className="site-background__float site-background__float--aurora-a" style={{ "--depth-x": 26, "--depth-y": 22, "--drift-x": 18, "--drift-y": -14, "--duration": "18s", "--delay": "-4s" }} />
-        <span className="site-background__float site-background__float--aurora-b" style={{ "--depth-x": -18, "--depth-y": 26, "--drift-x": -20, "--drift-y": 18, "--duration": "16s", "--delay": "-9s" }} />
-        <span className="site-background__float site-background__float--aurora-c" style={{ "--depth-x": 12, "--depth-y": -18, "--drift-x": 14, "--drift-y": 20, "--duration": "14s", "--delay": "-2s" }} />
+        <InteractiveSceneBackground mode="aurora" />
       </div>
     );
   }
@@ -578,14 +572,7 @@ function SiteBackground({ presetCode, imageSrc }) {
   if (presetCode === "sunset") {
     return (
       <div className="site-background site-background--sunset" aria-hidden="true">
-        <span className="site-background__sun" />
-        <span className="site-background__horizon site-background__horizon--back" />
-        <span className="site-background__horizon site-background__horizon--mid" />
-        <span className="site-background__horizon site-background__horizon--front" />
-        <span className="site-background__dust site-background__dust--one" />
-        <span className="site-background__dust site-background__dust--two" />
-        <span className="site-background__float site-background__float--sunset-a" style={{ "--depth-x": 18, "--depth-y": 10, "--drift-x": 16, "--drift-y": -10, "--duration": "19s", "--delay": "-6s" }} />
-        <span className="site-background__float site-background__float--sunset-b" style={{ "--depth-x": -16, "--depth-y": 14, "--drift-x": -14, "--drift-y": 12, "--duration": "15s", "--delay": "-11s" }} />
+        <InteractiveSceneBackground mode="sunset" />
       </div>
     );
   }
@@ -593,13 +580,7 @@ function SiteBackground({ presetCode, imageSrc }) {
   if (presetCode === "ice") {
     return (
       <div className="site-background site-background--ice" aria-hidden="true">
-        <span className="site-background__beam site-background__beam--left" />
-        <span className="site-background__beam site-background__beam--right" />
-        <span className="site-background__prism site-background__prism--a" />
-        <span className="site-background__prism site-background__prism--b" />
-        <span className="site-background__prism site-background__prism--c" />
-        <span className="site-background__float site-background__float--ice-a" style={{ "--depth-x": 24, "--depth-y": 16, "--drift-x": 14, "--drift-y": -12, "--duration": "17s", "--delay": "-5s" }} />
-        <span className="site-background__float site-background__float--ice-b" style={{ "--depth-x": -22, "--depth-y": 12, "--drift-x": -12, "--drift-y": 14, "--duration": "14s", "--delay": "-9s" }} />
+        <InteractiveSceneBackground mode="ice" />
       </div>
     );
   }
@@ -614,15 +595,7 @@ function SiteBackground({ presetCode, imageSrc }) {
 
   return (
     <div className="site-background site-background--none" aria-hidden="true">
-      <span className="site-background__orbital site-background__orbital--a" />
-      <span className="site-background__orbital site-background__orbital--b" />
-      <span className="site-background__orbital site-background__orbital--c" />
-      <span className="site-background__node site-background__node--a" />
-      <span className="site-background__node site-background__node--b" />
-      <span className="site-background__node site-background__node--c" />
-      <span className="site-background__float site-background__float--none-a" style={{ "--depth-x": 18, "--depth-y": 14, "--drift-x": 12, "--drift-y": -12, "--duration": "18s", "--delay": "-3s" }} />
-      <span className="site-background__float site-background__float--none-b" style={{ "--depth-x": -20, "--depth-y": 16, "--drift-x": -14, "--drift-y": 12, "--duration": "15s", "--delay": "-7s" }} />
-      <span className="site-background__float site-background__float--none-c" style={{ "--depth-x": 12, "--depth-y": -18, "--drift-x": 16, "--drift-y": 10, "--duration": "13s", "--delay": "-10s" }} />
+      <InteractiveSceneBackground mode="none" />
     </div>
   );
 }

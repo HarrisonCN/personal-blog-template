@@ -661,6 +661,7 @@ select {
   inset: 0;
 }
 
+.site-background__scene-canvas,
 .site-background__antigravity-canvas canvas {
   position: absolute;
   inset: 0;
