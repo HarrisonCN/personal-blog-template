@@ -27,22 +27,22 @@
 }
 
 :root[data-theme="light"] {
-  --bg: #f5f2ea;
-  --bg-secondary: #fcfaf5;
-  --surface: rgba(255, 255, 255, 0.34);
-  --surface-strong: rgba(255, 255, 255, 0.58);
-  --line: rgba(17, 28, 44, 0.06);
-  --line-strong: rgba(17, 28, 44, 0.1);
-  --text: #121e31;
-  --muted: #617086;
-  --accent: #2ea6c8;
-  --accent-warm: #ef7b4f;
-  --shadow: rgba(88, 72, 52, 0.08);
-  --cursor-core: #102139;
-  --cursor-shell: color-mix(in srgb, var(--accent) 48%, #ffffff);
-  --cursor-ring: rgba(16, 33, 57, 0.22);
-  --cursor-glow: rgba(46, 166, 200, 0.28);
-  --cursor-glow-warm: rgba(239, 123, 79, 0.18);
+  --bg: #eef1f5;
+  --bg-secondary: #f8fafc;
+  --surface: rgba(255, 255, 255, 0.72);
+  --surface-strong: rgba(255, 255, 255, 0.9);
+  --line: rgba(12, 26, 42, 0.08);
+  --line-strong: rgba(12, 26, 42, 0.14);
+  --text: #081521;
+  --muted: #415467;
+  --accent: #187ea2;
+  --accent-warm: #d86b43;
+  --shadow: rgba(42, 55, 74, 0.12);
+  --cursor-core: #081521;
+  --cursor-shell: color-mix(in srgb, var(--accent) 42%, #ffffff);
+  --cursor-ring: rgba(8, 21, 33, 0.2);
+  --cursor-glow: rgba(24, 126, 162, 0.24);
+  --cursor-glow-warm: rgba(216, 107, 67, 0.16);
 }
 
 :root[data-font="manrope"] {

@@ -1,0 +1,220 @@
+body[data-background-preset="aurora"] .site-shell,
+body[data-background-preset="sunset"] .site-shell,
+body[data-background-preset="ice"] .site-shell {
+  width: min(1260px, calc(100% - 40px));
+}
+
+body[data-background-preset="aurora"] .site-header,
+body[data-background-preset="sunset"] .site-header,
+body[data-background-preset="ice"] .site-header {
+  border-radius: 34px;
+}
+
+body[data-background-preset="aurora"] .home-page,
+body[data-background-preset="sunset"] .home-page,
+body[data-background-preset="ice"] .home-page {
+  gap: 26px;
+}
+
+body[data-background-preset="aurora"] .hero-grid,
+body[data-background-preset="sunset"] .hero-grid,
+body[data-background-preset="ice"] .hero-grid {
+  gap: 22px;
+}
+
+body[data-background-preset="aurora"] .social-strip,
+body[data-background-preset="sunset"] .social-strip,
+body[data-background-preset="ice"] .social-strip {
+  padding: 14px;
+}
+
+body[data-background-preset="aurora"] .project-card,
+body[data-background-preset="aurora"] .article-card,
+body[data-background-preset="aurora"] .intro-panel,
+body[data-background-preset="aurora"] .hero-copy,
+body[data-background-preset="aurora"] .about-panel,
+body[data-background-preset="aurora"] .stats-panel,
+body[data-background-preset="aurora"] .social-strip {
+  border-radius: 36px;
+  background:
+    radial-gradient(circle at 16% 14%, rgba(255, 255, 255, 0.18), transparent 20%),
+    linear-gradient(155deg, rgba(33, 53, 78, 0.84), rgba(7, 17, 28, 0.7));
+  border: 1px solid rgba(206, 235, 255, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.14),
+    0 26px 80px rgba(0, 8, 20, 0.24);
+}
+
+body[data-background-preset="aurora"] .hero-grid {
+  grid-template-columns: 1.35fr 0.95fr;
+}
+
+body[data-background-preset="aurora"] .intro-panel {
+  min-height: 360px;
+  grid-template-columns: 220px 1fr;
+}
+
+body[data-background-preset="aurora"] .intro-avatar {
+  width: 190px;
+  border-radius: 32px;
+}
+
+body[data-background-preset="aurora"] .hero-copy h3 {
+  font-size: clamp(2rem, 3.3vw, 3rem);
+  max-width: 11ch;
+}
+
+body[data-background-preset="aurora"] .card-grid {
+  grid-template-columns: 1.25fr 0.75fr;
+  gap: 20px;
+}
+
+body[data-background-preset="aurora"] .article-grid {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+body[data-background-preset="aurora"] .project-card:first-child,
+body[data-background-preset="aurora"] .article-card:first-child {
+  grid-column: span 2;
+  min-height: 340px;
+}
+
+body[data-background-preset="aurora"] .section-head {
+  align-items: center;
+}
+
+body[data-background-preset="aurora"] .micro-label {
+  letter-spacing: 0.28em;
+}
+
+body[data-background-preset="sunset"] .project-card,
+body[data-background-preset="sunset"] .article-card,
+body[data-background-preset="sunset"] .intro-panel,
+body[data-background-preset="sunset"] .hero-copy,
+body[data-background-preset="sunset"] .about-panel,
+body[data-background-preset="sunset"] .stats-panel,
+body[data-background-preset="sunset"] .social-strip {
+  border-radius: 30px;
+  background:
+    linear-gradient(180deg, rgba(255, 235, 214, 0.12), rgba(107, 46, 79, 0.18)),
+    rgba(33, 18, 34, 0.28);
+  border: 1px solid rgba(255, 223, 196, 0.1);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 247, 236, 0.1),
+    0 22px 60px rgba(38, 16, 28, 0.2);
+}
+
+body[data-background-preset="sunset"] .hero-grid {
+  grid-template-columns: 1fr;
+}
+
+body[data-background-preset="sunset"] .intro-panel {
+  grid-template-columns: 1.05fr 1.2fr;
+  min-height: 380px;
+  align-items: end;
+}
+
+body[data-background-preset="sunset"] .hero-copy {
+  min-height: 220px;
+}
+
+body[data-background-preset="sunset"] .split-layout {
+  grid-template-columns: 1.3fr 0.7fr;
+}
+
+body[data-background-preset="sunset"] .card-grid {
+  grid-template-columns: repeat(3, 1fr);
+  gap: 18px;
+}
+
+body[data-background-preset="sunset"] .project-card,
+body[data-background-preset="sunset"] .article-card {
+  min-height: 270px;
+}
+
+body[data-background-preset="sunset"] .project-card:nth-child(2),
+body[data-background-preset="sunset"] .article-card:nth-child(2) {
+  transform: translateY(26px);
+}
+
+body[data-background-preset="sunset"] .project-card:nth-child(3),
+body[data-background-preset="sunset"] .article-card:nth-child(3) {
+  transform: translateY(52px);
+}
+
+body[data-background-preset="sunset"] .action-button--primary {
+  background: linear-gradient(135deg, #f2a26d, #ea7c6f);
+}
+
+body[data-background-preset="ice"] .project-card,
+body[data-background-preset="ice"] .article-card,
+body[data-background-preset="ice"] .intro-panel,
+body[data-background-preset="ice"] .hero-copy,
+body[data-background-preset="ice"] .about-panel,
+body[data-background-preset="ice"] .stats-panel,
+body[data-background-preset="ice"] .social-strip {
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(214, 241, 255, 0.08), rgba(67, 111, 142, 0.08)),
+    rgba(10, 20, 32, 0.42);
+  border: 1px solid rgba(221, 245, 255, 0.12);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 18px 44px rgba(4, 10, 18, 0.24);
+}
+
+body[data-background-preset="ice"] .hero-grid {
+  grid-template-columns: 320px 1fr;
+  align-items: start;
+}
+
+body[data-background-preset="ice"] .intro-panel {
+  grid-template-columns: 1fr;
+  position: sticky;
+  top: 100px;
+}
+
+body[data-background-preset="ice"] .social-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+body[data-background-preset="ice"] .split-layout {
+  grid-template-columns: 1fr;
+}
+
+body[data-background-preset="ice"] .card-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+
+body[data-background-preset="ice"] .project-card:first-child,
+body[data-background-preset="ice"] .article-card:first-child {
+  grid-column: span 2;
+}
+
+body[data-background-preset="ice"] .project-card h3,
+body[data-background-preset="ice"] .article-card h3 {
+  max-width: 16ch;
+}
+
+body[data-theme="light"] .body-copy,
+body[data-theme="light"] .intro-copy h2,
+body[data-theme="light"] .card-meta,
+body[data-theme="light"] .article-row__meta,
+body[data-theme="light"] .intro-meta,
+body[data-theme="light"] .stat-box span,
+body[data-theme="light"] .social-pill span,
+body[data-theme="light"] .tag-chip,
+body[data-theme="light"] .micro-label {
+  color: var(--muted);
+}
+
+body[data-theme="light"] .project-card h3,
+body[data-theme="light"] .article-card h3,
+body[data-theme="light"] .hero-copy h3,
+body[data-theme="light"] .intro-copy h1,
+body[data-theme="light"] .about-panel h2,
+body[data-theme="light"] .section-head h2 {
+  color: var(--text);
+}
