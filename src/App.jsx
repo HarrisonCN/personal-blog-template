@@ -63,6 +63,11 @@ const BACKGROUND_PRESETS = [
     label: { zh: "冰雾", en: "Ice Mist", ja: "Ice Mist", ko: "Ice Mist" },
     eyebrow: { zh: "Prism", en: "Prism", ja: "Prism", ko: "Prism" },
   },
+  {
+    code: "antigravity",
+    label: { zh: "反重力", en: "Antigravity", ja: "Antigravity", ko: "Antigravity" },
+    eyebrow: { zh: "Google-like", en: "Google-like", ja: "Google-like", ko: "Google-like" },
+  },
 ];
 
 function clamp(value, min, max) {
@@ -594,6 +599,25 @@ function SiteBackground({ presetCode, imageSrc }) {
         <span className="site-background__prism site-background__prism--c" />
         <span className="site-background__float site-background__float--ice-a" style={{ "--depth-x": 24, "--depth-y": 16, "--drift-x": 14, "--drift-y": -12, "--duration": "17s", "--delay": "-5s" }} />
         <span className="site-background__float site-background__float--ice-b" style={{ "--depth-x": -22, "--depth-y": 12, "--drift-x": -12, "--drift-y": 14, "--duration": "14s", "--delay": "-9s" }} />
+      </div>
+    );
+  }
+
+  if (presetCode === "antigravity") {
+    return (
+      <div className="site-background site-background--antigravity" aria-hidden="true">
+        <span className="site-background__gravity-glow site-background__gravity-glow--a" />
+        <span className="site-background__gravity-glow site-background__gravity-glow--b" />
+        <span className="site-background__gravity-line site-background__gravity-line--h" />
+        <span className="site-background__gravity-line site-background__gravity-line--v" />
+        <span className="site-background__gravity-panel site-background__gravity-panel--a" style={{ "--depth-x": 18, "--depth-y": 10, "--drift-x": 14, "--drift-y": -10, "--duration": "18s", "--delay": "-3s" }} />
+        <span className="site-background__gravity-panel site-background__gravity-panel--b" style={{ "--depth-x": -20, "--depth-y": 14, "--drift-x": -12, "--drift-y": 12, "--duration": "16s", "--delay": "-9s" }} />
+        <span className="site-background__gravity-panel site-background__gravity-panel--c" style={{ "--depth-x": 12, "--depth-y": -16, "--drift-x": 10, "--drift-y": 16, "--duration": "14s", "--delay": "-6s" }} />
+        <span className="site-background__gravity-panel site-background__gravity-panel--d" style={{ "--depth-x": -16, "--depth-y": -12, "--drift-x": -10, "--drift-y": 12, "--duration": "20s", "--delay": "-12s" }} />
+        <span className="site-background__gravity-pill site-background__gravity-pill--a" style={{ "--depth-x": 20, "--depth-y": 12, "--drift-x": 16, "--drift-y": -10, "--duration": "17s", "--delay": "-2s" }} />
+        <span className="site-background__gravity-pill site-background__gravity-pill--b" style={{ "--depth-x": -18, "--depth-y": 10, "--drift-x": -16, "--drift-y": 8, "--duration": "15s", "--delay": "-8s" }} />
+        <span className="site-background__gravity-dot site-background__gravity-dot--a" style={{ "--depth-x": 22, "--depth-y": 18, "--drift-x": 12, "--drift-y": -8, "--duration": "13s", "--delay": "-1s" }} />
+        <span className="site-background__gravity-dot site-background__gravity-dot--b" style={{ "--depth-x": -20, "--depth-y": 16, "--drift-x": -12, "--drift-y": 10, "--duration": "11s", "--delay": "-5s" }} />
       </div>
     );
   }
