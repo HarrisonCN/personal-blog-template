@@ -1046,6 +1046,43 @@ body[data-background-preset="xflow"] .xflow-story-item:nth-child(2) .inline-link
   color: #15515a;
 }
 
+body[data-background-preset="xflow"] .xflow-lead-card h2,
+body[data-background-preset="xflow"] .xflow-mini-card h3,
+body[data-background-preset="xflow"] .xflow-story-main h2,
+body[data-background-preset="xflow"] .xflow-story-item h3,
+body[data-background-preset="xflow"] .xflow-articles-lead h2,
+body[data-background-preset="xflow"] .xflow-articles-item h3,
+body[data-background-preset="xflow"] .xflow-project-card h2,
+body[data-background-preset="xflow"] .xflow-article-main h2,
+body[data-background-preset="xflow"] .xflow-article-main h3 {
+  color: #13474f;
+}
+
+body[data-background-preset="xflow"] .xflow-lead-card .body-copy,
+body[data-background-preset="xflow"] .xflow-mini-card .body-copy,
+body[data-background-preset="xflow"] .xflow-story-main .body-copy,
+body[data-background-preset="xflow"] .xflow-story-item .body-copy,
+body[data-background-preset="xflow"] .xflow-articles-lead .body-copy,
+body[data-background-preset="xflow"] .xflow-articles-item .body-copy,
+body[data-background-preset="xflow"] .xflow-project-card .body-copy,
+body[data-background-preset="xflow"] .xflow-article-main .body-copy,
+body[data-background-preset="xflow"] .xflow-lead-card .micro-label,
+body[data-background-preset="xflow"] .xflow-mini-card .micro-label,
+body[data-background-preset="xflow"] .xflow-story-main .micro-label,
+body[data-background-preset="xflow"] .xflow-story-item .micro-label,
+body[data-background-preset="xflow"] .xflow-articles-lead .micro-label,
+body[data-background-preset="xflow"] .xflow-articles-item .micro-label,
+body[data-background-preset="xflow"] .xflow-project-card .micro-label {
+  color: #55767b;
+}
+
+body[data-background-preset="xflow"] .xflow-mini-card,
+body[data-background-preset="xflow"] .xflow-articles-item,
+body[data-background-preset="xflow"] .xflow-lead-card,
+body[data-background-preset="xflow"] .xflow-story-main {
+  text-shadow: none;
+}
+
 body[data-background-preset="xflow"] .xflow-article-summary-card {
   background: linear-gradient(135deg, #24bcb0, #7dded6);
 }
