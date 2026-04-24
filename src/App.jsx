@@ -46,22 +46,22 @@ const BACKGROUND_PRESETS = [
   {
     code: "none",
     label: { zh: "默认", en: "Default", ja: "Default", ko: "Default" },
-    css: "none",
+    eyebrow: { zh: "Blueprint", en: "Blueprint", ja: "Blueprint", ko: "Blueprint" },
   },
   {
     code: "aurora",
     label: { zh: "极光", en: "Aurora", ja: "Aurora", ko: "Aurora" },
-    css: "radial-gradient(circle at 16% 22%, rgba(119, 255, 214, 0.26), transparent 24%), radial-gradient(circle at 78% 18%, rgba(122, 182, 255, 0.28), transparent 26%), radial-gradient(circle at 58% 74%, rgba(255, 144, 201, 0.2), transparent 28%)",
+    eyebrow: { zh: "Flow", en: "Flow", ja: "Flow", ko: "Flow" },
   },
   {
     code: "sunset",
     label: { zh: "晚霞", en: "Sunset", ja: "Sunset", ko: "Sunset" },
-    css: "radial-gradient(circle at 18% 16%, rgba(255, 186, 120, 0.28), transparent 24%), radial-gradient(circle at 72% 18%, rgba(255, 126, 185, 0.22), transparent 26%), radial-gradient(circle at 52% 78%, rgba(120, 148, 255, 0.18), transparent 28%)",
+    eyebrow: { zh: "Dunes", en: "Dunes", ja: "Dunes", ko: "Dunes" },
   },
   {
     code: "ice",
     label: { zh: "冰雾", en: "Ice Mist", ja: "Ice Mist", ko: "Ice Mist" },
-    css: "radial-gradient(circle at 22% 20%, rgba(220, 242, 255, 0.24), transparent 22%), radial-gradient(circle at 76% 16%, rgba(154, 214, 255, 0.22), transparent 24%), radial-gradient(circle at 50% 76%, rgba(170, 255, 235, 0.18), transparent 26%)",
+    eyebrow: { zh: "Prism", en: "Prism", ja: "Prism", ko: "Prism" },
   },
 ];
 
@@ -541,6 +541,66 @@ function getBrowserTitle(meta, language) {
   return meta?.browserTitle?.[language] || meta?.browserTitle?.en || meta?.name || "Site";
 }
 
+function SiteBackground({ presetCode, imageSrc }) {
+  if (imageSrc) {
+    return (
+      <div className="site-background site-background--image" aria-hidden="true">
+        <div className="site-background__image" style={{ backgroundImage: `url("${String(imageSrc).replace(/"/g, '\\"')}")` }} />
+        <span className="site-background__image-glow site-background__image-glow--a" />
+        <span className="site-background__image-glow site-background__image-glow--b" />
+      </div>
+    );
+  }
+
+  if (presetCode === "aurora") {
+    return (
+      <div className="site-background site-background--aurora" aria-hidden="true">
+        <span className="site-background__veil site-background__veil--left" />
+        <span className="site-background__veil site-background__veil--right" />
+        <span className="site-background__veil site-background__veil--pulse" />
+        <span className="site-background__spark site-background__spark--one" />
+        <span className="site-background__spark site-background__spark--two" />
+      </div>
+    );
+  }
+
+  if (presetCode === "sunset") {
+    return (
+      <div className="site-background site-background--sunset" aria-hidden="true">
+        <span className="site-background__sun" />
+        <span className="site-background__horizon site-background__horizon--back" />
+        <span className="site-background__horizon site-background__horizon--mid" />
+        <span className="site-background__horizon site-background__horizon--front" />
+        <span className="site-background__dust site-background__dust--one" />
+        <span className="site-background__dust site-background__dust--two" />
+      </div>
+    );
+  }
+
+  if (presetCode === "ice") {
+    return (
+      <div className="site-background site-background--ice" aria-hidden="true">
+        <span className="site-background__beam site-background__beam--left" />
+        <span className="site-background__beam site-background__beam--right" />
+        <span className="site-background__prism site-background__prism--a" />
+        <span className="site-background__prism site-background__prism--b" />
+        <span className="site-background__prism site-background__prism--c" />
+      </div>
+    );
+  }
+
+  return (
+    <div className="site-background site-background--none" aria-hidden="true">
+      <span className="site-background__orbital site-background__orbital--a" />
+      <span className="site-background__orbital site-background__orbital--b" />
+      <span className="site-background__orbital site-background__orbital--c" />
+      <span className="site-background__node site-background__node--a" />
+      <span className="site-background__node site-background__node--b" />
+      <span className="site-background__node site-background__node--c" />
+    </div>
+  );
+}
+
 function createBlankProject() {
   return {
     slug: "",
@@ -839,6 +899,8 @@ function useGlassTracking(pathname) {
       const { clientX, clientY } = latestPointer;
       root.style.setProperty("--cursor-x", `${clientX}px`);
       root.style.setProperty("--cursor-y", `${clientY}px`);
+      root.style.setProperty("--cursor-rx", `${(((clientX / window.innerWidth) - 0.5) * 2).toFixed(4)}`);
+      root.style.setProperty("--cursor-ry", `${(((clientY / window.innerHeight) - 0.5) * 2).toFixed(4)}`);
 
       cards.forEach((entry) => {
         if (!entry.visible) {
@@ -2005,6 +2067,21 @@ function Shell({
   );
 }
 
+function useStudioBackgroundPreview(siteDraft, setPreviewBackground) {
+  useEffect(() => {
+    if (!setPreviewBackground) {
+      return undefined;
+    }
+
+    setPreviewBackground({
+      backgroundPreset: siteDraft?.meta?.backgroundPreset || "none",
+      backgroundImage: siteDraft?.meta?.backgroundImage || "",
+    });
+
+    return () => setPreviewBackground(null);
+  }, [setPreviewBackground, siteDraft?.meta?.backgroundImage, siteDraft?.meta?.backgroundPreset]);
+}
+
 function ArticleMeta({ article, copy, language }) {
   return (
     <div className="card-meta">
@@ -2600,6 +2677,7 @@ function StudioPage({
   authReady,
   siteContent,
   saveSiteContent,
+  setPreviewBackground,
 }) {
   const [selectedSlug, setSelectedSlug] = useState(articles[0]?.slug ?? "__new__");
   const [selectedProjectSlug, setSelectedProjectSlug] = useState(projects[0]?.slug ?? "__new_project__");
@@ -2621,6 +2699,8 @@ function StudioPage({
   useEffect(() => {
     setSiteDraft(normalizeSiteContent(siteContent));
   }, [siteContent]);
+
+  useStudioBackgroundPreview(siteDraft, setPreviewBackground);
 
   useEffect(() => {
     if (selectedSlug === "__new__") {
@@ -2812,6 +2892,7 @@ function StudioPage({
       ...current,
       meta: {
         ...current.meta,
+        backgroundPreset: "none",
         backgroundImage: background.dataUrl,
       },
     }));
@@ -2823,6 +2904,7 @@ function StudioPage({
       ...current,
       meta: {
         ...current.meta,
+        backgroundImage: "",
         backgroundPreset: presetCode,
       },
     }));
@@ -3484,7 +3566,11 @@ function StudioPage({
                     className={`studio-preset ${siteDraft.meta.backgroundPreset === preset.code ? "active" : ""}`}
                     onClick={() => handleBackgroundPreset(preset.code)}
                   >
-                    {preset.label[language] || preset.label.en}
+                    <span className={`studio-preset__swatch studio-preset__swatch--${preset.code}`} />
+                    <span className="studio-preset__text">
+                      <strong>{preset.label[language] || preset.label.en}</strong>
+                      <span>{preset.eyebrow[language] || preset.eyebrow.en}</span>
+                    </span>
                   </button>
                 ))}
               </div>
@@ -3845,6 +3931,7 @@ function StudioPage({
 export default function App() {
   const { theme, setTheme, language, setLanguage, font, setFont } = usePreferences();
   const { palette, setPalette } = usePalette();
+  const [previewBackground, setPreviewBackground] = useState(null);
   const copy = getCopy(language);
   const { articles, projects, siteContent, entries, saveArticle, saveProject, deleteProject, saveContent, addEntry, studioAvailable } = useBackendContent();
   const { isAuthenticated, login, logout, sessionExpired, lockUntil, authReady } = useStudioAuth(studioAvailable);
@@ -3864,17 +3951,15 @@ export default function App() {
     socialLinks: Array.isArray(siteContent.meta?.socialLinks) ? siteContent.meta.socialLinks.map(normalizeSocialLink) : siteMeta.socialLinks.map(normalizeSocialLink),
     customCards: Array.isArray(siteContent.meta?.customCards) ? siteContent.meta.customCards.map(normalizeCustomCard) : [],
   };
-
-  useEffect(() => {
-    const preset = BACKGROUND_PRESETS.find((item) => item.code === meta.backgroundPreset);
-    const layer = meta.backgroundImage
-      ? `url("${String(meta.backgroundImage).replace(/"/g, '\\"')}")`
-      : preset?.css || "none";
-    document.documentElement.style.setProperty("--site-bg-layer", layer);
-  }, [meta.backgroundImage, meta.backgroundPreset]);
+  const activeBackground = previewBackground ?? {
+    backgroundPreset: meta.backgroundPreset || "none",
+    backgroundImage: meta.backgroundImage || "",
+  };
 
   return (
-    <Shell
+    <>
+      <SiteBackground presetCode={activeBackground.backgroundPreset} imageSrc={activeBackground.backgroundImage} />
+      <Shell
       theme={theme}
       setTheme={setTheme}
       language={language}
@@ -3927,10 +4012,12 @@ export default function App() {
               authReady={authReady}
               siteContent={siteContent}
               saveSiteContent={saveContent}
+              setPreviewBackground={setPreviewBackground}
             />
           }
         />
       </Routes>
-    </Shell>
+      </Shell>
+    </>
   );
 }
