@@ -3,7 +3,7 @@ import { Link, NavLink, Route, Routes, useLocation, useParams } from "react-rout
 import AntigravityBackground from "./components/AntigravityBackground";
 import InteractiveSceneBackground from "./components/InteractiveSceneBackground";
 import Reveal from "./components/Reveal";
-import templateAvatar from "./assets/template-avatar.svg";
+import winstonAvatar from "./assets/winston-avatar.jpg";
 import {
   articles as seedArticles,
   featuredProjects,
@@ -45,11 +45,11 @@ const LEGACY_PALETTES = {
 };
 const DEFAULT_PALETTE = { h: 198, s: 30, v: 100 };
 const THEME_PRESET_OPTIONS = [
-  { value: "none", label: "Default" },
-  { value: "aurora", label: "Pay Flow" },
-  { value: "sunset", label: "Wallet Air" },
-  { value: "ice", label: "Data Grid" },
-  { value: "antigravity", label: "Antigravity" },
+  { code: "none", label: "Default" },
+  { code: "aurora", label: "Pay Flow" },
+  { code: "sunset", label: "Wallet Air" },
+  { code: "ice", label: "Data Grid" },
+  { code: "antigravity", label: "Antigravity" },
 ];
 const BACKGROUND_PRESETS = [
   {
@@ -1313,7 +1313,7 @@ function buildDefaultSiteContent() {
       name: siteMeta.name,
       email: siteMeta.email,
       location: siteMeta.location,
-      avatarImage: templateAvatar,
+      avatarImage: winstonAvatar,
       browserTitle: ensureLocalizedMap(siteMeta.name, siteMeta.name),
       backgroundPreset: "none",
       backgroundImage: "",
@@ -2167,7 +2167,7 @@ function useSeo({ title, description, image }) {
 
 function HomePage({ language, text, copy, articles, meta, projects, guestbookEntries, addGuestbookEntry }) {
   const [guestbookForm, setGuestbookForm] = useState({ name: "", message: "" });
-  const siteAvatar = getSiteAvatar(meta, templateAvatar);
+  const siteAvatar = getSiteAvatar(meta, winstonAvatar);
   useSeo({
     title: getBrowserTitle(meta, language),
     description: text.heroBody,
@@ -2402,7 +2402,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
 function ArticlesPage({ language, text, copy, articles, meta }) {
   const [query, setQuery] = useState("");
   const [activeTag, setActiveTag] = useState("all");
-  const siteAvatar = getSiteAvatar(meta, templateAvatar);
+  const siteAvatar = getSiteAvatar(meta, winstonAvatar);
   useSeo({
     title: `${text.articleIndexTitle} / ${getBrowserTitle(meta, language)}`,
     description: text.articleIndexBody,
@@ -2510,7 +2510,7 @@ function ArticleDetailPage({ language, copy, articles, meta }) {
   );
   const progress = useReadingProgress();
   const [copied, setCopied] = useState(false);
-  const siteAvatar = getSiteAvatar(meta, templateAvatar);
+  const siteAvatar = getSiteAvatar(meta, winstonAvatar);
   const browserTitle = getBrowserTitle(meta, language);
   const seoTitle = article ? `${article.title[language]} / ${browserTitle}` : browserTitle;
   const seoDescription = article ? article.excerpt[language] || article.excerpt.en : "";
@@ -2625,7 +2625,7 @@ function ProjectDetailPage({ language, text, projects, meta }) {
     () => projects.find((item) => item.slug === slug) ?? projects[0],
     [projects, slug]
   );
-  const siteAvatar = getSiteAvatar(meta, templateAvatar);
+  const siteAvatar = getSiteAvatar(meta, winstonAvatar);
   useSeo({
     title: `${project.title} / ${getBrowserTitle(meta, language)}`,
     description: project.summary[language] || project.summary.en,
