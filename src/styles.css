@@ -118,9 +118,13 @@ body {
   font-family: var(--font-body);
   color: var(--text);
   background:
+    var(--site-bg-layer, none),
     radial-gradient(circle at 16% 12%, color-mix(in srgb, var(--accent) 11%, transparent), transparent 28%),
     radial-gradient(circle at 86% 14%, color-mix(in srgb, var(--accent-warm) 9%, transparent), transparent 24%),
     linear-gradient(180deg, var(--bg) 0%, var(--bg-secondary) 52%, var(--bg) 100%);
+  background-size: cover, auto, auto, auto;
+  background-position: center center, center center, center center, center center;
+  background-attachment: fixed, fixed, fixed, fixed;
 }
 
 @media (hover: hover) and (pointer: fine) {
@@ -345,7 +349,7 @@ select {
       transparent 60%
     ),
     linear-gradient(120deg, rgba(255, 255, 255, 0.3), transparent 22%, transparent 76%, rgba(255, 255, 255, 0.16));
-  opacity: calc(0.1 + (var(--light-opacity) * 0.66));
+  opacity: calc(var(--light-opacity) * 0.66);
   mix-blend-mode: screen;
   pointer-events: none;
   transition: opacity 220ms ease;
@@ -2747,6 +2751,51 @@ select {
   border-radius: 18px;
   object-fit: cover;
   border: 1px solid color-mix(in srgb, var(--line-strong) 76%, transparent);
+}
+
+.studio-background-block {
+  margin-top: 12px;
+  display: grid;
+  gap: 12px;
+}
+
+.studio-background-block__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.studio-background-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.studio-preset {
+  min-height: 38px;
+  padding: 0 14px;
+  border-radius: 999px;
+  border: 1px solid color-mix(in srgb, var(--line-strong) 44%, transparent);
+  background: color-mix(in srgb, var(--surface-strong) 82%, transparent);
+  color: var(--text);
+}
+
+.studio-preset.active {
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 56%, white 4%),
+    var(--accent-warm)
+  );
+  color: white;
+}
+
+.studio-background-preview {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 18px;
+  border: 1px solid color-mix(in srgb, var(--line-strong) 44%, transparent);
 }
 
 .studio-rail {

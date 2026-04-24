@@ -42,6 +42,28 @@ const LEGACY_PALETTES = {
   mono: { h: 217, s: 15, v: 85 },
 };
 const DEFAULT_PALETTE = { h: 198, s: 30, v: 100 };
+const BACKGROUND_PRESETS = [
+  {
+    code: "none",
+    label: { zh: "默认", en: "Default", ja: "Default", ko: "Default" },
+    css: "none",
+  },
+  {
+    code: "aurora",
+    label: { zh: "极光", en: "Aurora", ja: "Aurora", ko: "Aurora" },
+    css: "radial-gradient(circle at 16% 22%, rgba(119, 255, 214, 0.26), transparent 24%), radial-gradient(circle at 78% 18%, rgba(122, 182, 255, 0.28), transparent 26%), radial-gradient(circle at 58% 74%, rgba(255, 144, 201, 0.2), transparent 28%)",
+  },
+  {
+    code: "sunset",
+    label: { zh: "晚霞", en: "Sunset", ja: "Sunset", ko: "Sunset" },
+    css: "radial-gradient(circle at 18% 16%, rgba(255, 186, 120, 0.28), transparent 24%), radial-gradient(circle at 72% 18%, rgba(255, 126, 185, 0.22), transparent 26%), radial-gradient(circle at 52% 78%, rgba(120, 148, 255, 0.18), transparent 28%)",
+  },
+  {
+    code: "ice",
+    label: { zh: "冰雾", en: "Ice Mist", ja: "Ice Mist", ko: "Ice Mist" },
+    css: "radial-gradient(circle at 22% 20%, rgba(220, 242, 255, 0.24), transparent 22%), radial-gradient(circle at 76% 16%, rgba(154, 214, 255, 0.22), transparent 24%), radial-gradient(circle at 50% 76%, rgba(170, 255, 235, 0.18), transparent 26%)",
+  },
+];
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -163,6 +185,11 @@ const fallbackCopy = {
     contentEditorBody: "这里可以直接修改首页和站内主要文案，保存后页面会立即使用新内容。",
     saveSiteContent: "保存网站内容",
     siteContentSaved: "网站内容已保存",
+    browserTitle: "标签页名称",
+    backgroundTitle: "网页背景",
+    uploadBackground: "上传背景图",
+    clearBackground: "清除背景",
+    backgroundPreset: "背景预设",
     brandName: "站点名称",
     brandEmail: "联系邮箱",
     brandLocation: "所在地区",
@@ -176,6 +203,7 @@ const fallbackCopy = {
     projectsEditorTitle: "项目编辑",
     projectsEditorBody: "这里可以新增、修改项目卡片和项目详情内容。",
     saveProject: "保存项目",
+    deleteProject: "删除项目",
     createProject: "新建项目",
     projectSaved: "项目已保存",
     projectListTitle: "已有项目",
@@ -262,6 +290,11 @@ const fallbackCopy = {
     contentEditorBody: "Edit homepage and site copy here, then save to update the live page immediately.",
     saveSiteContent: "Save Site Content",
     siteContentSaved: "Site content saved",
+    browserTitle: "Tab Title",
+    backgroundTitle: "Page Background",
+    uploadBackground: "Upload Background",
+    clearBackground: "Clear Background",
+    backgroundPreset: "Background Preset",
     brandName: "Site Name",
     brandEmail: "Contact Email",
     brandLocation: "Location",
@@ -277,6 +310,7 @@ const fallbackCopy = {
     projectsEditorTitle: "Project Editor",
     projectsEditorBody: "Create and revise project cards and project detail content here.",
     saveProject: "Save Project",
+    deleteProject: "Delete Project",
     createProject: "New Project",
     projectSaved: "Project saved",
     projectListTitle: "Projects",
@@ -501,6 +535,10 @@ function createBlankCustomCard() {
 
 function getSiteAvatar(meta, fallbackImage) {
   return typeof meta?.avatarImage === "string" && meta.avatarImage ? meta.avatarImage : fallbackImage;
+}
+
+function getBrowserTitle(meta, language) {
+  return meta?.browserTitle?.[language] || meta?.browserTitle?.en || meta?.name || "Site";
 }
 
 function createBlankProject() {
@@ -1055,6 +1093,23 @@ function useBackendContent() {
     }
   };
 
+  const deleteProject = async (slug) => {
+    if (!studioAvailable) {
+      return { ok: false, reason: "studio_unavailable" };
+    }
+
+    try {
+      const payload = await apiRequest("/api/studio/projects/delete", {
+        method: "POST",
+        body: JSON.stringify({ slug }),
+      });
+      setProjects((payload.projects ?? []).map(normalizeProject));
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, reason: error.status === 401 ? "unauthorized" : "request_failed" };
+    }
+  };
+
   const saveContent = async (nextContent) => {
     if (!studioAvailable) {
       return { ok: false, reason: "studio_unavailable" };
@@ -1093,7 +1148,7 @@ function useBackendContent() {
     return { ok: true };
   };
 
-  return { articles, projects, siteContent, entries, saveArticle, saveProject, saveContent, addEntry, studioAvailable, contentReady };
+  return { articles, projects, siteContent, entries, saveArticle, saveProject, deleteProject, saveContent, addEntry, studioAvailable, contentReady };
 }
 
 function useStudioAuth(studioAvailable) {
@@ -1190,6 +1245,9 @@ function buildDefaultSiteContent() {
       email: siteMeta.email,
       location: siteMeta.location,
       avatarImage: templateAvatar,
+      browserTitle: ensureLocalizedMap(siteMeta.name, siteMeta.name),
+      backgroundPreset: "none",
+      backgroundImage: "",
       role: ensureLocalizedMap(siteMeta.role, ""),
       intro: ensureLocalizedMap(siteMeta.intro, ""),
       stats: { ...siteMeta.stats },
@@ -1210,6 +1268,11 @@ function normalizeSiteContent(content) {
         typeof content?.meta?.avatarImage === "string" && content.meta.avatarImage
           ? content.meta.avatarImage
           : defaults.meta.avatarImage,
+      browserTitle: ensureLocalizedMap(content?.meta?.browserTitle ?? defaults.meta.browserTitle, defaults.meta.name),
+      backgroundPreset:
+        typeof content?.meta?.backgroundPreset === "string" ? content.meta.backgroundPreset : defaults.meta.backgroundPreset,
+      backgroundImage:
+        typeof content?.meta?.backgroundImage === "string" ? content.meta.backgroundImage : defaults.meta.backgroundImage,
       role: ensureLocalizedMap(content?.meta?.role ?? defaults.meta.role, ""),
       intro: ensureLocalizedMap(content?.meta?.intro ?? defaults.meta.intro, ""),
       stats: {
@@ -2015,7 +2078,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
   const [guestbookForm, setGuestbookForm] = useState({ name: "", message: "" });
   const siteAvatar = getSiteAvatar(meta, templateAvatar);
   useSeo({
-    title: `${meta.name} / ${text.heroTitle}`,
+    title: getBrowserTitle(meta, language),
     description: text.heroBody,
     image: siteAvatar,
   });
@@ -2250,7 +2313,7 @@ function ArticlesPage({ language, text, copy, articles, meta }) {
   const [activeTag, setActiveTag] = useState("all");
   const siteAvatar = getSiteAvatar(meta, templateAvatar);
   useSeo({
-    title: `${text.articleIndexTitle} / ${meta.name}`,
+    title: `${text.articleIndexTitle} / ${getBrowserTitle(meta, language)}`,
     description: text.articleIndexBody,
     image: siteAvatar,
   });
@@ -2357,7 +2420,8 @@ function ArticleDetailPage({ language, copy, articles, meta }) {
   const progress = useReadingProgress();
   const [copied, setCopied] = useState(false);
   const siteAvatar = getSiteAvatar(meta, templateAvatar);
-  const seoTitle = article ? `${article.title[language]} / ${meta.name}` : meta.name;
+  const browserTitle = getBrowserTitle(meta, language);
+  const seoTitle = article ? `${article.title[language]} / ${browserTitle}` : browserTitle;
   const seoDescription = article ? article.excerpt[language] || article.excerpt.en : "";
   const seoImage = article?.coverImage || siteAvatar;
   useSeo({
@@ -2464,12 +2528,18 @@ function ArticleDetailPage({ language, copy, articles, meta }) {
   );
 }
 
-function ProjectDetailPage({ language, text, projects }) {
+function ProjectDetailPage({ language, text, projects, meta }) {
   const { slug } = useParams();
   const project = useMemo(
     () => projects.find((item) => item.slug === slug) ?? projects[0],
     [projects, slug]
   );
+  const siteAvatar = getSiteAvatar(meta, templateAvatar);
+  useSeo({
+    title: `${project.title} / ${getBrowserTitle(meta, language)}`,
+    description: project.summary[language] || project.summary.en,
+    image: siteAvatar,
+  });
 
   return (
     <main className="page">
@@ -2520,6 +2590,7 @@ function StudioPage({
   saveArticle,
   projects,
   saveProject,
+  deleteProject,
   isAuthenticated,
   login,
   logout,
@@ -2731,6 +2802,43 @@ function StudioPage({
     handleSiteMetaField("avatarImage", "");
   };
 
+  const handleBackgroundUpload = async (event) => {
+    const [file] = Array.from(event.target.files ?? []);
+    if (!file) {
+      return;
+    }
+    const [background] = await Promise.all([fileToAttachment(file)]);
+    setSiteDraft((current) => ({
+      ...current,
+      meta: {
+        ...current.meta,
+        backgroundImage: background.dataUrl,
+      },
+    }));
+    event.target.value = "";
+  };
+
+  const handleBackgroundPreset = (presetCode) => {
+    setSiteDraft((current) => ({
+      ...current,
+      meta: {
+        ...current.meta,
+        backgroundPreset: presetCode,
+      },
+    }));
+  };
+
+  const handleClearBackground = () => {
+    setSiteDraft((current) => ({
+      ...current,
+      meta: {
+        ...current.meta,
+        backgroundImage: "",
+        backgroundPreset: "none",
+      },
+    }));
+  };
+
   const handleSocialLinkChange = (index, key, value) => {
     setSiteDraft((current) => ({
       ...current,
@@ -2880,6 +2988,20 @@ function StudioPage({
     setSelectedProjectSlug(nextSlug);
     setFlash(copy.projectSaved);
     window.setTimeout(() => setFlash(""), 1600);
+  };
+
+  const handleDeleteProject = async () => {
+    if (selectedProjectSlug === "__new_project__" || !projectDraft.slug) {
+      return;
+    }
+    const result = await deleteProject(selectedProjectSlug);
+    if (!result.ok) {
+      setFlash(result.reason === "unauthorized" ? copy.sessionExpired : "Studio save is unavailable without the backend server.");
+      window.setTimeout(() => setFlash(""), 1800);
+      return;
+    }
+    setSelectedProjectSlug("__new_project__");
+    setProjectDraft(createBlankProject());
   };
 
   const studioProgress = useReadingProgress();
@@ -3281,6 +3403,14 @@ function StudioPage({
                 />
               </label>
               <label className="studio-field">
+                <span>{copy.browserTitle}</span>
+                <input
+                  type="text"
+                  value={siteDraft.meta.browserTitle[editorLanguage] || ""}
+                  onChange={(event) => handleSiteLocalizedMeta("browserTitle", event.target.value)}
+                />
+              </label>
+              <label className="studio-field">
                 <span>{copy.statProjects}</span>
                 <input
                   type="text"
@@ -3335,6 +3465,36 @@ function StudioPage({
               <button type="button" className="action-button action-button--secondary" onClick={handleRemoveAvatar}>
                 {copy.removeAvatar || "Reset Avatar"}
               </button>
+            </div>
+            <div className="studio-block studio-background-block">
+              <div className="studio-background-block__head">
+                <div>
+                  <p className="micro-label">BACKGROUND</p>
+                  <strong>{copy.backgroundTitle}</strong>
+                </div>
+                <button type="button" className="action-button action-button--secondary" onClick={handleClearBackground}>
+                  {copy.clearBackground}
+                </button>
+              </div>
+              <div className="studio-background-presets">
+                {BACKGROUND_PRESETS.map((preset) => (
+                  <button
+                    key={preset.code}
+                    type="button"
+                    className={`studio-preset ${siteDraft.meta.backgroundPreset === preset.code ? "active" : ""}`}
+                    onClick={() => handleBackgroundPreset(preset.code)}
+                  >
+                    {preset.label[language] || preset.label.en}
+                  </button>
+                ))}
+              </div>
+              <label className="studio-field studio-field--inline">
+                <span>{copy.uploadBackground}</span>
+                <input type="file" accept="image/*" onChange={handleBackgroundUpload} />
+              </label>
+              {siteDraft.meta.backgroundImage ? (
+                <img className="studio-background-preview" src={siteDraft.meta.backgroundImage} alt="background preview" />
+              ) : null}
             </div>
           </div>
         </section>
@@ -3536,9 +3696,16 @@ function StudioPage({
               <h2>{copy.projectsEditorTitle}</h2>
               <p className="body-copy">{copy.projectsEditorBody}</p>
             </div>
-            <button type="button" className="action-button action-button--primary" onClick={handleSaveProject}>
-              {copy.saveProject}
-            </button>
+            <div className="studio-inline-actions">
+              {selectedProjectSlug !== "__new_project__" ? (
+                <button type="button" className="action-button action-button--secondary" onClick={handleDeleteProject}>
+                  {copy.deleteProject}
+                </button>
+              ) : null}
+              <button type="button" className="action-button action-button--primary" onClick={handleSaveProject}>
+                {copy.saveProject}
+              </button>
+            </div>
           </div>
 
           <div className="studio-grid-mini">
@@ -3679,7 +3846,7 @@ export default function App() {
   const { theme, setTheme, language, setLanguage, font, setFont } = usePreferences();
   const { palette, setPalette } = usePalette();
   const copy = getCopy(language);
-  const { articles, projects, siteContent, entries, saveArticle, saveProject, saveContent, addEntry, studioAvailable } = useBackendContent();
+  const { articles, projects, siteContent, entries, saveArticle, saveProject, deleteProject, saveContent, addEntry, studioAvailable } = useBackendContent();
   const { isAuthenticated, login, logout, sessionExpired, lockUntil, authReady } = useStudioAuth(studioAvailable);
   const text = {
     ...uiText[language],
@@ -3687,6 +3854,7 @@ export default function App() {
   };
   const meta = {
     ...(siteContent.meta ?? {}),
+    browserTitle: ensureLocalizedMap(siteContent.meta?.browserTitle ?? siteMeta.name, siteMeta.name),
     role: ensureLocalizedMap(siteContent.meta?.role, ""),
     intro: ensureLocalizedMap(siteContent.meta?.intro, ""),
     stats: {
@@ -3696,6 +3864,14 @@ export default function App() {
     socialLinks: Array.isArray(siteContent.meta?.socialLinks) ? siteContent.meta.socialLinks.map(normalizeSocialLink) : siteMeta.socialLinks.map(normalizeSocialLink),
     customCards: Array.isArray(siteContent.meta?.customCards) ? siteContent.meta.customCards.map(normalizeCustomCard) : [],
   };
+
+  useEffect(() => {
+    const preset = BACKGROUND_PRESETS.find((item) => item.code === meta.backgroundPreset);
+    const layer = meta.backgroundImage
+      ? `url("${String(meta.backgroundImage).replace(/"/g, '\\"')}")`
+      : preset?.css || "none";
+    document.documentElement.style.setProperty("--site-bg-layer", layer);
+  }, [meta.backgroundImage, meta.backgroundPreset]);
 
   return (
     <Shell
@@ -3730,7 +3906,7 @@ export default function App() {
         />
         <Route path="/articles" element={<ArticlesPage language={language} text={text} copy={copy} articles={articles} meta={meta} />} />
         <Route path="/articles/:slug" element={<ArticleDetailPage language={language} copy={copy} articles={articles} meta={meta} />} />
-        <Route path="/projects/:slug" element={<ProjectDetailPage language={language} text={text} projects={projects} />} />
+        <Route path="/projects/:slug" element={<ProjectDetailPage language={language} text={text} projects={projects} meta={meta} />} />
         <Route
           path="/studio"
           element={
@@ -3741,6 +3917,7 @@ export default function App() {
               saveArticle={saveArticle}
               projects={projects}
               saveProject={saveProject}
+              deleteProject={deleteProject}
               isAuthenticated={isAuthenticated}
               login={login}
               logout={logout}

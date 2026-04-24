@@ -108,6 +108,11 @@ function normalizeSiteContent(content) {
       ...(content?.meta ?? {}),
       avatarImage:
         typeof content?.meta?.avatarImage === "string" ? content.meta.avatarImage : defaults.meta.avatarImage,
+      browserTitle: ensureLocalizedMap(content?.meta?.browserTitle ?? defaults.meta.browserTitle, defaults.meta.name),
+      backgroundPreset:
+        typeof content?.meta?.backgroundPreset === "string" ? content.meta.backgroundPreset : defaults.meta.backgroundPreset,
+      backgroundImage:
+        typeof content?.meta?.backgroundImage === "string" ? content.meta.backgroundImage : defaults.meta.backgroundImage,
       role: ensureLocalizedMap(content?.meta?.role ?? defaults.meta.role, ""),
       intro: ensureLocalizedMap(content?.meta?.intro ?? defaults.meta.intro, ""),
       stats: {
@@ -160,6 +165,9 @@ function buildDefaultSiteContent() {
       email: siteMeta.email,
       location: siteMeta.location,
       avatarImage: "",
+      browserTitle: ensureLocalizedMap(siteMeta.name, siteMeta.name),
+      backgroundPreset: "none",
+      backgroundImage: "",
       role: ensureLocalizedMap(siteMeta.role, ""),
       intro: ensureLocalizedMap(siteMeta.intro, ""),
       stats: { ...siteMeta.stats },
@@ -503,6 +511,19 @@ app.post("/api/studio/projects", requireTrustedOrigin, requireStudioAuth, (reque
   } else {
     store.projects.unshift(project);
   }
+  writeStore(store);
+  response.json({ ok: true, projects: store.projects });
+});
+
+app.post("/api/studio/projects/delete", requireTrustedOrigin, requireStudioAuth, (request, response) => {
+  const slug = String(request.body?.slug || "");
+  if (!slug) {
+    response.status(400).json({ error: "invalid_slug" });
+    return;
+  }
+
+  const store = readStore();
+  store.projects = store.projects.filter((project) => project.slug !== slug);
   writeStore(store);
   response.json({ ok: true, projects: store.projects });
 });
