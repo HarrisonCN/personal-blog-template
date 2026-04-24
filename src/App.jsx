@@ -45,12 +45,18 @@ const LEGACY_PALETTES = {
   mono: { h: 217, s: 15, v: 85 },
 };
 const DEFAULT_PALETTE = { h: 198, s: 30, v: 100 };
-const VALID_BACKGROUND_PRESETS = new Set(["none", "antigravity"]);
+const VALID_BACKGROUND_PRESETS = new Set(["none", "antigravity", "xflow"]);
 const THEME_PRESET_OPTIONS = [
   { code: "none", label: "Default" },
+  { code: "xflow", label: "X Flow" },
   { code: "antigravity", label: "Antigravity" },
 ];
 const BACKGROUND_PRESETS = [
+  {
+    code: "xflow",
+    label: { zh: "X 娴佸姩", en: "X Flow", ja: "X Flow", ko: "X Flow" },
+    eyebrow: { zh: "Hybrid UI", en: "Hybrid UI", ja: "Hybrid UI", ko: "Hybrid UI" },
+  },
   {
     code: "none",
     label: { zh: "默认", en: "Default", ja: "Default", ko: "Default" },
@@ -601,6 +607,14 @@ function SiteBackground({ presetCode, imageSrc }) {
     return (
       <div className="site-background site-background--antigravity" aria-hidden="true">
         <AntigravityBackground />
+      </div>
+    );
+  }
+
+  if (presetCode === "xflow") {
+    return (
+      <div className="site-background site-background--xflow" aria-hidden="true">
+        <ThemePresetScene mode="xflow" />
       </div>
     );
   }
@@ -2029,6 +2043,32 @@ function Header({
   );
 }
 
+function PageTransitionOverlay({ transitionKey }) {
+  const [phase, setPhase] = useState("enter");
+
+  useEffect(() => {
+    setPhase("enter");
+    const fadeTimer = window.setTimeout(() => setPhase("leave"), 560);
+    const removeTimer = window.setTimeout(() => setPhase("idle"), 1080);
+    return () => {
+      window.clearTimeout(fadeTimer);
+      window.clearTimeout(removeTimer);
+    };
+  }, [transitionKey]);
+
+  if (phase === "idle") {
+    return null;
+  }
+
+  return (
+    <div className={`page-transition page-transition--${phase}`} aria-hidden="true">
+      <div className="page-transition__core" />
+      <div className="page-transition__bar" />
+      <div className="page-transition__mesh" />
+    </div>
+  );
+}
+
 function Shell({
   theme,
   setTheme,
@@ -2049,6 +2089,7 @@ function Shell({
   const location = useLocation();
   useGlassTracking(location.pathname);
   const blockedMessage = useInteractionGuard();
+  const transitionKey = `${location.pathname}|${backgroundPreset}`;
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -2056,6 +2097,7 @@ function Shell({
 
   return (
     <div className="site-shell">
+      <PageTransitionOverlay transitionKey={transitionKey} />
       <div className="site-noise" />
       <div className="ambient ambient-left" />
       <div className="ambient ambient-right" />

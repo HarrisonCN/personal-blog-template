@@ -4,6 +4,38 @@ import { gsap } from "gsap";
 function drawThemeCanvas(context, width, height, mode, time, pointer) {
   context.clearRect(0, 0, width, height);
 
+  if (mode === "xflow") {
+    const bg = context.createLinearGradient(0, 0, width, height);
+    bg.addColorStop(0, "#f7fbff");
+    bg.addColorStop(1, "#eef4ff");
+    context.fillStyle = bg;
+    context.fillRect(0, 0, width, height);
+
+    const glow = context.createRadialGradient(
+      width * 0.72 + pointer.x * 0.08,
+      height * 0.22 + pointer.y * 0.06,
+      0,
+      width * 0.72 + pointer.x * 0.08,
+      height * 0.22 + pointer.y * 0.06,
+      Math.min(width, height) * 0.32
+    );
+    glow.addColorStop(0, "rgba(97, 134, 255, 0.16)");
+    glow.addColorStop(1, "rgba(255,255,255,0)");
+    context.fillStyle = glow;
+    context.fillRect(0, 0, width, height);
+
+    context.strokeStyle = "rgba(93, 120, 168, 0.12)";
+    context.lineWidth = 1;
+    const step = Math.max(38, Math.floor(width / 28));
+    for (let x = 0; x <= width + step; x += step) {
+      context.beginPath();
+      context.moveTo(x + pointer.x * 0.02, 0);
+      context.lineTo(x - pointer.x * 0.02, height);
+      context.stroke();
+    }
+    return;
+  }
+
   if (mode === "aurora") {
     context.fillStyle = document.documentElement.dataset.theme === "light" ? "#ffffff" : "#000000";
     context.fillRect(0, 0, width, height);
@@ -95,6 +127,20 @@ function DataGridSvg() {
       <rect x="580" y="120" rx="26" ry="26" width="500" height="120" fill="rgba(255,255,255,0.84)" />
       <rect x="580" y="274" rx="26" ry="26" width="236" height="280" fill="rgba(255,255,255,0.88)" />
       <rect x="844" y="274" rx="26" ry="26" width="236" height="280" fill="rgba(255,255,255,0.88)" />
+    </svg>
+  );
+}
+
+function XFlowSvg() {
+  return (
+    <svg className="theme-scene__svg theme-scene__svg--xflow" viewBox="0 0 1200 720" aria-hidden="true">
+      <g opacity="0.92">
+        <rect x="108" y="108" rx="34" ry="34" width="984" height="76" fill="rgba(255,255,255,0.82)" />
+        <rect x="130" y="238" rx="42" ry="42" width="440" height="268" fill="rgba(255,255,255,0.94)" />
+        <rect x="614" y="238" rx="30" ry="30" width="220" height="126" fill="rgba(255,255,255,0.88)" />
+        <rect x="862" y="238" rx="30" ry="30" width="220" height="126" fill="rgba(255,255,255,0.88)" />
+        <rect x="614" y="392" rx="30" ry="30" width="468" height="114" fill="rgba(255,255,255,0.9)" />
+      </g>
     </svg>
   );
 }
@@ -206,6 +252,7 @@ export default function ThemePresetScene({ mode }) {
   return (
     <div className={`theme-scene theme-scene--${mode}`} ref={rootRef} aria-hidden="true">
       <canvas className="theme-scene__canvas" ref={canvasRef} />
+      {mode === "xflow" ? <XFlowSvg /> : null}
       {mode === "aurora" ? <PayFlowSvg /> : null}
       {mode === "sunset" ? <WalletAirSvg /> : null}
       {mode === "ice" ? <DataGridSvg /> : null}
