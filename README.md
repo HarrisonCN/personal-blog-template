@@ -1,179 +1,266 @@
-# Personal Blog Template / 个人博客模板
+# Personal Blog Template
 
-一个可编辑的个人博客模板，包含首页、文章页、项目页、写作台、音乐播放器、液态玻璃视觉和多语言切换。  
-An editable personal blog template with a homepage, article pages, project pages, a studio dashboard, music player, liquid-glass visuals, and multilingual controls.
+A visual-first personal blog template with a built-in editor, article/project management, multilingual UI, and a secure Node-backed studio.
 
-## Preview / 预览
-
-- GitHub repository: [HarrisonCN/personal-blog-template](https://github.com/HarrisonCN/personal-blog-template)
-- GitHub Pages preview: [https://harrisoncn.github.io/personal-blog-template/](https://harrisoncn.github.io/personal-blog-template/)
-
-说明：
-- GitHub Pages 只提供前端静态预览。
-- 安全写作台登录和服务端存储只能在 Node 后端运行时启用。
-
-Notes:
-- GitHub Pages is a static preview only.
-- Secure studio login and server-side persistence are available only when the Node backend is running.
-
-## Cover / 封面
+一个偏视觉表达的个人博客模板，内置内容编辑后台、文章与项目管理、多语言界面，以及基于 Node 的安全写作台。
 
 ![Template cover](./docs/cover.png)
 
-## Features / 功能
+## Preview
 
-- 文章、项目、站点文字都可以在写作台中修改
-- 支持文章封面、图片、音频、视频和其他附件
-- 支持将附件插入到正文中的指定位置
-- 支持语言切换、字体切换、主题切换和调色盘
-- 支持音乐播放器和自定义音源
-- 写作台登录改为服务端鉴权，不再把密码校验放在前端
-- 服务端保存文章、项目、站点内容和留言板数据
+- Repository: [HarrisonCN/personal-blog-template](https://github.com/HarrisonCN/personal-blog-template)
+- GitHub Pages: [harrisoncn.github.io/personal-blog-template](https://harrisoncn.github.io/personal-blog-template/)
 
-- Edit articles, projects, and site copy from the built-in studio
-- Support article covers, images, audio, video, and general attachments
-- Insert attachments at custom positions inside article content
-- Switch language, font, theme, and global palette
-- Music player with custom source support
-- Studio auth moved to the server instead of client-side password checks
-- Server-side persistence for articles, projects, site content, and guestbook data
+Important:
+- GitHub Pages is a static preview only.
+- Secure studio login and server-side persistence work only when the Node server is running.
 
-## Stack / 技术栈
+注意：
+- GitHub Pages 只提供静态前端预览。
+- 安全登录、内容保存和后台编辑能力只能在 Node 服务运行时启用。
+
+## Why This Template
+
+This project is designed for people who want more than a plain markdown blog. It combines:
+
+- a portfolio-style homepage
+- article and project presentation
+- a visual theme system with multiple page modes
+- a built-in studio for editing content without touching code
+- a secure server-backed auth flow for the editor
+
+这份模板不是单纯的 markdown 博客壳，而是把：
+
+- 个人主页展示
+- 文章与项目内容
+- 多套视觉主题
+- 可视化后台编辑
+- 服务端鉴权与持久化
+
+合在同一个站点里。
+
+## Features
+
+- Built-in studio for editing articles, projects, site copy, social links, custom cards, browser title, and background settings
+- Server-side studio auth with cookie session support
+- Article attachments with custom inline placement inside content
+- Cover image upload for articles
+- Music player with custom source input
+- Language switching, font switching, theme switching, and palette control
+- Multiple visual modes on the same content layer
+- Guestbook support
+- GitHub Pages workflow for static preview deployment
+
+- 内置后台，可编辑文章、项目、站点文案、社交链接、自定义卡片、标签页标题和背景设置
+- 写作台使用服务端鉴权与会话 Cookie
+- 支持图片、音频、视频和其他附件，并可插入文章正文指定位置
+- 支持文章封面上传
+- 支持自定义音源的音乐播放器
+- 支持语言、字体、明暗模式和配色切换
+- 同一份内容可切换不同视觉主题
+- 自带留言板
+- 自带 GitHub Pages 静态预览部署工作流
+
+## Theme Modes
+
+The template currently ships with these page modes:
+
+- `Default`: the main liquid / atmospheric presentation
+- `X Flow`: a cleaner editorial-style mode with a different layout language
+- `Antigravity`: a more experimental visual mode
+
+当前模板包含这些主题模式：
+
+- `Default`：主站风格，偏液态与氛围感
+- `X Flow`：更克制、更像编辑设计的网站样式
+- `Antigravity`：更实验性的视觉模式
+
+The content stays the same while the visual presentation changes.
+
+文字内容保持一致，切换的是整页的视觉表达。
+
+## Tech Stack
 
 - React 18
 - Vite
 - React Router
 - Express
+- GSAP
+- Three.js
 - Plain CSS
 
-## Secure Studio / 安全写作台
+## Quick Start
 
-默认开发环境变量：
+### 1. Install
 
-- `STUDIO_USERNAME=ADMIN`
-- `STUDIO_PASSWORD=CHANGE_ME_123`
+```bash
+npm install
+```
 
-请在正式使用前修改。推荐通过环境变量而不是前端代码保存登录凭据。
+### 2. Front-end Only
 
-Default development credentials:
+```bash
+npm run dev
+```
 
-- `STUDIO_USERNAME=ADMIN`
-- `STUDIO_PASSWORD=CHANGE_ME_123`
+Use this when you only want to preview the UI.
 
-Change them before real use. Store credentials in environment variables, not in client-side code.
+只看前端界面时用这个。
 
-## Environment / 环境变量
+### 3. Full Local Stack
 
-参考文件：[.env.example](./.env.example)
+```bash
+npm run dev:full
+```
+
+This starts:
+
+- the Vite front end
+- the Node server
+- secure studio auth
+- server-side content persistence
+
+这个命令会同时启动：
+
+- Vite 前端
+- Node 服务
+- 后台安全登录
+- 服务端内容保存
+
+### 4. Production Build
+
+```bash
+npm run build
+npm run start
+```
+
+## Environment Variables
+
+See [.env.example](./.env.example).
 
 ```bash
 STUDIO_USERNAME=ADMIN
 STUDIO_PASSWORD=CHANGE_ME_123
+# Optional: use a SHA-256 hex string instead of STUDIO_PASSWORD
+# STUDIO_PASSWORD_HASH=
 SESSION_SECRET=replace-with-a-long-random-secret
 PORT=8787
 ```
 
-## Local Development / 本地开发
+Recommended:
+- change the default credentials immediately
+- use `STUDIO_PASSWORD_HASH` in real deployments
+- use a strong `SESSION_SECRET`
 
-只开前端预览：
+建议：
+- 立刻修改默认账号密码
+- 正式部署时优先使用 `STUDIO_PASSWORD_HASH`
+- 为 `SESSION_SECRET` 使用足够长的随机值
 
-```bash
-npm install
-npm run dev
-```
+## Windows Scripts
 
-前后端一起启动：
-
-```bash
-npm install
-npm run dev:full
-```
-
-Front-end only preview:
-
-```bash
-npm install
-npm run dev
-```
-
-Run the secure full stack locally:
-
-```bash
-npm install
-npm run dev:full
-```
-
-## Production Build / 生产构建
-
-构建前端：
-
-```bash
-npm run build
-```
-
-构建后运行 Node 服务：
-
-```bash
-npm run start
-```
-
-Build the front end:
-
-```bash
-npm run build
-```
-
-Run the Node server after build:
-
-```bash
-npm run start
-```
-
-## Windows Preview Scripts / Windows 预览脚本
-
-构建完成后可以直接运行：
+After building, you can use:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\start-blog.ps1
 ```
 
-停止预览：
+Stop it with:
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File .\stop-blog.ps1
 ```
 
-## Editable Files / 主要可编辑文件
+## Deployment Notes
 
-- [src/data/siteContent.js](./src/data/siteContent.js)
-- [src/App.jsx](./src/App.jsx)
-- [src/styles.css](./src/styles.css)
-- [server.js](./server.js)
+### GitHub Pages
 
-## Storage / 数据存储
+This repository includes a GitHub Pages workflow:
 
-- 服务器运行时会在 `server/data/store.json` 中保存内容
-- 这个文件已经被 `.gitignore` 忽略
-- GitHub Pages 预览模式下，写作台不会启用服务端编辑
-
-- When the server runs, content is stored in `server/data/store.json`
-- That runtime file is already ignored by `.gitignore`
-- In GitHub Pages preview mode, the studio does not run with secure server-side editing
-
-## GitHub Pages / GitHub Pages
-
-仓库包含自动部署工作流：[.github/workflows/pages.yml](./.github/workflows/pages.yml)
-
-推送到 `main` 后：
-
-- 会自动构建静态前端
-- 会自动发布到 GitHub Pages
-- 但不会部署 Node 后端
-
-The repo includes an automatic Pages workflow: [.github/workflows/pages.yml](./.github/workflows/pages.yml)
+- [`.github/workflows/pages.yml`](./.github/workflows/pages.yml)
 
 When you push to `main`:
 
-- the static front end is built automatically
+- the static site is built automatically
 - GitHub Pages is updated automatically
 - the Node backend is not deployed there
+
+### Node Hosting
+
+If you want the secure studio to work in production, deploy it to a Node-capable environment such as:
+
+- Render
+- Railway
+- VPS + Nginx + PM2
+- any other standard Node host
+
+如果你希望正式环境里也能使用安全写作台，请部署到支持 Node 的平台，而不是只放在 GitHub Pages 上。
+
+## Project Structure
+
+```text
+.
+├─ src/
+│  ├─ App.jsx
+│  ├─ styles.css
+│  ├─ theme-presets.css
+│  ├─ theme-scenes.css
+│  ├─ data/siteContent.js
+│  └─ components/
+├─ server.js
+├─ .env.example
+├─ start-blog.ps1
+├─ stop-blog.ps1
+└─ .github/workflows/pages.yml
+```
+
+## Main Files You’ll Edit
+
+- [src/data/siteContent.js](./src/data/siteContent.js): seed content, UI copy, presets, and defaults
+- [src/App.jsx](./src/App.jsx): app structure, routes, editor logic, theme switching
+- [src/styles.css](./src/styles.css): shared styling
+- [src/theme-presets.css](./src/theme-presets.css): per-theme page styling
+- [src/theme-scenes.css](./src/theme-scenes.css): theme scene visuals
+- [server.js](./server.js): auth, persistence, API, and static hosting
+
+## Data Storage
+
+When the Node server runs, content is stored in:
+
+- `server/data/store.json`
+
+That file is ignored by Git and acts as runtime content storage.
+
+Node 服务运行时，内容会写入：
+
+- `server/data/store.json`
+
+这个文件已经被 Git 忽略，用作运行时存储。
+
+## Security Boundary
+
+This project is safer than a pure front-end password gate because the studio login is handled on the server. But it is still a template, not a hardened SaaS product.
+
+Current protection includes:
+
+- server-side credential verification
+- session cookie auth
+- basic security headers
+- request origin checks
+- lockout for repeated failed login attempts
+
+这比“纯前端写死密码”的方式安全得多，但它仍然是模板，不是完整商用后台系统。
+
+## Design Inspiration
+
+This template’s README structure was rewritten with the clarity patterns commonly seen in mature GitHub repositories such as:
+
+- [microsoft/vscode](https://github.com/microsoft/vscode)
+- [vercel/next.js](https://github.com/vercel/next.js)
+- [facebook/react](https://github.com/facebook/react)
+
+参考的不是它们的内容，而是它们在 README 中对“价值说明、快速开始、文档入口、边界说明”的组织方式。
+
+## License
+
+MIT
