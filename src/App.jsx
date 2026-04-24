@@ -3959,6 +3959,13 @@ export default function App() {
     backgroundImage: meta.backgroundImage || "",
   };
 
+  useEffect(() => {
+    document.body.dataset.backgroundPreset = activeBackground.backgroundPreset || "none";
+    return () => {
+      delete document.body.dataset.backgroundPreset;
+    };
+  }, [activeBackground.backgroundPreset]);
+
   return (
     <>
       <SiteBackground presetCode={activeBackground.backgroundPreset} imageSrc={activeBackground.backgroundImage} />
