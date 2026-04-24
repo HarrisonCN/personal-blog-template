@@ -5,46 +5,24 @@ function drawThemeCanvas(context, width, height, mode, time, pointer) {
   context.clearRect(0, 0, width, height);
 
   if (mode === "xflow") {
-    context.fillStyle = "#f7f5ef";
+    context.fillStyle = "#f6fbfb";
     context.fillRect(0, 0, width, height);
 
-    context.strokeStyle = "rgba(17, 24, 39, 0.08)";
+    context.strokeStyle = "rgba(21, 81, 90, 0.08)";
     context.lineWidth = 1;
     const step = Math.max(54, Math.floor(width / 20));
     for (let x = 0; x <= width + step; x += step) {
       context.beginPath();
-      context.moveTo(x, 0);
-      context.lineTo(x, height);
+      context.moveTo(x + pointer.x * 0.01, 0);
+      context.lineTo(x - pointer.x * 0.01, height);
       context.stroke();
     }
     for (let y = 0; y <= height + step; y += step) {
       context.beginPath();
-      context.moveTo(0, y);
-      context.lineTo(width, y);
+      context.moveTo(0, y + pointer.y * 0.01);
+      context.lineTo(width, y - pointer.y * 0.01);
       context.stroke();
     }
-
-    const bandOffset = pointer.x * 0.12;
-    context.fillStyle = "#111827";
-    context.fillRect(width * 0.06 + bandOffset, height * 0.12, width * 0.18, height * 0.02);
-    context.fillStyle = "#2563eb";
-    context.fillRect(width * 0.76 - bandOffset, height * 0.18, width * 0.14, height * 0.025);
-    context.fillStyle = "#ff6a3d";
-    context.fillRect(width * 0.16 + bandOffset * 0.8, height * 0.76, width * 0.1, height * 0.02);
-
-    const spotlight = context.createRadialGradient(
-      width * 0.68 + pointer.x * 0.2,
-      height * 0.26 + pointer.y * 0.16,
-      0,
-      width * 0.68 + pointer.x * 0.2,
-      height * 0.26 + pointer.y * 0.16,
-      Math.min(width, height) * 0.22
-    );
-    spotlight.addColorStop(0, "rgba(37, 99, 235, 0.18)");
-    spotlight.addColorStop(0.45, "rgba(255, 106, 61, 0.06)");
-    spotlight.addColorStop(1, "rgba(255,255,255,0)");
-    context.fillStyle = spotlight;
-    context.fillRect(0, 0, width, height);
     return;
   }
 
@@ -139,25 +117,6 @@ function DataGridSvg() {
       <rect x="580" y="120" rx="26" ry="26" width="500" height="120" fill="rgba(255,255,255,0.84)" />
       <rect x="580" y="274" rx="26" ry="26" width="236" height="280" fill="rgba(255,255,255,0.88)" />
       <rect x="844" y="274" rx="26" ry="26" width="236" height="280" fill="rgba(255,255,255,0.88)" />
-    </svg>
-  );
-}
-
-function XFlowSvg() {
-  return (
-    <svg className="theme-scene__svg theme-scene__svg--xflow" viewBox="0 0 1200 720" aria-hidden="true">
-      <g opacity="0.96">
-        <rect x="88" y="88" rx="22" ry="22" width="1024" height="84" fill="#111827" />
-        <rect x="122" y="230" rx="26" ry="26" width="480" height="308" fill="#ffffff" />
-        <rect x="636" y="230" rx="24" ry="24" width="186" height="174" fill="#ffffff" />
-        <rect x="852" y="230" rx="24" ry="24" width="248" height="126" fill="#2563eb" />
-        <rect x="852" y="384" rx="24" ry="24" width="248" height="154" fill="#111827" />
-        <rect x="636" y="434" rx="24" ry="24" width="186" height="104" fill="#ff6a3d" />
-        <rect x="156" y="270" rx="10" ry="10" width="220" height="18" fill="#111827" opacity="0.08" />
-        <rect x="156" y="312" rx="10" ry="10" width="300" height="18" fill="#111827" opacity="0.08" />
-        <rect x="156" y="354" rx="10" ry="10" width="264" height="18" fill="#111827" opacity="0.08" />
-        <rect x="156" y="396" rx="10" ry="10" width="328" height="18" fill="#111827" opacity="0.08" />
-      </g>
     </svg>
   );
 }
@@ -269,7 +228,6 @@ export default function ThemePresetScene({ mode }) {
   return (
     <div className={`theme-scene theme-scene--${mode}`} ref={rootRef} aria-hidden="true">
       <canvas className="theme-scene__canvas" ref={canvasRef} />
-      {mode === "xflow" ? <XFlowSvg /> : null}
       {mode === "aurora" ? <PayFlowSvg /> : null}
       {mode === "sunset" ? <WalletAirSvg /> : null}
       {mode === "ice" ? <DataGridSvg /> : null}
