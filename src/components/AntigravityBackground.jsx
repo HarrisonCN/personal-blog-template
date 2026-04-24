@@ -211,7 +211,7 @@ export default function AntigravityBackground() {
     scene.add(pointsTight);
 
     ringPlane = new THREE.Mesh(
-      new THREE.PlaneGeometry(20, 20),
+      new THREE.PlaneGeometry(1, 1),
       new THREE.ShaderMaterial({
         transparent: true,
         depthWrite: false,
@@ -234,8 +234,8 @@ export default function AntigravityBackground() {
           varying vec2 vWorld;
           void main() {
             float dist = length(vWorld - uPointer);
-            float ring = exp(-pow((dist - (0.34 + uPulse * 0.08)) * 14.0, 2.0)) * (0.035 + uPulse * 0.09);
-            float core = smoothstep(0.2, 0.0, dist) * 0.02;
+            float ring = exp(-pow((dist - (0.64 + uPulse * 0.18)) * 9.0, 2.0)) * (0.06 + uPulse * 0.18);
+            float core = smoothstep(0.38, 0.0, dist) * 0.03;
             vec3 color = mix(vec3(0.47, 0.62, 0.95), vec3(1.0), 0.34);
             gl_FragColor = vec4(color, ring + core);
           }
