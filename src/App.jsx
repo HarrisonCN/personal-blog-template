@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink, Route, Routes, useLocation, useParams } from "react-router-dom";
 import AntigravityBackground from "./components/AntigravityBackground";
 import InteractiveSceneBackground from "./components/InteractiveSceneBackground";
+import ThemePresetScene from "./components/ThemePresetScene";
 import Reveal from "./components/Reveal";
 import templateAvatar from "./assets/template-avatar.svg";
 import {
@@ -571,7 +572,7 @@ function SiteBackground({ presetCode, imageSrc }) {
   if (presetCode === "aurora") {
     return (
       <div className="site-background site-background--aurora" aria-hidden="true">
-        <InteractiveSceneBackground mode="aurora" />
+        <ThemePresetScene mode="aurora" />
       </div>
     );
   }
@@ -579,7 +580,7 @@ function SiteBackground({ presetCode, imageSrc }) {
   if (presetCode === "sunset") {
     return (
       <div className="site-background site-background--sunset" aria-hidden="true">
-        <InteractiveSceneBackground mode="sunset" />
+        <ThemePresetScene mode="sunset" />
       </div>
     );
   }
@@ -587,7 +588,7 @@ function SiteBackground({ presetCode, imageSrc }) {
   if (presetCode === "ice") {
     return (
       <div className="site-background site-background--ice" aria-hidden="true">
-        <InteractiveSceneBackground mode="ice" />
+        <ThemePresetScene mode="ice" />
       </div>
     );
   }

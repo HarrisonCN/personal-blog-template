@@ -1,5 +1,5 @@
 {
-  "name": "personal-blog-template",
+  "name": "xos-future-blog",
   "private": true,
   "version": "1.0.0",
   "type": "module",
@@ -13,6 +13,7 @@
   },
   "dependencies": {
     "express": "^4.21.2",
+    "gsap": "^3.15.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-router-dom": "^6.30.1",
