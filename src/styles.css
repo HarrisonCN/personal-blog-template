@@ -227,7 +227,8 @@ select {
 .site-background__beam,
 .site-background__prism,
 .site-background__image,
-.site-background__image-glow {
+.site-background__image-glow,
+.site-background__float {
   position: absolute;
   pointer-events: none;
 }
@@ -507,6 +508,180 @@ select {
   right: 10vw;
   bottom: 12vh;
   background: radial-gradient(circle, rgba(255, 170, 210, 0.14), transparent 72%);
+}
+
+.site-background__float {
+  animation: site-background-drift var(--duration, 16s) ease-in-out infinite alternate;
+  animation-delay: var(--delay, 0s);
+  transform:
+    translate(
+      calc(var(--cursor-rx) * var(--depth-x, 12) * 1px),
+      calc(var(--cursor-ry) * var(--depth-y, 12) * 1px)
+    )
+    translate(var(--drift-x, 0px), var(--drift-y, 0px));
+  will-change: transform;
+}
+
+.site-background__float--none-a,
+.site-background__float--none-b,
+.site-background__float--none-c,
+.site-background__float--image-a,
+.site-background__float--image-b {
+  border-radius: 999px;
+  border: 1px solid rgba(210, 231, 255, 0.14);
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02)),
+    rgba(34, 54, 85, 0.18);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.12),
+    0 20px 60px rgba(6, 11, 20, 0.14);
+  backdrop-filter: blur(10px);
+}
+
+.site-background__float--none-a {
+  width: 200px;
+  height: 62px;
+  left: 12vw;
+  top: 22vh;
+}
+
+.site-background__float--none-b {
+  width: 120px;
+  height: 120px;
+  right: 14vw;
+  top: 32vh;
+  border-radius: 34px;
+}
+
+.site-background__float--none-c {
+  width: 240px;
+  height: 74px;
+  right: 22vw;
+  bottom: 18vh;
+}
+
+.site-background__float--aurora-a,
+.site-background__float--aurora-b,
+.site-background__float--aurora-c {
+  border-radius: 34px;
+  background:
+    radial-gradient(circle at 26% 24%, rgba(255, 255, 255, 0.16), transparent 20%),
+    linear-gradient(135deg, rgba(132, 255, 228, 0.14), rgba(74, 112, 255, 0.08)),
+    rgba(16, 31, 49, 0.14);
+  border: 1px solid rgba(207, 247, 255, 0.14);
+  backdrop-filter: blur(10px);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.12), 0 24px 70px rgba(7, 15, 28, 0.18);
+}
+
+.site-background__float--aurora-a {
+  width: 220px;
+  height: 120px;
+  left: 10vw;
+  top: 18vh;
+}
+
+.site-background__float--aurora-b {
+  width: 136px;
+  height: 136px;
+  right: 12vw;
+  top: 28vh;
+  border-radius: 999px;
+}
+
+.site-background__float--aurora-c {
+  width: 260px;
+  height: 82px;
+  left: 34vw;
+  bottom: 16vh;
+}
+
+.site-background__float--sunset-a,
+.site-background__float--sunset-b {
+  border-radius: 999px;
+  box-shadow: 0 24px 64px rgba(40, 18, 34, 0.16);
+}
+
+.site-background__float--sunset-a {
+  width: 170px;
+  height: 170px;
+  left: 12vw;
+  top: 18vh;
+  background:
+    radial-gradient(circle at 30% 30%, rgba(255, 241, 219, 0.56), transparent 24%),
+    linear-gradient(180deg, rgba(255, 194, 132, 0.22), rgba(223, 95, 123, 0.08));
+  border: 1px solid rgba(255, 228, 205, 0.18);
+}
+
+.site-background__float--sunset-b {
+  width: 220px;
+  height: 86px;
+  right: 16vw;
+  bottom: 22vh;
+  background:
+    linear-gradient(135deg, rgba(255, 175, 117, 0.18), rgba(151, 97, 209, 0.12)),
+    rgba(38, 24, 44, 0.14);
+  border: 1px solid rgba(255, 222, 199, 0.12);
+}
+
+.site-background__float--ice-a,
+.site-background__float--ice-b {
+  clip-path: polygon(16% 0, 100% 12%, 82% 100%, 0 84%);
+  background:
+    linear-gradient(145deg, rgba(233, 249, 255, 0.32), rgba(125, 205, 255, 0.08)),
+    rgba(15, 28, 50, 0.16);
+  border: 1px solid rgba(239, 249, 255, 0.16);
+  box-shadow: 0 24px 72px rgba(8, 14, 26, 0.18);
+}
+
+.site-background__float--ice-a {
+  width: 180px;
+  height: 180px;
+  left: 14vw;
+  top: 20vh;
+}
+
+.site-background__float--ice-b {
+  width: 220px;
+  height: 120px;
+  right: 14vw;
+  bottom: 20vh;
+}
+
+.site-background__float--image-a {
+  width: 210px;
+  height: 96px;
+  left: 10vw;
+  bottom: 18vh;
+}
+
+.site-background__float--image-b {
+  width: 136px;
+  height: 136px;
+  right: 12vw;
+  top: 22vh;
+  border-radius: 32px;
+}
+
+@keyframes site-background-drift {
+  0% {
+    transform:
+      translate(
+        calc(var(--cursor-rx) * var(--depth-x, 12) * 1px),
+        calc(var(--cursor-ry) * var(--depth-y, 12) * 1px)
+      )
+      translate(calc(var(--drift-x, 0px) * -0.5), calc(var(--drift-y, 0px) * -0.5))
+      rotate(-3deg);
+  }
+
+  100% {
+    transform:
+      translate(
+        calc(var(--cursor-rx) * var(--depth-x, 12) * 1px),
+        calc(var(--cursor-ry) * var(--depth-y, 12) * 1px)
+      )
+      translate(var(--drift-x, 0px), var(--drift-y, 0px))
+      rotate(3deg);
+  }
 }
 
 .cursor-dot {

@@ -548,6 +548,8 @@ function SiteBackground({ presetCode, imageSrc }) {
         <div className="site-background__image" style={{ backgroundImage: `url("${String(imageSrc).replace(/"/g, '\\"')}")` }} />
         <span className="site-background__image-glow site-background__image-glow--a" />
         <span className="site-background__image-glow site-background__image-glow--b" />
+        <span className="site-background__float site-background__float--image-a" style={{ "--depth-x": 22, "--depth-y": 16, "--drift-x": 20, "--drift-y": -16, "--duration": "17s", "--delay": "-3s" }} />
+        <span className="site-background__float site-background__float--image-b" style={{ "--depth-x": -18, "--depth-y": 14, "--drift-x": -18, "--drift-y": 16, "--duration": "15s", "--delay": "-8s" }} />
       </div>
     );
   }
@@ -560,6 +562,9 @@ function SiteBackground({ presetCode, imageSrc }) {
         <span className="site-background__veil site-background__veil--pulse" />
         <span className="site-background__spark site-background__spark--one" />
         <span className="site-background__spark site-background__spark--two" />
+        <span className="site-background__float site-background__float--aurora-a" style={{ "--depth-x": 26, "--depth-y": 22, "--drift-x": 18, "--drift-y": -14, "--duration": "18s", "--delay": "-4s" }} />
+        <span className="site-background__float site-background__float--aurora-b" style={{ "--depth-x": -18, "--depth-y": 26, "--drift-x": -20, "--drift-y": 18, "--duration": "16s", "--delay": "-9s" }} />
+        <span className="site-background__float site-background__float--aurora-c" style={{ "--depth-x": 12, "--depth-y": -18, "--drift-x": 14, "--drift-y": 20, "--duration": "14s", "--delay": "-2s" }} />
       </div>
     );
   }
@@ -573,6 +578,8 @@ function SiteBackground({ presetCode, imageSrc }) {
         <span className="site-background__horizon site-background__horizon--front" />
         <span className="site-background__dust site-background__dust--one" />
         <span className="site-background__dust site-background__dust--two" />
+        <span className="site-background__float site-background__float--sunset-a" style={{ "--depth-x": 18, "--depth-y": 10, "--drift-x": 16, "--drift-y": -10, "--duration": "19s", "--delay": "-6s" }} />
+        <span className="site-background__float site-background__float--sunset-b" style={{ "--depth-x": -16, "--depth-y": 14, "--drift-x": -14, "--drift-y": 12, "--duration": "15s", "--delay": "-11s" }} />
       </div>
     );
   }
@@ -585,6 +592,8 @@ function SiteBackground({ presetCode, imageSrc }) {
         <span className="site-background__prism site-background__prism--a" />
         <span className="site-background__prism site-background__prism--b" />
         <span className="site-background__prism site-background__prism--c" />
+        <span className="site-background__float site-background__float--ice-a" style={{ "--depth-x": 24, "--depth-y": 16, "--drift-x": 14, "--drift-y": -12, "--duration": "17s", "--delay": "-5s" }} />
+        <span className="site-background__float site-background__float--ice-b" style={{ "--depth-x": -22, "--depth-y": 12, "--drift-x": -12, "--drift-y": 14, "--duration": "14s", "--delay": "-9s" }} />
       </div>
     );
   }
@@ -597,6 +606,9 @@ function SiteBackground({ presetCode, imageSrc }) {
       <span className="site-background__node site-background__node--a" />
       <span className="site-background__node site-background__node--b" />
       <span className="site-background__node site-background__node--c" />
+      <span className="site-background__float site-background__float--none-a" style={{ "--depth-x": 18, "--depth-y": 14, "--drift-x": 12, "--drift-y": -12, "--duration": "18s", "--delay": "-3s" }} />
+      <span className="site-background__float site-background__float--none-b" style={{ "--depth-x": -20, "--depth-y": 16, "--drift-x": -14, "--drift-y": 12, "--duration": "15s", "--delay": "-7s" }} />
+      <span className="site-background__float site-background__float--none-c" style={{ "--depth-x": 12, "--depth-y": -18, "--drift-x": 16, "--drift-y": 10, "--duration": "13s", "--delay": "-10s" }} />
     </div>
   );
 }
@@ -1182,8 +1194,9 @@ function useBackendContent() {
         method: "POST",
         body: JSON.stringify({ siteContent: nextContent }),
       });
-      setSiteContent(normalizeSiteContent(payload.siteContent ?? nextContent));
-      return { ok: true };
+      const normalized = normalizeSiteContent(payload.siteContent ?? nextContent);
+      setSiteContent(normalized);
+      return { ok: true, siteContent: normalized };
     } catch (error) {
       return { ok: false, reason: error.status === 401 ? "unauthorized" : "request_failed" };
     }
@@ -3021,6 +3034,9 @@ function StudioPage({
       setSiteFlash(result.reason === "unauthorized" ? copy.sessionExpired : "Studio save is unavailable without the backend server.");
       window.setTimeout(() => setSiteFlash(""), 1800);
       return;
+    }
+    if (result.siteContent) {
+      setSiteDraft(normalizeSiteContent(result.siteContent));
     }
     setSiteFlash(copy.siteContentSaved);
     window.setTimeout(() => setSiteFlash(""), 1600);
