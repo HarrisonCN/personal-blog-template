@@ -98,40 +98,40 @@ function drawMagneticLattice(context, width, height, pointer, time, state) {
 }
 
 function drawNeonFluid(context, width, height, pointer, time, state) {
-  const bg = context.createLinearGradient(0, 0, width, height);
-  bg.addColorStop(0, "#f6f2f1");
-  bg.addColorStop(0.5, "#eee8ea");
-  bg.addColorStop(1, "#e7e1e5");
-  context.fillStyle = bg;
+  const isLight = document.documentElement.dataset.theme === "light";
+  context.fillStyle = isLight ? "#ffffff" : "#000000";
   context.fillRect(0, 0, width, height);
+  const glowStrength = isLight ? "rgba(0, 0, 0, 0.06)" : "rgba(255, 255, 255, 0.06)";
+  const rimStrength = isLight ? "rgba(255, 255, 255, 0.94)" : "rgba(255, 255, 255, 0.08)";
+  const shadowStrength = isLight ? "rgba(0, 0, 0, 0.12)" : "rgba(0, 0, 0, 0.48)";
 
-  const beamA = context.createLinearGradient(0, 0, width, height);
-  beamA.addColorStop(0, "rgba(151, 157, 255, 0)");
-  beamA.addColorStop(0.45, "rgba(165, 162, 255, 0.28)");
-  beamA.addColorStop(1, "rgba(151, 157, 255, 0)");
-  context.save();
-  context.translate(pointer.x * 0.05, pointer.y * 0.02);
-  context.rotate(-0.14);
-  context.fillStyle = beamA;
-  context.fillRect(-180, height * 0.14, width + 360, 20);
-  context.restore();
-
-  const beamB = context.createLinearGradient(0, 0, width, 0);
-  beamB.addColorStop(0, "rgba(255, 208, 146, 0)");
-  beamB.addColorStop(0.5, "rgba(255, 214, 149, 0.26)");
-  beamB.addColorStop(1, "rgba(255, 208, 146, 0)");
-  context.save();
-  context.translate(-pointer.x * 0.03, pointer.y * 0.03);
-  context.rotate(0.46);
-  context.fillStyle = beamB;
-  context.fillRect(width * 0.18, -100, 20, height + 240);
-  context.restore();
-
-  const drawBlock = (x, y, w, h, depth, radius, face, side, top, edge, shadow) => {
+  const drawShadowPlate = (x, y, w, h, blur, alpha) => {
     context.save();
-    context.shadowBlur = shadow;
-    context.shadowColor = "rgba(112, 100, 109, 0.16)";
-    context.shadowOffsetY = 28;
+    context.filter = `blur(${blur}px)`;
+    context.fillStyle = isLight ? `rgba(0,0,0,${alpha})` : `rgba(255,255,255,${alpha * 0.28})`;
+    context.beginPath();
+    context.roundRect(x, y, w, h, h / 2);
+    context.fill();
+    context.restore();
+  };
+
+  const drawChunk = (x, y, w, h, depth, radius, tint = 0) => {
+    const face = isLight
+      ? `rgba(${248 - tint}, ${248 - tint}, ${248 - tint}, 1)`
+      : `rgba(${26 + tint}, ${26 + tint}, ${28 + tint}, 1)`;
+    const top = isLight
+      ? `rgba(${255 - tint}, ${255 - tint}, ${255 - tint}, 1)`
+      : `rgba(${48 + tint}, ${48 + tint}, ${52 + tint}, 1)`;
+    const side = isLight
+      ? `rgba(${222 - tint}, ${222 - tint}, ${224 - tint}, 1)`
+      : `rgba(${14 + tint}, ${14 + tint}, ${18 + tint}, 1)`;
+
+    drawShadowPlate(x + depth * 0.6, y + h + depth * 0.35, w * 0.92, h * 0.18, 18, isLight ? 0.12 : 0.18);
+
+    context.save();
+    context.shadowBlur = 26;
+    context.shadowColor = shadowStrength;
+    context.shadowOffsetY = 22;
 
     context.beginPath();
     context.moveTo(x + depth, y + h);
@@ -158,161 +158,24 @@ function drawNeonFluid(context, width, height, pointer, time, state) {
     context.fillStyle = face;
     context.fill();
     context.lineWidth = 1;
-    context.strokeStyle = edge;
+    context.strokeStyle = rimStrength;
     context.stroke();
     context.restore();
   };
 
-  const drawSlot = (x, y, w, h, tone = "#d6d0d4") => {
-    context.save();
-    context.beginPath();
-    context.roundRect(x, y, w, h, h / 2);
-    context.fillStyle = tone;
-    context.fill();
-    context.beginPath();
-    context.roundRect(x + 8, y + h * 0.36, Math.max(10, w - 16), Math.max(3, h * 0.24), h / 3);
-    context.fillStyle = "rgba(255,255,255,0.8)";
-    context.fill();
-    context.restore();
-  };
+  const driftX = (pointer.x - width / 2) * 0.018;
+  const driftY = (pointer.y - height / 2) * 0.018;
+  const baseY = height * 0.68;
+  drawChunk(width * 0.16 + driftX * 1.8, baseY + driftY * 0.7, width * 0.18, height * 0.11, 26, 24, 0);
+  drawChunk(width * 0.42 - driftX * 0.6, height * 0.26 + driftY * 0.6, width * 0.22, height * 0.15, 22, 28, 8);
+  drawChunk(width * 0.68 + driftX * 1.2, height * 0.18 - driftY * 0.4, width * 0.12, height * 0.28, 20, 30, 18);
+  drawChunk(width * 0.58 - driftX * 1.4, height * 0.56 + driftY * 0.3, width * 0.16, height * 0.09, 18, 22, 12);
 
-  const shiftX = (pointer.x - width / 2) * 0.05;
-  const shiftY = (pointer.y - height / 2) * 0.04;
-
-  const boardX = width * 0.15 + shiftX;
-  const boardY = height * 0.22 + shiftY;
-  const boardW = width * 0.37;
-  const boardH = height * 0.34;
-
-  drawBlock(boardX, boardY, boardW, boardH, 28, 30, "#f7f4f5", "#d5cfd4", "#ffffff", "rgba(255,255,255,0.96)", 48);
-  drawBlock(boardX + 18, boardY + 14, boardW * 0.22, boardH * 0.9, 16, 22, "#2f3038", "#1f2025", "#595a63", "rgba(255,255,255,0.08)", 18);
-  drawBlock(boardX + boardW * 0.72, boardY + 18, boardW * 0.2, 40, 10, 12, "#4075ff", "#315cd4", "#7699ff", "rgba(255,255,255,0.18)", 14);
-
-  context.fillStyle = "rgba(255,255,255,0.95)";
-  context.font = "12px sans-serif";
-  context.fillText("Request payment", boardX + boardW * 0.755, boardY + 43);
-
-  for (let tab = 0; tab < 4; tab += 1) {
-    drawBlock(
-      boardX + boardW * 0.29 + tab * (boardW * 0.095),
-      boardY + 18,
-      boardW * 0.075,
-      16,
-      4,
-      8,
-      "#f4f1f3",
-      "#cbc7cb",
-      "#ffffff",
-      "rgba(255,255,255,0.84)",
-      4
-    );
-  }
-
-  for (let row = 0; row < 6; row += 1) {
-    const y = boardY + 72 + row * 35;
-    drawBlock(
-      boardX + boardW * 0.28,
-      y,
-      boardW * 0.58,
-      24,
-      6,
-      10,
-      "#e7e2e6",
-      "#cfcbcf",
-      "#faf8f9",
-      "rgba(255,255,255,0.8)",
-      10
-    );
-    drawSlot(boardX + boardW * 0.31, y + 7, boardW * 0.1, 7);
-    drawSlot(boardX + boardW * 0.45, y + 7, boardW * 0.08, 7);
-    drawSlot(boardX + boardW * 0.58, y + 7, boardW * 0.12, 7);
-  }
-
-  for (let item = 0; item < 5; item += 1) {
-    const y = boardY + 28 + item * 42;
-    drawBlock(
-      boardX + 24,
-      y,
-      boardW * 0.18,
-      20,
-      5,
-      8,
-      item === 0 ? "#f4cf2c" : "#f4f1f3",
-      item === 0 ? "#cfab13" : "#d4cfd4",
-      item === 0 ? "#ffe572" : "#ffffff",
-      item === 0 ? "rgba(255,241,173,0.6)" : "rgba(255,255,255,0.84)",
-      6
-    );
-    drawSlot(boardX + 38, y + 29, boardW * 0.11, 6, "rgba(255,255,255,0.82)");
-  }
-
-  const pedestalX = width * 0.16;
-  const pedestalY = height * 0.72;
-  drawBlock(
-    pedestalX,
-    pedestalY,
-    width * 0.15,
-    height * 0.08,
-    24,
-    24,
-    "#4d4850",
-    "#2d2a2f",
-    "#7b767c",
-    "rgba(255,255,255,0.16)",
-    42
-  );
-
-  const payCardX = width * 0.47 - shiftX * 0.55;
-  const payCardY = height * 0.29 - shiftY * 0.3;
-  const payCardW = width * 0.16;
-  const payCardH = height * 0.26;
-  drawBlock(payCardX, payCardY, payCardW, payCardH, 18, 24, "#f7f4f5", "#d8d2d7", "#ffffff", "rgba(255,255,255,0.9)", 34);
-  context.fillStyle = "#3e73ff";
-  context.font = "bold 18px sans-serif";
-  context.fillText("$135.95", payCardX + 32, payCardY + 42);
-  drawSlot(payCardX + 30, payCardY + 58, payCardW * 0.58, 8);
-  for (let i = 0; i < 3; i += 1) {
-    drawBlock(
-      payCardX + 24,
-      payCardY + 70 + i * 38,
-      payCardW * (i === 2 ? 0.7 : 0.62),
-      22,
-      6,
-      10,
-      i === 2 ? "#3f73ff" : "#d8d7dc",
-      i === 2 ? "#2d56c8" : "#c2c1c7",
-      i === 2 ? "#6d90ff" : "#f1eff2",
-      "rgba(255,255,255,0.84)",
-      10
-    );
-  }
-  context.fillStyle = "rgba(255,255,255,0.95)";
-  context.fillText("Pay", payCardX + 60, payCardY + 147);
-  drawSlot(payCardX + 36, payCardY + payCardH - 30, 26, 7, "#d8d4d7");
-  drawSlot(payCardX + 72, payCardY + payCardH - 30, 26, 7, "#d8d4d7");
-  drawSlot(payCardX + 108, payCardY + payCardH - 30, 26, 7, "#d8d4d7");
-
-  const phoneX = width * 0.73 + shiftX * 0.45;
-  const phoneY = height * 0.23 - shiftY * 0.4;
-  const phoneW = width * 0.11;
-  const phoneH = height * 0.38;
-  drawBlock(phoneX, phoneY, phoneW, phoneH, 16, 30, "#2d2c33", "#1d1c22", "#5a5860", "rgba(255,255,255,0.16)", 32);
-  drawBlock(phoneX + 14, phoneY + 20, phoneW * 0.79, phoneH * 0.9, 10, 20, "#ece7e8", "#d4d0d3", "#ffffff", "rgba(255,255,255,0.8)", 12);
-  drawSlot(phoneX + 36, phoneY + 28, phoneW * 0.36, 8, "#d9d4d7");
-  drawBlock(phoneX + 28, phoneY + 88, phoneW * 0.58, 52, 8, 14, "#3f73ff", "#305cd4", "#7094ff", "rgba(255,255,255,0.22)", 12);
-  context.fillStyle = "rgba(255,255,255,0.95)";
-  context.font = "11px sans-serif";
-  context.fillText("Pay by link", phoneX + 38, phoneY + 113);
-  drawSlot(phoneX + 44, phoneY + phoneH - 42, phoneW * 0.42, 11, "#d8d3d6");
-
-  state.dust.forEach((dot, index) => {
-    const x = dot.x + Math.sin(time * dot.speed + dot.phase) * 14;
-    const y = dot.y + Math.cos(time * dot.speed + dot.phase) * 10;
-    context.fillStyle = index % 6 === 0 ? "rgba(255, 205, 133, 0.34)" : "rgba(132, 142, 255, 0.2)";
-    context.beginPath();
-    context.arc(x, y, dot.size, 0, Math.PI * 2);
-    context.fill();
-  });
+  const softGlow = context.createRadialGradient(pointer.x, pointer.y, 0, pointer.x, pointer.y, Math.min(width, height) * 0.18);
+  softGlow.addColorStop(0, glowStrength);
+  softGlow.addColorStop(1, "rgba(0,0,0,0)");
+  context.fillStyle = softGlow;
+  context.fillRect(0, 0, width, height);
 }
 
 function drawSolarDunes(context, width, height, pointer, time, state) {
