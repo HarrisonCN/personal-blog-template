@@ -362,6 +362,21 @@ select {
   z-index: 1;
 }
 
+.glass-card--static {
+  --mouse-x: 50%;
+  --mouse-y: 50%;
+  --rotate-x: 0deg;
+  --rotate-y: 0deg;
+  --light-opacity: 0;
+  transform: none;
+  transition: border-color 220ms ease, box-shadow 220ms ease;
+}
+
+.glass-card--static::before,
+.glass-card--static::after {
+  opacity: 0;
+}
+
 .site-header {
   position: sticky;
   top: 0;

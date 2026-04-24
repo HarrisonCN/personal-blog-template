@@ -774,7 +774,7 @@ function useGlassTracking(pathname) {
       return undefined;
     }
 
-    const cards = Array.from(document.querySelectorAll(".glass-card")).map((card) => ({
+    const cards = Array.from(document.querySelectorAll(".glass-card:not(.glass-card--static)")).map((card) => ({
       card,
       rect: card.getBoundingClientRect(),
       visible: true,
@@ -3187,7 +3187,7 @@ function StudioPage({
 
   return (
     <main className="page">
-      <section className="page-banner glass-card studio-banner">
+      <section className="page-banner glass-card glass-card--static studio-banner">
         <div>
           <p className="micro-label">STUDIO</p>
           <h1>{copy.studioTitle}</h1>
@@ -3199,8 +3199,8 @@ function StudioPage({
         </button>
       </section>
 
-      <section className="studio-workbench">
-        <aside className="studio-sidebar glass-card">
+        <section className="studio-workbench">
+          <aside className="studio-sidebar glass-card glass-card--static">
           <div className="studio-sidebar__head">
             <div>
               <p className="micro-label">{copy.manageArticles}</p>
@@ -3229,7 +3229,7 @@ function StudioPage({
         </aside>
 
         <section className="studio-stack">
-        <section id="studio-article" className="studio-editor glass-card studio-section-card">
+        <section id="studio-article" className="studio-editor glass-card glass-card--static studio-section-card">
           <div className="studio-editor__head">
             <div>
               <p className="micro-label">{selectedSlug === "__new__" ? copy.newDraftTitle : draft.tag}</p>
@@ -3362,7 +3362,7 @@ function StudioPage({
             </div>
           </div>
         </section>
-        <section id="studio-site-meta" className="studio-editor glass-card studio-section-card">
+        <section id="studio-site-meta" className="studio-editor glass-card glass-card--static studio-section-card">
           <div className="studio-editor__head">
             <div>
               <p className="micro-label">SITE</p>
@@ -3499,7 +3499,7 @@ function StudioPage({
           </div>
         </section>
 
-        <section id="studio-site-copy" className="studio-editor glass-card studio-section-card">
+        <section id="studio-site-copy" className="studio-editor glass-card glass-card--static studio-section-card">
           <div className="studio-editor__head">
             <div>
               <p className="micro-label">COPY</p>
@@ -3567,7 +3567,7 @@ function StudioPage({
           </div>
         </section>
 
-        <section id="studio-social" className="studio-editor glass-card studio-section-card">
+        <section id="studio-social" className="studio-editor glass-card glass-card--static studio-section-card">
           <div className="studio-editor__head">
             <div>
               <p className="micro-label">SOCIAL</p>
@@ -3623,7 +3623,7 @@ function StudioPage({
           </div>
         </section>
 
-        <section id="studio-custom-cards" className="studio-editor glass-card studio-section-card">
+        <section id="studio-custom-cards" className="studio-editor glass-card glass-card--static studio-section-card">
           <div className="studio-editor__head">
             <div>
               <p className="micro-label">CARDS</p>
@@ -3689,7 +3689,7 @@ function StudioPage({
             ))}
           </div>
         </section>
-        <section id="studio-projects" className="studio-editor glass-card studio-section-card">
+        <section id="studio-projects" className="studio-editor glass-card glass-card--static studio-section-card">
           <div className="studio-editor__head">
             <div>
               <p className="micro-label">PROJECTS</p>
@@ -3812,7 +3812,7 @@ function StudioPage({
         </section>
         </section>
 
-        <aside className="studio-rail glass-card">
+        <aside className="studio-rail glass-card glass-card--static">
             <div className="studio-rail__progress">
               <span className="micro-label">Progress</span>
               <div className="studio-rail__bar">
