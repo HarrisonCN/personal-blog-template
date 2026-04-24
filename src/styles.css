@@ -339,7 +339,7 @@ select {
   border-radius: inherit;
   background:
     radial-gradient(
-      120px circle at calc(var(--mouse-x) - 5%) calc(var(--mouse-y) - 8%),
+      120px circle at var(--mouse-x) var(--mouse-y),
       rgba(255, 255, 255, 0.98),
       rgba(255, 255, 255, 0.22) 28%,
       transparent 60%
@@ -924,7 +924,11 @@ select {
 
 .action-button--primary,
 .dock-button--play {
-  background: linear-gradient(135deg, var(--accent-warm), #ff9d50);
+  background: linear-gradient(
+    135deg,
+    color-mix(in srgb, var(--accent) 56%, white 4%),
+    var(--accent-warm)
+  );
   color: white;
 }
 
