@@ -649,16 +649,16 @@ select {
 
 .site-background--antigravity {
   background:
-    radial-gradient(circle at 24% 18%, rgba(230, 234, 240, 0.06), transparent 18%),
-    radial-gradient(circle at 78% 24%, rgba(50, 121, 249, 0.06), transparent 16%),
-    linear-gradient(180deg, #1b1d23 0%, #14161b 48%, #111318 100%);
+    radial-gradient(circle at 24% 18%, rgba(230, 234, 240, 0.045), transparent 18%),
+    radial-gradient(circle at 78% 24%, rgba(50, 121, 249, 0.045), transparent 16%),
+    linear-gradient(180deg, #202226 0%, #17191d 48%, #121317 100%);
 }
 
 .site-background__gravity-glow,
 .site-background__gravity-line,
 .site-background__gravity-panel,
 .site-background__gravity-pill,
-.site-background__gravity-dot {
+.site-background__gravity-particle {
   position: absolute;
   pointer-events: none;
 }
@@ -726,35 +726,19 @@ select {
 }
 
 .site-background__gravity-panel--a {
-  width: 260px;
-  height: 150px;
-  left: 12vw;
-  top: 18vh;
-  border-radius: 32px;
+  width: 220px;
+  height: 112px;
+  left: 14vw;
+  top: 22vh;
+  border-radius: 28px;
 }
 
 .site-background__gravity-panel--b {
-  width: 190px;
-  height: 190px;
-  right: 16vw;
-  top: 24vh;
-  border-radius: 36px;
-}
-
-.site-background__gravity-panel--c {
-  width: 300px;
-  height: 120px;
-  left: 30vw;
-  bottom: 18vh;
-  border-radius: 30px;
-}
-
-.site-background__gravity-panel--d {
-  width: 150px;
-  height: 150px;
-  right: 28vw;
-  bottom: 20vh;
-  border-radius: 28px;
+  width: 146px;
+  height: 146px;
+  right: 20vw;
+  top: 28vh;
+  border-radius: 32px;
 }
 
 .site-background__gravity-pill {
@@ -762,25 +746,23 @@ select {
 }
 
 .site-background__gravity-pill--a {
-  width: 180px;
-  height: 56px;
-  left: 16vw;
+  width: 168px;
+  height: 48px;
+  left: 18vw;
   bottom: 24vh;
 }
 
 .site-background__gravity-pill--b {
-  width: 126px;
-  height: 46px;
-  right: 20vw;
-  top: 16vh;
+  width: 110px;
+  height: 40px;
+  right: 22vw;
+  top: 18vh;
 }
 
-.site-background__gravity-dot {
-  width: 12px;
-  height: 12px;
+.site-background__gravity-particle {
   border-radius: 999px;
-  background: rgba(239, 242, 247, 0.92);
-  box-shadow: 0 0 28px rgba(255, 255, 255, 0.14);
+  background: rgba(230, 234, 240, 0.92);
+  box-shadow: 0 0 16px rgba(230, 234, 240, 0.12);
   animation: site-background-drift var(--duration, 12s) ease-in-out infinite alternate;
   animation-delay: var(--delay, 0s);
   transform:
@@ -789,16 +771,6 @@ select {
       calc(var(--cursor-ry) * var(--depth-y, 12) * 1px)
     )
     translate(var(--drift-x, 0px), var(--drift-y, 0px));
-}
-
-.site-background__gravity-dot--a {
-  left: 44vw;
-  top: 22vh;
-}
-
-.site-background__gravity-dot--b {
-  right: 24vw;
-  bottom: 28vh;
 }
 
 .site-background__float--image-a {

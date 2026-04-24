@@ -70,6 +70,38 @@ const BACKGROUND_PRESETS = [
   },
 ];
 
+const ANTIGRAVITY_PARTICLES = [
+  { x: 10, y: 16, size: 6, depthX: 18, depthY: 14, driftX: 8, driftY: -6, delay: "-3s", duration: "10s" },
+  { x: 16, y: 28, size: 8, depthX: 14, depthY: 10, driftX: 10, driftY: 8, delay: "-7s", duration: "12s" },
+  { x: 22, y: 24, size: 5, depthX: 10, depthY: 12, driftX: -8, driftY: 6, delay: "-2s", duration: "11s" },
+  { x: 28, y: 18, size: 7, depthX: 12, depthY: 8, driftX: 9, driftY: -7, delay: "-6s", duration: "13s" },
+  { x: 34, y: 30, size: 6, depthX: 16, depthY: 12, driftX: -10, driftY: 10, delay: "-8s", duration: "14s" },
+  { x: 40, y: 22, size: 9, depthX: 18, depthY: 14, driftX: 12, driftY: -6, delay: "-5s", duration: "12s" },
+  { x: 46, y: 14, size: 5, depthX: 14, depthY: 10, driftX: -8, driftY: 8, delay: "-1s", duration: "10s" },
+  { x: 52, y: 20, size: 7, depthX: 20, depthY: 16, driftX: 12, driftY: 10, delay: "-9s", duration: "15s" },
+  { x: 58, y: 26, size: 6, depthX: 18, depthY: 12, driftX: -12, driftY: -8, delay: "-11s", duration: "16s" },
+  { x: 64, y: 16, size: 8, depthX: 16, depthY: 14, driftX: 8, driftY: 12, delay: "-4s", duration: "13s" },
+  { x: 70, y: 30, size: 5, depthX: 12, depthY: 10, driftX: -10, driftY: 8, delay: "-10s", duration: "11s" },
+  { x: 76, y: 22, size: 6, depthX: 20, depthY: 16, driftX: 14, driftY: -10, delay: "-6s", duration: "12s" },
+  { x: 82, y: 18, size: 7, depthX: 14, depthY: 10, driftX: -8, driftY: 6, delay: "-3s", duration: "14s" },
+  { x: 88, y: 28, size: 5, depthX: 12, depthY: 12, driftX: 10, driftY: 10, delay: "-12s", duration: "15s" },
+  { x: 14, y: 44, size: 8, depthX: 18, depthY: 14, driftX: 12, driftY: -8, delay: "-5s", duration: "14s" },
+  { x: 22, y: 54, size: 5, depthX: 14, depthY: 10, driftX: -8, driftY: 8, delay: "-9s", duration: "10s" },
+  { x: 30, y: 48, size: 7, depthX: 16, depthY: 12, driftX: 10, driftY: -6, delay: "-6s", duration: "13s" },
+  { x: 38, y: 58, size: 6, depthX: 12, depthY: 8, driftX: -10, driftY: 10, delay: "-4s", duration: "12s" },
+  { x: 46, y: 46, size: 10, depthX: 20, depthY: 16, driftX: 14, driftY: -10, delay: "-11s", duration: "17s" },
+  { x: 54, y: 56, size: 5, depthX: 10, depthY: 10, driftX: -8, driftY: 8, delay: "-2s", duration: "11s" },
+  { x: 62, y: 44, size: 7, depthX: 16, depthY: 14, driftX: 10, driftY: -6, delay: "-8s", duration: "12s" },
+  { x: 70, y: 54, size: 6, depthX: 14, depthY: 10, driftX: -10, driftY: 10, delay: "-7s", duration: "13s" },
+  { x: 78, y: 48, size: 8, depthX: 18, depthY: 16, driftX: 12, driftY: -8, delay: "-5s", duration: "15s" },
+  { x: 86, y: 58, size: 5, depthX: 12, depthY: 10, driftX: -8, driftY: 8, delay: "-10s", duration: "11s" },
+  { x: 18, y: 72, size: 7, depthX: 16, depthY: 12, driftX: 8, driftY: -6, delay: "-6s", duration: "12s" },
+  { x: 34, y: 78, size: 5, depthX: 12, depthY: 10, driftX: -8, driftY: 8, delay: "-9s", duration: "10s" },
+  { x: 52, y: 74, size: 8, depthX: 18, depthY: 14, driftX: 10, driftY: -10, delay: "-4s", duration: "14s" },
+  { x: 68, y: 80, size: 6, depthX: 14, depthY: 10, driftX: -10, driftY: 8, delay: "-8s", duration: "13s" },
+  { x: 84, y: 72, size: 7, depthX: 20, depthY: 16, driftX: 12, driftY: -8, delay: "-3s", duration: "16s" },
+];
+
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
 }
@@ -612,12 +644,26 @@ function SiteBackground({ presetCode, imageSrc }) {
         <span className="site-background__gravity-line site-background__gravity-line--v" />
         <span className="site-background__gravity-panel site-background__gravity-panel--a" style={{ "--depth-x": 18, "--depth-y": 10, "--drift-x": 14, "--drift-y": -10, "--duration": "18s", "--delay": "-3s" }} />
         <span className="site-background__gravity-panel site-background__gravity-panel--b" style={{ "--depth-x": -20, "--depth-y": 14, "--drift-x": -12, "--drift-y": 12, "--duration": "16s", "--delay": "-9s" }} />
-        <span className="site-background__gravity-panel site-background__gravity-panel--c" style={{ "--depth-x": 12, "--depth-y": -16, "--drift-x": 10, "--drift-y": 16, "--duration": "14s", "--delay": "-6s" }} />
-        <span className="site-background__gravity-panel site-background__gravity-panel--d" style={{ "--depth-x": -16, "--depth-y": -12, "--drift-x": -10, "--drift-y": 12, "--duration": "20s", "--delay": "-12s" }} />
         <span className="site-background__gravity-pill site-background__gravity-pill--a" style={{ "--depth-x": 20, "--depth-y": 12, "--drift-x": 16, "--drift-y": -10, "--duration": "17s", "--delay": "-2s" }} />
         <span className="site-background__gravity-pill site-background__gravity-pill--b" style={{ "--depth-x": -18, "--depth-y": 10, "--drift-x": -16, "--drift-y": 8, "--duration": "15s", "--delay": "-8s" }} />
-        <span className="site-background__gravity-dot site-background__gravity-dot--a" style={{ "--depth-x": 22, "--depth-y": 18, "--drift-x": 12, "--drift-y": -8, "--duration": "13s", "--delay": "-1s" }} />
-        <span className="site-background__gravity-dot site-background__gravity-dot--b" style={{ "--depth-x": -20, "--depth-y": 16, "--drift-x": -12, "--drift-y": 10, "--duration": "11s", "--delay": "-5s" }} />
+        {ANTIGRAVITY_PARTICLES.map((particle, index) => (
+          <span
+            key={`ag-particle-${index}`}
+            className="site-background__gravity-particle"
+            style={{
+              left: `${particle.x}%`,
+              top: `${particle.y}%`,
+              width: `${particle.size}px`,
+              height: `${particle.size}px`,
+              "--depth-x": particle.depthX,
+              "--depth-y": particle.depthY,
+              "--drift-x": `${particle.driftX}px`,
+              "--drift-y": `${particle.driftY}px`,
+              "--duration": particle.duration,
+              "--delay": particle.delay,
+            }}
+          />
+        ))}
       </div>
     );
   }
