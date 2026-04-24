@@ -2214,7 +2214,7 @@ function useSeo({ title, description, image }) {
   }, [description, image, title]);
 }
 
-function HomePage({ language, text, copy, articles, meta, projects, guestbookEntries, addGuestbookEntry }) {
+function HomePage({ language, text, copy, articles, meta, projects, guestbookEntries, addGuestbookEntry, isXFlow }) {
   const [guestbookForm, setGuestbookForm] = useState({ name: "", message: "" });
   const siteAvatar = getSiteAvatar(meta, templateAvatar);
   useSeo({
@@ -2240,6 +2240,142 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
     });
     setGuestbookForm({ name: "", message: "" });
   };
+
+  if (isXFlow) {
+    const leadProject = projects[0];
+    const sideProjects = projects.slice(1, 3);
+    const featureArticle = topArticles[0];
+    const sideArticles = topArticles.slice(1);
+
+    return (
+      <main className="page home-page xflow-home">
+        <section className="xflow-hero glass-card">
+          <div className="xflow-hero__copy">
+            <p className="micro-label">{text.heroEyebrow}</p>
+            <h1>{text.heroTitle}</h1>
+            <p className="body-copy">{text.heroBody}</p>
+            <div className="hero-actions">
+              <Link className="action-button action-button--primary" to="/articles">
+                {text.heroPrimary}
+              </Link>
+              <Link className="action-button action-button--secondary" to={`/projects/${leadProject?.slug ?? ""}`}>
+                {text.heroSecondary}
+              </Link>
+            </div>
+          </div>
+          <div className="xflow-hero__profile">
+            <div className="xflow-profile-card">
+              <div className="intro-avatar">
+                <img src={siteAvatar} alt={`${meta.name} avatar`} />
+              </div>
+              <div className="intro-copy">
+                <p className="micro-label">{meta.location}</p>
+                <h2>{meta.name}</h2>
+                <p className="body-copy">{meta.intro[language]}</p>
+                <div className="intro-meta">
+                  <span>{meta.role[language]}</span>
+                  <span>{meta.email}</span>
+                </div>
+              </div>
+            </div>
+            <div className="xflow-stat-strip">
+              <div className="stat-box">
+                <strong>{meta.stats.projects}</strong>
+                <span>{text.statsLabelOne}</span>
+              </div>
+              <div className="stat-box">
+                <strong>{meta.stats.essays}</strong>
+                <span>{text.statsLabelTwo}</span>
+              </div>
+              <div className="stat-box">
+                <strong>{meta.stats.labs}</strong>
+                <span>{text.statsLabelThree}</span>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section className="xflow-shelf">
+          <Reveal className="xflow-lead-card glass-card">
+            <p className="micro-label">{text.featuredTitle}</p>
+            <h2>{leadProject?.title}</h2>
+            <p className="body-copy">{leadProject?.summary[language]}</p>
+            <div className="tag-row">
+              {leadProject?.metrics?.map((metric) => (
+                <span className="tag-chip" key={metric}>
+                  {metric}
+                </span>
+              ))}
+            </div>
+            <Link className="inline-link" to={`/projects/${leadProject?.slug ?? ""}`}>
+              {text.heroSecondary}
+            </Link>
+          </Reveal>
+          <div className="xflow-side-stack">
+            {sideProjects.map((project, index) => (
+              <Reveal key={project.slug} delay={index * 80} className="xflow-mini-card glass-card">
+                <p className="micro-label">{project.category[language]}</p>
+                <h3>{project.title}</h3>
+                <p className="body-copy">{project.summary[language]}</p>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+
+        <section className="xflow-story-grid">
+          <Reveal className="xflow-story-main glass-card">
+            <p className="micro-label">{text.articlesTitle}</p>
+            {featureArticle?.coverImage ? <img className="article-card__cover" src={featureArticle.coverImage} alt={featureArticle.title[language]} /> : null}
+            <h2>{featureArticle?.title[language]}</h2>
+            <p className="body-copy">{featureArticle?.excerpt[language]}</p>
+            {featureArticle ? <ArticleMeta article={featureArticle} copy={copy} language={language} /> : null}
+            <Link className="inline-link" to={`/articles/${featureArticle?.slug ?? ""}`}>
+              {copy.openArticle}
+            </Link>
+          </Reveal>
+          <div className="xflow-story-side">
+            {sideArticles.map((article, index) => (
+              <Reveal key={article.slug} delay={index * 70} className="xflow-story-item glass-card">
+                <p className="micro-label">{article.tag}</p>
+                <h3>{article.title[language]}</h3>
+                <p className="body-copy">{article.excerpt[language]}</p>
+                <Link className="inline-link" to={`/articles/${article.slug}`}>
+                  {copy.openArticle}
+                </Link>
+              </Reveal>
+            ))}
+          </div>
+        </section>
+
+        <section className="xflow-bottom-grid">
+          <Reveal className="about-panel glass-card">
+            <p className="micro-label">{text.aboutTitle}</p>
+            <h2>{text.aboutTitle}</h2>
+            <p className="body-copy">{text.aboutBody}</p>
+            <div className="tag-row">
+              {meta.socialLinks.map((item) => (
+                <a key={item.label} className="social-pill" href={item.url} target="_blank" rel="noreferrer">
+                  <SocialIcon type={item.iconDataUrl ? item : item.icon} />
+                  <span>{item.label}</span>
+                </a>
+              ))}
+            </div>
+          </Reveal>
+
+          <Reveal className="stats-panel glass-card guestbook-list" delay={120}>
+            <p className="micro-label">{copy.guestbookTitle}</p>
+            {guestbookEntries.length ? guestbookEntries.slice(0, 4).map((entry) => (
+              <article key={entry.id} className="guestbook-entry">
+                <strong>{entry.name}</strong>
+                <p className="body-copy">{entry.message}</p>
+                <span>{formatRelativeTime(entry.createdAt, language)}</span>
+              </article>
+            )) : <p className="body-copy">{copy.guestbookEmpty}</p>}
+          </Reveal>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="page home-page">
@@ -2448,7 +2584,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
   );
 }
 
-function ArticlesPage({ language, text, copy, articles, meta }) {
+function ArticlesPage({ language, text, copy, articles, meta, isXFlow }) {
   const [query, setQuery] = useState("");
   const [activeTag, setActiveTag] = useState("all");
   const siteAvatar = getSiteAvatar(meta, templateAvatar);
@@ -2489,6 +2625,76 @@ function ArticlesPage({ language, text, copy, articles, meta }) {
       return haystack.includes(lowered);
     });
   }, [activeTag, articles, language, query]);
+
+  if (isXFlow) {
+    const leadArticle = filteredArticles[0];
+    const sideArticles = filteredArticles.slice(1);
+
+    return (
+      <main className="page xflow-articles-page">
+        <section className="page-banner glass-card xflow-page-banner">
+          <div className="xflow-page-banner__copy">
+            <p className="micro-label">{text.articleIndexEyebrow}</p>
+            <h1>{text.articleIndexTitle}</h1>
+            <p className="body-copy">{text.articleIndexBody}</p>
+          </div>
+          <section className="glass-card article-tools xflow-article-tools">
+            <label className="studio-field">
+              <span>{copy.articleSearch}</span>
+              <input
+                type="text"
+                value={query}
+                onChange={(event) => setQuery(event.target.value)}
+                placeholder={copy.articleSearchPlaceholder}
+              />
+            </label>
+            <div className="tag-row">
+              {tags.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  className={`tag-chip tag-chip--button ${activeTag === tag ? "active" : ""}`}
+                  onClick={() => setActiveTag(tag)}
+                >
+                  {tag === "all" ? copy.allTags : tag}
+                </button>
+              ))}
+            </div>
+          </section>
+        </section>
+
+        {leadArticle ? (
+          <section className="xflow-articles-layout">
+            <Reveal className="xflow-articles-lead glass-card">
+              {leadArticle.coverImage ? <img className="page-banner__cover" src={leadArticle.coverImage} alt={leadArticle.title[language]} /> : null}
+              <p className="micro-label">{leadArticle.tag}</p>
+              <h2>{leadArticle.title[language]}</h2>
+              <p className="body-copy">{leadArticle.excerpt[language]}</p>
+              <ArticleMeta article={leadArticle} copy={copy} language={language} />
+              <Link className="inline-link" to={`/articles/${leadArticle.slug}`}>
+                {copy.openArticle}
+              </Link>
+            </Reveal>
+            <div className="xflow-articles-stack">
+              {sideArticles.length ? sideArticles.map((article, index) => (
+                <Reveal key={article.slug} delay={index * 70} className="xflow-articles-item glass-card">
+                  <p className="micro-label">{article.tag}</p>
+                  <h3>{article.title[language]}</h3>
+                  <p className="body-copy">{article.excerpt[language]}</p>
+                  <ArticleMeta article={article} copy={copy} language={language} />
+                  <Link className="inline-link" to={`/articles/${article.slug}`}>
+                    {copy.openArticle}
+                  </Link>
+                </Reveal>
+              )) : <div className="glass-card empty-state">{copy.noArticleResults}</div>}
+            </div>
+          </section>
+        ) : (
+          <div className="glass-card empty-state">{copy.noArticleResults}</div>
+        )}
+      </main>
+    );
+  }
 
   return (
     <main className="page">
@@ -2551,7 +2757,7 @@ function ArticlesPage({ language, text, copy, articles, meta }) {
   );
 }
 
-function ArticleDetailPage({ language, copy, articles, meta }) {
+function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
   const { slug } = useParams();
   const article = useMemo(
     () => articles.find((item) => item.slug === slug) ?? articles[0],
@@ -2583,6 +2789,95 @@ function ArticleDetailPage({ language, copy, articles, meta }) {
     setCopied(true);
     window.setTimeout(() => setCopied(false), 1200);
   };
+
+  if (isXFlow) {
+    return (
+      <main className="page xflow-article-detail-page">
+        <section className="xflow-article-hero glass-card">
+          <div className="xflow-article-hero__meta">
+            <p className="micro-label">{article.tag}</p>
+            <h1>{article.title[language]}</h1>
+            <p className="body-copy">{article.excerpt[language]}</p>
+            <ArticleMeta article={article} copy={copy} language={language} />
+            <div className="xflow-article-hero__actions">
+              <button type="button" className="dock-button" onClick={handleCopyLink}>
+                {copied ? copy.linkCopied : copy.copyLink}
+              </button>
+              <div className="reading-progress xflow-reading-progress">
+                <span>{copy.readingProgress}</span>
+                <div className="reading-progress__bar">
+                  <div className="reading-progress__fill" style={{ width: `${progress * 100}%` }} />
+                </div>
+              </div>
+            </div>
+          </div>
+          <div className="xflow-article-hero__lead">
+            {article.coverImage ? <img className="page-banner__cover" src={article.coverImage} alt={article.title[language]} /> : null}
+            <div className="xflow-article-summary-card">
+              <p className="micro-label">Summary</p>
+              <p className="body-copy">{seoDescription}</p>
+            </div>
+          </div>
+        </section>
+
+        <section className="xflow-article-content-grid">
+          <aside className="xflow-article-side">
+            {sections.length ? (
+              <article className="glass-card xflow-side-card">
+                <p className="micro-label">{copy.tocTitle}</p>
+                <div className="toc-list">
+                  {sections.map((section) => (
+                    <a key={section.id} className={`toc-link level-${section.level}`} href={`#${section.id}`}>
+                      {section.title}
+                    </a>
+                  ))}
+                </div>
+              </article>
+            ) : null}
+            <article className="glass-card xflow-side-card">
+              <p className="micro-label">{copy.unplacedAttachments}</p>
+              <div className="attachment-grid">
+                {remainingAttachments.length ? (
+                  remainingAttachments.map((attachment) => <AttachmentBlock key={attachment.id} attachment={attachment} copy={copy} />)
+                ) : (
+                  <p className="body-copy">{copy.noAttachments}</p>
+                )}
+              </div>
+            </article>
+          </aside>
+
+          <article className="glass-card xflow-article-main">
+            <p className="micro-label">ARTICLE</p>
+            <div className="article-detail__body">
+              {localizedContent ? (
+                rendered.map((block) =>
+                  block.type === "text" ? (
+                    <p key={block.key} className="body-copy article-detail__copy">
+                      {block.value}
+                    </p>
+                  ) : block.type === "heading" ? (
+                    block.level === 2 ? (
+                      <h2 key={block.key} id={block.id} className="article-heading level-2">
+                        {block.value}
+                      </h2>
+                    ) : (
+                      <h3 key={block.key} id={block.id} className="article-heading level-3">
+                        {block.value}
+                      </h3>
+                    )
+                  ) : (
+                    <AttachmentBlock key={block.key} attachment={block.value} copy={copy} />
+                  )
+                )
+              ) : (
+                <p className="body-copy">{copy.articleEmpty}</p>
+              )}
+            </div>
+          </article>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="page">
@@ -2668,7 +2963,7 @@ function ArticleDetailPage({ language, copy, articles, meta }) {
   );
 }
 
-function ProjectDetailPage({ language, text, projects, meta }) {
+function ProjectDetailPage({ language, text, projects, meta, isXFlow }) {
   const { slug } = useParams();
   const project = useMemo(
     () => projects.find((item) => item.slug === slug) ?? projects[0],
@@ -2680,6 +2975,51 @@ function ProjectDetailPage({ language, text, projects, meta }) {
     description: project.summary[language] || project.summary.en,
     image: siteAvatar,
   });
+
+  if (isXFlow) {
+    return (
+      <main className="page xflow-project-detail-page">
+        <section className="xflow-project-hero glass-card">
+          <div>
+            <p className="micro-label">{text.projectDetailEyebrow}</p>
+            <h1>{project.title}</h1>
+            <p className="body-copy">{project.summary[language]}</p>
+          </div>
+          <div className="xflow-project-metrics">
+            {project.metrics.map((metric) => (
+              <span className="tag-chip" key={metric}>
+                {metric}
+              </span>
+            ))}
+          </div>
+        </section>
+
+        <section className="xflow-project-grid">
+          <Reveal>
+            <article className="glass-card xflow-project-card xflow-project-card--challenge">
+              <p className="micro-label">Challenge</p>
+              <h2>{text.challenge}</h2>
+              <p className="body-copy">{project.challenge[language]}</p>
+            </article>
+          </Reveal>
+          <Reveal delay={120}>
+            <article className="glass-card xflow-project-card xflow-project-card--solution">
+              <p className="micro-label">Solution</p>
+              <h2>{text.solution}</h2>
+              <p className="body-copy">{project.solution[language]}</p>
+            </article>
+          </Reveal>
+          <Reveal delay={240}>
+            <article className="glass-card xflow-project-card xflow-project-card--outcome">
+              <p className="micro-label">Outcome</p>
+              <h2>{text.outcome}</h2>
+              <p className="body-copy">{project.outcome[language]}</p>
+            </article>
+          </Reveal>
+        </section>
+      </main>
+    );
+  }
 
   return (
     <main className="page">
@@ -4022,6 +4362,7 @@ export default function App() {
     backgroundPreset: normalizeBackgroundPreset(backgroundPresetOverride || meta.backgroundPreset || "none"),
     backgroundImage: backgroundPresetOverride ? "" : meta.backgroundImage || "",
   };
+  const isXFlow = activeBackground.backgroundPreset === "xflow";
 
   useEffect(() => {
     if (!previewBackground) {
@@ -4068,12 +4409,13 @@ export default function App() {
               projects={projects}
               guestbookEntries={entries}
               addGuestbookEntry={addEntry}
+              isXFlow={isXFlow}
             />
           }
         />
-        <Route path="/articles" element={<ArticlesPage language={language} text={text} copy={copy} articles={articles} meta={meta} />} />
-        <Route path="/articles/:slug" element={<ArticleDetailPage language={language} copy={copy} articles={articles} meta={meta} />} />
-        <Route path="/projects/:slug" element={<ProjectDetailPage language={language} text={text} projects={projects} meta={meta} />} />
+        <Route path="/articles" element={<ArticlesPage language={language} text={text} copy={copy} articles={articles} meta={meta} isXFlow={isXFlow} />} />
+        <Route path="/articles/:slug" element={<ArticleDetailPage language={language} copy={copy} articles={articles} meta={meta} isXFlow={isXFlow} />} />
+        <Route path="/projects/:slug" element={<ProjectDetailPage language={language} text={text} projects={projects} meta={meta} isXFlow={isXFlow} />} />
         <Route
           path="/studio"
           element={
