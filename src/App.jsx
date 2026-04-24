@@ -45,11 +45,9 @@ const LEGACY_PALETTES = {
   mono: { h: 217, s: 15, v: 85 },
 };
 const DEFAULT_PALETTE = { h: 198, s: 30, v: 100 };
+const VALID_BACKGROUND_PRESETS = new Set(["none", "antigravity"]);
 const THEME_PRESET_OPTIONS = [
   { code: "none", label: "Default" },
-  { code: "aurora", label: "Pay Flow" },
-  { code: "sunset", label: "Wallet Air" },
-  { code: "ice", label: "Data Grid" },
   { code: "antigravity", label: "Antigravity" },
 ];
 const BACKGROUND_PRESETS = [
@@ -79,6 +77,12 @@ const BACKGROUND_PRESETS = [
     eyebrow: { zh: "Google-like", en: "Google-like", ja: "Google-like", ko: "Google-like" },
   },
 ];
+
+const STUDIO_BACKGROUND_PRESETS = BACKGROUND_PRESETS.filter((preset) => VALID_BACKGROUND_PRESETS.has(preset.code));
+
+function normalizeBackgroundPreset(value) {
+  return VALID_BACKGROUND_PRESETS.has(value) ? value : "none";
+}
 
 function clamp(value, min, max) {
   return Math.min(Math.max(value, min), max);
@@ -1340,7 +1344,9 @@ function normalizeSiteContent(content) {
           : defaults.meta.avatarImage,
       browserTitle: ensureLocalizedMap(content?.meta?.browserTitle ?? defaults.meta.browserTitle, defaults.meta.name),
       backgroundPreset:
-        typeof content?.meta?.backgroundPreset === "string" ? content.meta.backgroundPreset : defaults.meta.backgroundPreset,
+        typeof content?.meta?.backgroundPreset === "string"
+          ? normalizeBackgroundPreset(content.meta.backgroundPreset)
+          : defaults.meta.backgroundPreset,
       backgroundImage:
         typeof content?.meta?.backgroundImage === "string" ? content.meta.backgroundImage : defaults.meta.backgroundImage,
       role: ensureLocalizedMap(content?.meta?.role ?? defaults.meta.role, ""),
@@ -2089,7 +2095,7 @@ function useStudioBackgroundPreview(siteDraft, setPreviewBackground) {
     }
 
     setPreviewBackground({
-      backgroundPreset: siteDraft?.meta?.backgroundPreset || "none",
+      backgroundPreset: normalizeBackgroundPreset(siteDraft?.meta?.backgroundPreset || "none"),
       backgroundImage: siteDraft?.meta?.backgroundImage || "",
     });
 
@@ -3577,7 +3583,7 @@ function StudioPage({
                 </button>
               </div>
               <div className="studio-background-presets">
-                {BACKGROUND_PRESETS.map((preset) => (
+                {STUDIO_BACKGROUND_PRESETS.map((preset) => (
                   <button
                     key={preset.code}
                     type="button"
@@ -3971,13 +3977,13 @@ export default function App() {
     customCards: Array.isArray(siteContent.meta?.customCards) ? siteContent.meta.customCards.map(normalizeCustomCard) : [],
   };
   const activeBackground = previewBackground ?? {
-    backgroundPreset: backgroundPresetOverride || meta.backgroundPreset || "none",
+    backgroundPreset: normalizeBackgroundPreset(backgroundPresetOverride || meta.backgroundPreset || "none"),
     backgroundImage: backgroundPresetOverride ? "" : meta.backgroundImage || "",
   };
 
   useEffect(() => {
     if (!previewBackground) {
-      setBackgroundPresetOverride(meta.backgroundPreset || "none");
+      setBackgroundPresetOverride(normalizeBackgroundPreset(meta.backgroundPreset || "none"));
     }
   }, [meta.backgroundPreset, previewBackground]);
 
