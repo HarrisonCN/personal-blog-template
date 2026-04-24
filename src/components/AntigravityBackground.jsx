@@ -156,11 +156,13 @@ export default function AntigravityBackground() {
     camera.position.z = 10;
 
     const pointer = new THREE.Vector2(0, 0);
+    const cursorPointer = new THREE.Vector2(0, 0);
     const pointerTarget = new THREE.Vector2(0, 0);
     const resolution = new THREE.Vector2(1, 1);
     const pixelRatio = new THREE.Vector2(renderer.getPixelRatio(), renderer.getPixelRatio());
     const clock = new THREE.Clock();
     let animationFrame = 0;
+    let ringPlane;
 
     const resize = () => {
       const width = mount.clientWidth || window.innerWidth;
@@ -177,6 +179,9 @@ export default function AntigravityBackground() {
 
       renderer.setSize(width, height, false);
       resolution.set(width, height);
+      if (ringPlane) {
+        ringPlane.scale.set(frustumWidth, frustumHeight, 1);
+      }
     };
 
     resize();
@@ -205,14 +210,14 @@ export default function AntigravityBackground() {
     scene.add(pointsSoft);
     scene.add(pointsTight);
 
-    const ringPlane = new THREE.Mesh(
+    ringPlane = new THREE.Mesh(
       new THREE.PlaneGeometry(20, 20),
       new THREE.ShaderMaterial({
         transparent: true,
         depthWrite: false,
         blending: THREE.AdditiveBlending,
         uniforms: {
-          uPointer: { value: pointer },
+          uPointer: { value: cursorPointer },
           uPulse: { value: 0 },
         },
         vertexShader: `
@@ -229,8 +234,8 @@ export default function AntigravityBackground() {
           varying vec2 vWorld;
           void main() {
             float dist = length(vWorld - uPointer);
-            float ring = exp(-pow((dist - (0.64 + uPulse * 0.18)) * 9.0, 2.0)) * (0.06 + uPulse * 0.18);
-            float core = smoothstep(0.38, 0.0, dist) * 0.03;
+            float ring = exp(-pow((dist - (0.34 + uPulse * 0.08)) * 14.0, 2.0)) * (0.035 + uPulse * 0.09);
+            float core = smoothstep(0.2, 0.0, dist) * 0.02;
             vec3 color = mix(vec3(0.47, 0.62, 0.95), vec3(1.0), 0.34);
             gl_FragColor = vec4(color, ring + core);
           }
@@ -238,6 +243,7 @@ export default function AntigravityBackground() {
       }),
     );
     ringPlane.position.z = -0.25;
+    ringPlane.scale.set(camera.right - camera.left, camera.top - camera.bottom, 1);
     scene.add(ringPlane);
 
     const decorationGroup = new THREE.Group();
@@ -311,10 +317,14 @@ export default function AntigravityBackground() {
         THREE.MathUtils.clamp(nx * (camera.right * 0.92), camera.left * 0.96, camera.right * 0.96),
         THREE.MathUtils.clamp(ny * (camera.top * 0.92), camera.bottom * 0.96, camera.top * 0.96),
       );
+      cursorPointer.copy(pointerTarget);
     };
 
     const handlePointerMove = (event) => updatePointer(event.clientX, event.clientY);
-    const handlePointerLeave = () => pointerTarget.set(0, 0);
+    const handlePointerLeave = () => {
+      pointerTarget.set(0, 0);
+      cursorPointer.set(0, 0);
+    };
 
     window.addEventListener("pointermove", handlePointerMove);
     window.addEventListener("resize", resize);
@@ -325,7 +335,7 @@ export default function AntigravityBackground() {
       const elapsed = clock.getElapsedTime();
       const pulse = (Math.sin(elapsed * 1.2) + 1) * 0.5;
 
-      pointer.lerp(pointerTarget, 0.08);
+      pointer.lerp(pointerTarget, 0.09);
       materialTight.uniforms.uTime.value = elapsed;
       materialSoft.uniforms.uTime.value = elapsed;
       materialTight.uniforms.uPulse.value = pulse;
