@@ -44,6 +44,13 @@ const LEGACY_PALETTES = {
   mono: { h: 217, s: 15, v: 85 },
 };
 const DEFAULT_PALETTE = { h: 198, s: 30, v: 100 };
+const THEME_PRESET_OPTIONS = [
+  { value: "none", label: "Default" },
+  { value: "aurora", label: "Pay Flow" },
+  { value: "sunset", label: "Wallet Air" },
+  { value: "ice", label: "Data Grid" },
+  { value: "antigravity", label: "Antigravity" },
+];
 const BACKGROUND_PRESETS = [
   {
     code: "none",
@@ -1972,6 +1979,8 @@ function Header({
   setLanguage,
   font,
   setFont,
+  backgroundPreset,
+  setBackgroundPreset,
   palette,
   setPalette,
   text,
@@ -2003,6 +2012,7 @@ function Header({
 
       <div className="header-panel tool-panel">
         <div className="tool-stack">
+          <ExpandableSelector label={text.backgroundPreset} value={backgroundPreset} onChange={setBackgroundPreset} options={THEME_PRESET_OPTIONS} />
           <ExpandableSelector label={text.languageLabel} value={language} onChange={setLanguage} options={languages} />
           <FontSlider label={text.fontLabel} value={font} onChange={setFont} options={fonts} />
           <ThemeToggle theme={theme} setTheme={setTheme} text={text} />
@@ -2019,6 +2029,8 @@ function Shell({
   setLanguage,
   font,
   setFont,
+  backgroundPreset,
+  setBackgroundPreset,
   palette,
   setPalette,
   text,
@@ -2047,6 +2059,8 @@ function Shell({
         setLanguage={setLanguage}
         font={font}
         setFont={setFont}
+        backgroundPreset={backgroundPreset}
+        setBackgroundPreset={setBackgroundPreset}
         palette={palette}
         setPalette={setPalette}
         text={text}
@@ -3935,6 +3949,7 @@ export default function App() {
   const { theme, setTheme, language, setLanguage, font, setFont } = usePreferences();
   const { palette, setPalette } = usePalette();
   const [previewBackground, setPreviewBackground] = useState(null);
+  const [backgroundPresetOverride, setBackgroundPresetOverride] = useState(null);
   const copy = getCopy(language);
   const { articles, projects, siteContent, entries, saveArticle, saveProject, deleteProject, saveContent, addEntry, studioAvailable } = useBackendContent();
   const { isAuthenticated, login, logout, sessionExpired, lockUntil, authReady } = useStudioAuth(studioAvailable);
@@ -3955,9 +3970,15 @@ export default function App() {
     customCards: Array.isArray(siteContent.meta?.customCards) ? siteContent.meta.customCards.map(normalizeCustomCard) : [],
   };
   const activeBackground = previewBackground ?? {
-    backgroundPreset: meta.backgroundPreset || "none",
-    backgroundImage: meta.backgroundImage || "",
+    backgroundPreset: backgroundPresetOverride || meta.backgroundPreset || "none",
+    backgroundImage: backgroundPresetOverride ? "" : meta.backgroundImage || "",
   };
+
+  useEffect(() => {
+    if (!previewBackground) {
+      setBackgroundPresetOverride(meta.backgroundPreset || "none");
+    }
+  }, [meta.backgroundPreset, previewBackground]);
 
   useEffect(() => {
     document.body.dataset.backgroundPreset = activeBackground.backgroundPreset || "none";
@@ -3976,6 +3997,8 @@ export default function App() {
       setLanguage={setLanguage}
       font={font}
       setFont={setFont}
+      backgroundPreset={activeBackground.backgroundPreset}
+      setBackgroundPreset={setBackgroundPresetOverride}
       palette={palette}
       setPalette={setPalette}
       text={text}
