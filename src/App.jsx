@@ -1,5 +1,5 @@
 ﻿import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
-import { Link, NavLink, Route, Routes, useLocation, useParams } from "react-router-dom";
+import { Link, NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 
 import InteractiveSceneBackground from "./components/InteractiveSceneBackground";
 
@@ -21,6 +21,7 @@ const ThemePresetScene = lazy(() => import("./components/ThemePresetScene"));
 
 const PALETTE_STORAGE_KEY = "template-palette";
 const GUESTBOOK_STORAGE_KEY = "template-guestbook";
+const HOME_LAYOUT_STORAGE_KEY = "template-home-layout";
 const STUDIO_MAX_ATTEMPTS = 5;
 const STUDIO_LOCK_MS = 15 * 60 * 1000;
 const EDITABLE_TEXT_KEYS = [
@@ -74,9 +75,107 @@ const BACKGROUND_PRESETS = [
 ];
 
 const STUDIO_BACKGROUND_PRESETS = BACKGROUND_PRESETS.filter((preset) => VALID_BACKGROUND_PRESETS.has(preset.code));
+const HOME_LAYOUT_OPTIONS = [
+  { code: "magazine", icon: "M" },
+  { code: "archive", icon: "A" },
+  { code: "cards", icon: "C" },
+];
+const AMBIENT_TRACKS = [
+  { code: "rain", title: { zh: "雨幕", en: "Rain Room" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
+  { code: "harbor", title: { zh: "港湾", en: "Harbor Hush" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
+  { code: "night", title: { zh: "夜读", en: "Night Air" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
+];
+const EXPERIENCE_COPY = {
+  zh: {
+    commandOpen: "命令面板",
+    commandPlaceholder: "搜索文章、项目、主题、背景或后台入口",
+    commandEmpty: "没有匹配结果",
+    archiveTitle: "时间档案",
+    archiveBody: "把文章、项目和持续实验放进同一条时间轴里。",
+    archiveOpen: "打开档案",
+    pinnedTitle: "Pinned Spaces",
+    pinnedBody: "把最想先被看到的内容固定在首页入口。",
+    layoutTitle: "首页布局",
+    layoutMagazine: "杂志流",
+    layoutArchive: "档案流",
+    layoutCards: "卡片流",
+    readingRoom: "阅读室",
+    focusMode: "专注",
+    nightMode: "夜读",
+    ambientMode: "环境音",
+    readAloud: "朗读",
+    stopReading: "停止朗读",
+    footnotes: "脚注",
+    timelineArticles: "文章",
+    timelineProjects: "项目",
+    pinnedEditorTitle: "固定空间",
+    pinnedEditorBody: "把文章、项目、链接或音频固定到首页。",
+    addPinnedSpace: "新增固定项",
+    removePinnedSpace: "删除固定项",
+    pinnedKind: "内容类型",
+    pinnedArticle: "文章",
+    pinnedProject: "项目",
+    pinnedLink: "链接",
+    pinnedAudio: "音频",
+    pinnedLabel: "标题",
+    pinnedBodyLabel: "说明",
+    pinnedUrl: "链接地址",
+    pinnedAudioTitle: "音频标题",
+    pinnedAudioArtist: "音频作者",
+    pinnedAudioSrc: "音频地址",
+    pinnedTarget: "关联内容",
+    footnotesEditor: "脚注",
+    openCommand: "打开命令面板",
+  },
+  en: {
+    commandOpen: "Command Palette",
+    commandPlaceholder: "Search articles, projects, themes, backgrounds, or studio routes",
+    commandEmpty: "No results found",
+    archiveTitle: "Timeline Archive",
+    archiveBody: "Place articles, projects, and ongoing experiments on one shared timeline.",
+    archiveOpen: "Open Archive",
+    pinnedTitle: "Pinned Spaces",
+    pinnedBody: "Pin the content that should be discovered first on the homepage.",
+    layoutTitle: "Home Layout",
+    layoutMagazine: "Magazine",
+    layoutArchive: "Archive",
+    layoutCards: "Cards",
+    readingRoom: "Reading Room",
+    focusMode: "Focus",
+    nightMode: "Night",
+    ambientMode: "Ambient",
+    readAloud: "Read Aloud",
+    stopReading: "Stop Reading",
+    footnotes: "Footnotes",
+    timelineArticles: "Articles",
+    timelineProjects: "Projects",
+    pinnedEditorTitle: "Pinned Spaces",
+    pinnedEditorBody: "Pin articles, projects, links, or audio modules to the homepage.",
+    addPinnedSpace: "Add Pinned Space",
+    removePinnedSpace: "Remove Item",
+    pinnedKind: "Type",
+    pinnedArticle: "Article",
+    pinnedProject: "Project",
+    pinnedLink: "Link",
+    pinnedAudio: "Audio",
+    pinnedLabel: "Title",
+    pinnedBodyLabel: "Description",
+    pinnedUrl: "Link URL",
+    pinnedAudioTitle: "Audio Title",
+    pinnedAudioArtist: "Audio Artist",
+    pinnedAudioSrc: "Audio URL",
+    pinnedTarget: "Target",
+    footnotesEditor: "Footnotes",
+    openCommand: "Open Command Palette",
+  },
+};
 
 function normalizeBackgroundPreset(value) {
   return VALID_BACKGROUND_PRESETS.has(value) ? value : "none";
+}
+
+function getExperienceCopy(language) {
+  return EXPERIENCE_COPY[language] ? { ...EXPERIENCE_COPY.en, ...EXPERIENCE_COPY[language] } : EXPERIENCE_COPY.en;
 }
 
 function clamp(value, min, max) {
@@ -440,6 +539,37 @@ function ensureLocalizedMap(value, fallback = "") {
   };
 }
 
+function ensureLocalizedList(value) {
+  if (Array.isArray(value)) {
+    return {
+      zh: value.filter(Boolean),
+      en: value.filter(Boolean),
+      ja: value.filter(Boolean),
+      ko: value.filter(Boolean),
+    };
+  }
+
+  if (value && typeof value === "object") {
+    const normalize = (entry) =>
+      Array.isArray(entry)
+        ? entry.map((item) => String(item).trim()).filter(Boolean)
+        : String(entry || "")
+            .split("\n")
+            .map((item) => item.trim())
+            .filter(Boolean);
+
+    return {
+      zh: normalize(value.zh),
+      en: normalize(value.en ?? value.zh),
+      ja: normalize(value.ja ?? value.en ?? value.zh),
+      ko: normalize(value.ko ?? value.en ?? value.zh),
+    };
+  }
+
+  const empty = [];
+  return { zh: empty, en: empty, ja: empty, ko: empty };
+}
+
 function normalizeArticle(article, index) {
   const updatedAt = article.updatedAt ?? parseArticleDate(article.date).toISOString();
   const title = ensureLocalizedMap(article.title, `Untitled ${index + 1}`);
@@ -461,6 +591,7 @@ function normalizeArticle(article, index) {
     attachments: Array.isArray(article.attachments) ? article.attachments : [],
     coverImage: article.coverImage ?? "",
     pinned: Boolean(article.pinned),
+    footnotes: ensureLocalizedList(article.footnotes),
   };
 }
 
@@ -479,6 +610,12 @@ function cloneArticle(article) {
     attachments: [...article.attachments],
     coverImage: article.coverImage || "",
     pinned: Boolean(article.pinned),
+    footnotes: {
+      zh: [...(article.footnotes?.zh || [])],
+      en: [...(article.footnotes?.en || [])],
+      ja: [...(article.footnotes?.ja || [])],
+      ko: [...(article.footnotes?.ko || [])],
+    },
   };
 }
 
@@ -492,6 +629,7 @@ function normalizeProject(project, index) {
     challenge: ensureLocalizedMap(project.challenge, ""),
     solution: ensureLocalizedMap(project.solution, ""),
     outcome: ensureLocalizedMap(project.outcome, ""),
+    updatedAt: project.updatedAt || new Date().toISOString(),
   };
 }
 
@@ -504,6 +642,7 @@ function cloneProject(project) {
     challenge: { ...project.challenge },
     solution: { ...project.solution },
     outcome: { ...project.outcome },
+    updatedAt: project.updatedAt,
   };
 }
 
@@ -544,6 +683,36 @@ function createBlankCustomCard() {
     body: { zh: "", en: "", ja: "", ko: "" },
     linkLabel: { zh: "", en: "", ja: "", ko: "" },
     linkUrl: "",
+  };
+}
+
+function normalizePinnedSpace(item, index = 0) {
+  return {
+    id: String(item?.id || `space-${index + 1}`),
+    kind: ["article", "project", "link", "audio"].includes(item?.kind) ? item.kind : "article",
+    articleSlug: String(item?.articleSlug || ""),
+    projectSlug: String(item?.projectSlug || ""),
+    title: ensureLocalizedMap(item?.title, ""),
+    body: ensureLocalizedMap(item?.body, ""),
+    url: String(item?.url || ""),
+    audioTitle: ensureLocalizedMap(item?.audioTitle, ""),
+    audioArtist: ensureLocalizedMap(item?.audioArtist, ""),
+    audioSrc: String(item?.audioSrc || ""),
+  };
+}
+
+function createBlankPinnedSpace() {
+  return {
+    id: `space-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
+    kind: "article",
+    articleSlug: "",
+    projectSlug: "",
+    title: ensureLocalizedMap(""),
+    body: ensureLocalizedMap(""),
+    url: "",
+    audioTitle: ensureLocalizedMap(""),
+    audioArtist: ensureLocalizedMap(""),
+    audioSrc: "",
   };
 }
 
@@ -601,6 +770,7 @@ function createBlankProject() {
     challenge: { zh: "", en: "", ja: "", ko: "" },
     solution: { zh: "", en: "", ja: "", ko: "" },
     outcome: { zh: "", en: "", ja: "", ko: "" },
+    updatedAt: new Date().toISOString(),
   };
 }
 
@@ -618,6 +788,7 @@ function createBlankArticle() {
     attachments: [],
     coverImage: "",
     pinned: false,
+    footnotes: { zh: [], en: [], ja: [], ko: [] },
   };
 }
 
@@ -1303,9 +1474,11 @@ function buildDefaultSiteContent() {
       backgroundImage: "",
       role: ensureLocalizedMap(siteMeta.role, ""),
       intro: ensureLocalizedMap(siteMeta.intro, ""),
+      homeLayout: "magazine",
       stats: { ...siteMeta.stats },
       socialLinks: siteMeta.socialLinks.map(normalizeSocialLink),
       customCards: Array.isArray(siteMeta.customCards) ? siteMeta.customCards.map(normalizeCustomCard) : [],
+      pinnedSpaces: [],
     },
     text: textContent,
   };
@@ -1330,6 +1503,7 @@ function normalizeSiteContent(content) {
         typeof content?.meta?.backgroundImage === "string" ? content.meta.backgroundImage : defaults.meta.backgroundImage,
       role: ensureLocalizedMap(content?.meta?.role ?? defaults.meta.role, ""),
       intro: ensureLocalizedMap(content?.meta?.intro ?? defaults.meta.intro, ""),
+      homeLayout: ["magazine", "archive", "cards"].includes(content?.meta?.homeLayout) ? content.meta.homeLayout : defaults.meta.homeLayout,
       stats: {
         ...defaults.meta.stats,
         ...(content?.meta?.stats ?? {}),
@@ -1340,6 +1514,9 @@ function normalizeSiteContent(content) {
       customCards: Array.isArray(content?.meta?.customCards)
         ? content.meta.customCards.map(normalizeCustomCard)
         : defaults.meta.customCards.map(normalizeCustomCard),
+      pinnedSpaces: Array.isArray(content?.meta?.pinnedSpaces)
+        ? content.meta.pinnedSpaces.map(normalizePinnedSpace)
+        : defaults.meta.pinnedSpaces.map(normalizePinnedSpace),
     },
     text: Object.fromEntries(
       Object.keys(defaults.text).map((lang) => [
@@ -1973,7 +2150,9 @@ function Header({
   copy,
   meta,
   projects,
+  onOpenCommandPalette,
 }) {
+  const experience = getExperienceCopy(language);
   return (
     <header className="site-header">
       <div className="header-panel palette-panel">
@@ -1998,6 +2177,10 @@ function Header({
 
       <div className="header-panel tool-panel">
         <div className="tool-stack">
+          <button type="button" className="selector-trigger selector-trigger--command" onClick={onOpenCommandPalette}>
+            <span className="micro-label">⌘K</span>
+            <strong>{experience.commandOpen}</strong>
+          </button>
           <ExpandableSelector label={text.backgroundPreset} value={backgroundPreset} onChange={setBackgroundPreset} options={THEME_PRESET_OPTIONS} />
           <ExpandableSelector label={text.languageLabel} value={language} onChange={setLanguage} options={languages} />
           <FontSlider label={text.fontLabel} value={font} onChange={setFont} options={fonts} />
@@ -2048,17 +2231,65 @@ function Shell({
   text,
   copy,
   meta,
+  articles,
   projects,
   children,
 }) {
   const location = useLocation();
+  const navigate = useNavigate();
+  const [paletteOpen, setPaletteOpen] = useState(false);
   useGlassTracking(location.pathname);
   const blockedMessage = useInteractionGuard();
   const transitionKey = `${location.pathname}|${backgroundPreset}`;
+  const commandActions = useMemo(() => {
+    const themeActions = THEME_PRESET_OPTIONS.map((item) => ({
+      id: `theme-${item.code}`,
+      group: "Theme",
+      label: item.label,
+      keywords: `theme ${item.label}`,
+      run: () => setBackgroundPreset(item.code),
+    }));
+
+    const routeActions = [
+      { id: "route-home", group: "Route", label: text.navHome, keywords: "home", run: () => navigate("/") },
+      { id: "route-articles", group: "Route", label: text.navArticles, keywords: "articles writing", run: () => navigate("/articles") },
+      { id: "route-archive", group: "Route", label: getExperienceCopy(language).archiveTitle, keywords: "archive timeline", run: () => navigate("/archive") },
+      { id: "route-studio", group: "Route", label: copy.navStudio, keywords: "studio editor", run: () => navigate("/studio") },
+    ];
+
+    const articleActions = articles.slice(0, 12).map((article) => ({
+      id: `article-${article.slug}`,
+      group: "Article",
+      label: article.title[language] || article.title.en,
+      keywords: `${article.tag} ${article.excerpt[language] || article.excerpt.en || ""}`,
+      run: () => navigate(`/articles/${article.slug}`),
+    }));
+
+    const projectActions = projects.slice(0, 12).map((project) => ({
+      id: `project-${project.slug}`,
+      group: "Project",
+      label: project.title,
+      keywords: `${project.category[language] || project.category.en} ${project.summary[language] || project.summary.en || ""}`,
+      run: () => navigate(`/projects/${project.slug}`),
+    }));
+
+    return [...routeActions, ...themeActions, ...articleActions, ...projectActions];
+  }, [articles, copy.navStudio, language, navigate, projects, setBackgroundPreset, text.navArticles, text.navHome]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });
   }, [location.pathname]);
+
+  useEffect(() => {
+    const handleShortcut = (event) => {
+      if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+        event.preventDefault();
+        setPaletteOpen(true);
+      }
+    };
+    window.addEventListener("keydown", handleShortcut);
+    return () => window.removeEventListener("keydown", handleShortcut);
+  }, []);
 
   return (
     <div className="site-shell">
@@ -2081,9 +2312,11 @@ function Shell({
         copy={copy}
         meta={meta}
         projects={projects}
+        onOpenCommandPalette={() => setPaletteOpen(true)}
       />
       <div className="cursor-dot" aria-hidden="true" />
       {children}
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} actions={commandActions} language={language} />
       <MusicDock text={text} />
       {blockedMessage ? <div className="blocked-toast">{blockedMessage}</div> : null}
       <footer className="site-footer">
@@ -2179,9 +2412,353 @@ function useSeo({ title, description, image }) {
   }, [description, image, title]);
 }
 
+function normalizeHomeLayout(value) {
+  return HOME_LAYOUT_OPTIONS.some((item) => item.code === value) ? value : "magazine";
+}
+
+function getTimelineDate(item) {
+  return parseArticleDate(item.updatedAt || item.date || new Date().toISOString());
+}
+
+function buildArchiveGroups(articles, projects) {
+  const entries = [
+    ...articles.map((article) => ({
+      id: `article-${article.slug}`,
+      type: "article",
+      slug: article.slug,
+      title: article.title,
+      summary: article.excerpt,
+      tag: article.tag,
+      date: getTimelineDate(article),
+    })),
+    ...projects.map((project) => ({
+      id: `project-${project.slug}`,
+      type: "project",
+      slug: project.slug,
+      title: ensureLocalizedMap(project.title, project.title),
+      summary: project.summary,
+      tag: project.category,
+      date: getTimelineDate(project),
+    })),
+  ].sort((left, right) => right.date.getTime() - left.date.getTime());
+
+  return entries.reduce((groups, entry) => {
+    const year = String(entry.date.getFullYear());
+    if (!groups[year]) {
+      groups[year] = [];
+    }
+    groups[year].push(entry);
+    return groups;
+  }, {});
+}
+
+function resolvePinnedSpaces(spaces, articles, projects, language) {
+  return spaces
+    .map((space) => {
+      if (space.kind === "article") {
+        const article = articles.find((item) => item.slug === space.articleSlug);
+        if (!article) {
+          return null;
+        }
+        return {
+          id: space.id,
+          kind: space.kind,
+          title: space.title[language] || space.title.en || article.title[language] || article.title.en,
+          body: space.body[language] || space.body.en || article.excerpt[language] || article.excerpt.en,
+          meta: article.tag,
+          href: `/articles/${article.slug}`,
+        };
+      }
+
+      if (space.kind === "project") {
+        const project = projects.find((item) => item.slug === space.projectSlug);
+        if (!project) {
+          return null;
+        }
+        return {
+          id: space.id,
+          kind: space.kind,
+          title: space.title[language] || space.title.en || project.title,
+          body: space.body[language] || space.body.en || project.summary[language] || project.summary.en,
+          meta: project.category[language] || project.category.en,
+          href: `/projects/${project.slug}`,
+        };
+      }
+
+      if (space.kind === "audio") {
+        return {
+          id: space.id,
+          kind: space.kind,
+          title: space.audioTitle[language] || space.audioTitle.en || "Audio Space",
+          body: space.audioArtist[language] || space.audioArtist.en || space.audioSrc,
+          meta: "Audio",
+          href: space.audioSrc,
+          external: true,
+        };
+      }
+
+      return {
+        id: space.id,
+        kind: "link",
+        title: space.title[language] || space.title.en || "Link Space",
+        body: space.body[language] || space.body.en || space.url,
+        meta: "Link",
+        href: space.url,
+        external: true,
+      };
+    })
+    .filter(Boolean);
+}
+
+function HomeLayoutSwitcher({ language, layout, setLayout }) {
+  const experience = getExperienceCopy(language);
+  return (
+    <div className="layout-switcher glass-card">
+      <span className="micro-label">{experience.layoutTitle}</span>
+      <div className="layout-switcher__row">
+        {HOME_LAYOUT_OPTIONS.map((option) => {
+          const labelKey =
+            option.code === "archive" ? "layoutArchive" : option.code === "cards" ? "layoutCards" : "layoutMagazine";
+          return (
+            <button
+              key={option.code}
+              type="button"
+              className={`layout-switcher__button ${layout === option.code ? "active" : ""}`}
+              onClick={() => setLayout(option.code)}
+            >
+              <span>{option.icon}</span>
+              <strong>{experience[labelKey]}</strong>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
+function PinnedSpacesSection({ language, spaces, articles, projects, isXFlow }) {
+  const experience = getExperienceCopy(language);
+  const resolved = useMemo(() => resolvePinnedSpaces(spaces, articles, projects, language), [spaces, articles, projects, language]);
+
+  if (!resolved.length) {
+    return null;
+  }
+
+  return (
+    <section className={`section pinned-spaces-section ${isXFlow ? "pinned-spaces-section--xflow" : ""}`}>
+      <div className="section-head">
+        <div>
+          <p className="micro-label">{experience.pinnedTitle}</p>
+          <h2>{experience.pinnedTitle}</h2>
+        </div>
+        <p className="body-copy">{experience.pinnedBody}</p>
+      </div>
+      <div className="pinned-spaces-grid">
+        {resolved.map((space, index) => (
+          <Reveal key={space.id} delay={index * 80}>
+            <article className="pinned-space-card glass-card">
+              <span className="micro-label">{space.meta}</span>
+              <h3>{space.title}</h3>
+              <p className="body-copy">{space.body}</p>
+              {space.external ? (
+                <a className="inline-link" href={space.href} target="_blank" rel="noreferrer">
+                  Open
+                </a>
+              ) : (
+                <Link className="inline-link" to={space.href}>
+                  Open
+                </Link>
+              )}
+            </article>
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function ArchivePreview({ language, articles, projects }) {
+  const experience = getExperienceCopy(language);
+  const groups = useMemo(() => buildArchiveGroups(articles, projects), [articles, projects]);
+  const previewYears = Object.entries(groups).slice(0, 2);
+
+  return (
+    <section className="section archive-preview-section">
+      <div className="section-head">
+        <div>
+          <p className="micro-label">{experience.archiveTitle}</p>
+          <h2>{experience.archiveTitle}</h2>
+        </div>
+        <Link className="action-button action-button--secondary" to="/archive">
+          {experience.archiveOpen}
+        </Link>
+      </div>
+      <div className="archive-preview-grid">
+        {previewYears.map(([year, items], index) => (
+          <Reveal key={year} delay={index * 90}>
+            <article className="archive-year-card glass-card">
+              <strong>{year}</strong>
+              <div className="archive-year-card__list">
+                {items.slice(0, 3).map((item) =>
+                  item.type === "article" ? (
+                    <Link key={item.id} to={`/articles/${item.slug}`} className="archive-link">
+                      <span>{item.title[language] || item.title.en}</span>
+                      <em>{experience.timelineArticles}</em>
+                    </Link>
+                  ) : (
+                    <Link key={item.id} to={`/projects/${item.slug}`} className="archive-link">
+                      <span>{item.title[language] || item.title.en}</span>
+                      <em>{experience.timelineProjects}</em>
+                    </Link>
+                  )
+                )}
+              </div>
+            </article>
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function CommandPalette({ open, onClose, actions, language }) {
+  const experience = getExperienceCopy(language);
+  const [query, setQuery] = useState("");
+  const inputRef = useRef(null);
+  const filtered = useMemo(() => {
+    const lowered = query.trim().toLowerCase();
+    return actions.filter((item) => {
+      if (!lowered) {
+        return true;
+      }
+      return [item.label, item.group, item.keywords].filter(Boolean).join(" ").toLowerCase().includes(lowered);
+    });
+  }, [actions, query]);
+
+  useEffect(() => {
+    if (!open) {
+      setQuery("");
+      return;
+    }
+    const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 20);
+    return () => window.clearTimeout(focusTimer);
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) {
+      return undefined;
+    }
+    const handleKey = (event) => {
+      if (event.key === "Escape") {
+        onClose();
+      }
+    };
+    window.addEventListener("keydown", handleKey);
+    return () => window.removeEventListener("keydown", handleKey);
+  }, [onClose, open]);
+
+  if (!open) {
+    return null;
+  }
+
+  return (
+    <div className="command-palette" role="dialog" aria-modal="true">
+      <button type="button" className="command-palette__backdrop" onClick={onClose} aria-label="Close command palette" />
+      <div className="command-palette__panel glass-card">
+        <input
+          ref={inputRef}
+          className="command-palette__input"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={experience.commandPlaceholder}
+        />
+        <div className="command-palette__list">
+          {filtered.length ? (
+            filtered.map((item) => (
+              <button
+                key={item.id}
+                type="button"
+                className="command-palette__item"
+                onClick={() => {
+                  item.run();
+                  onClose();
+                }}
+              >
+                <span className="micro-label">{item.group}</span>
+                <strong>{item.label}</strong>
+              </button>
+            ))
+          ) : (
+            <p className="body-copy command-palette__empty">{experience.commandEmpty}</p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ArchivePage({ language, articles, projects, meta }) {
+  const experience = getExperienceCopy(language);
+  const siteAvatar = getSiteAvatar(meta, templateAvatar);
+  const groups = useMemo(() => buildArchiveGroups(articles, projects), [articles, projects]);
+
+  useSeo({
+    title: `${experience.archiveTitle} / ${getBrowserTitle(meta, language)}`,
+    description: experience.archiveBody,
+    image: siteAvatar,
+  });
+
+  return (
+    <main className="page archive-page">
+      <section className="page-banner glass-card">
+        <p className="micro-label">{experience.archiveTitle}</p>
+        <h1>{experience.archiveTitle}</h1>
+        <p className="body-copy">{experience.archiveBody}</p>
+      </section>
+      <section className="archive-page__timeline">
+        {Object.entries(groups).map(([year, items], yearIndex) => (
+          <Reveal key={year} delay={yearIndex * 60}>
+            <article className="archive-timeline-year glass-card">
+              <div className="archive-timeline-year__head">
+                <strong>{year}</strong>
+                <span>{items.length} entries</span>
+              </div>
+              <div className="archive-timeline-year__list">
+                {items.map((item) => (
+                  <div key={item.id} className="archive-timeline-item">
+                    <span className="micro-label">
+                      {item.type === "article" ? experience.timelineArticles : experience.timelineProjects}
+                    </span>
+                    <div>
+                      {item.type === "article" ? (
+                        <Link to={`/articles/${item.slug}`}>{item.title[language] || item.title.en}</Link>
+                      ) : (
+                        <Link to={`/projects/${item.slug}`}>{item.title[language] || item.title.en}</Link>
+                      )}
+                      <p className="body-copy">{item.summary[language] || item.summary.en}</p>
+                    </div>
+                    <time>{formatArticleDate(item.date)}</time>
+                  </div>
+                ))}
+              </div>
+            </article>
+          </Reveal>
+        ))}
+      </section>
+    </main>
+  );
+}
+
 function HomePage({ language, text, copy, articles, meta, projects, guestbookEntries, addGuestbookEntry, isXFlow }) {
   const [guestbookForm, setGuestbookForm] = useState({ name: "", message: "" });
+  const [homeLayout, setHomeLayout] = useState(() => {
+    if (typeof window === "undefined") {
+      return normalizeHomeLayout(meta.homeLayout || "magazine");
+    }
+    return normalizeHomeLayout(window.localStorage.getItem(HOME_LAYOUT_STORAGE_KEY) || meta.homeLayout || "magazine");
+  });
   const siteAvatar = getSiteAvatar(meta, templateAvatar);
+  const pinnedSpaces = meta.pinnedSpaces || [];
   useSeo({
     title: getBrowserTitle(meta, language),
     description: text.heroBody,
@@ -2206,6 +2783,14 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
     setGuestbookForm({ name: "", message: "" });
   };
 
+  useEffect(() => {
+    setHomeLayout((current) => normalizeHomeLayout(current || meta.homeLayout || "magazine"));
+  }, [meta.homeLayout]);
+
+  useEffect(() => {
+    window.localStorage.setItem(HOME_LAYOUT_STORAGE_KEY, homeLayout);
+  }, [homeLayout]);
+
   if (isXFlow) {
     const leadProject = projects[0];
     const sideProjects = projects.slice(1, 3);
@@ -2213,7 +2798,8 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
     const sideArticles = topArticles.slice(1);
 
     return (
-      <main className="page home-page xflow-home">
+      <main className={`page home-page xflow-home home-layout--${homeLayout}`}>
+        <HomeLayoutSwitcher language={language} layout={homeLayout} setLayout={setHomeLayout} />
         <section className="xflow-hero glass-card">
           <div className="xflow-hero__copy">
             <p className="micro-label">{text.heroEyebrow}</p>
@@ -2259,6 +2845,8 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
             </div>
           </div>
         </section>
+
+        <PinnedSpacesSection language={language} spaces={pinnedSpaces} articles={articles} projects={projects} isXFlow />
 
         <section className="xflow-shelf">
           <Reveal className="xflow-lead-card glass-card">
@@ -2338,12 +2926,15 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
             )) : <p className="body-copy">{copy.guestbookEmpty}</p>}
           </Reveal>
         </section>
+
+        <ArchivePreview language={language} articles={articles} projects={projects} />
       </main>
     );
   }
 
   return (
-    <main className="page home-page">
+    <main className={`page home-page home-layout--${homeLayout}`}>
+      <HomeLayoutSwitcher language={language} layout={homeLayout} setLayout={setHomeLayout} />
       <section className="hero-grid">
         <Reveal className="intro-panel glass-card" delay={40}>
           <div className="intro-avatar">
@@ -2387,6 +2978,8 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
           </a>
         ))}
       </section>
+
+      <PinnedSpacesSection language={language} spaces={pinnedSpaces} articles={articles} projects={projects} isXFlow={false} />
 
       {meta.customCards?.length ? (
         <section className="section">
@@ -2506,6 +3099,8 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
           </Link>
         </Reveal>
       </section>
+
+      <ArchivePreview language={language} articles={articles} projects={projects} />
 
       <section className="section split-layout">
         <Reveal className="about-panel glass-card">
@@ -2730,6 +3325,14 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
   );
   const progress = useReadingProgress();
   const [copied, setCopied] = useState(false);
+  const [readingRoom, setReadingRoom] = useState(false);
+  const [focusMode, setFocusMode] = useState(false);
+  const [nightMode, setNightMode] = useState(false);
+  const [ambientOn, setAmbientOn] = useState(false);
+  const [ambientTrack, setAmbientTrack] = useState(AMBIENT_TRACKS[0].code);
+  const [speaking, setSpeaking] = useState(false);
+  const ambientRef = useRef(null);
+  const experience = getExperienceCopy(language);
   const siteAvatar = getSiteAvatar(meta, templateAvatar);
   const browserTitle = getBrowserTitle(meta, language);
   const seoTitle = article ? `${article.title[language]} / ${browserTitle}` : browserTitle;
@@ -2748,6 +3351,7 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
   const localizedContent = article.content[language] || "";
   const { rendered, remainingAttachments } = renderArticleContent(localizedContent, article.attachments, copy);
   const sections = extractArticleSections(localizedContent);
+  const footnotes = article.footnotes?.[language]?.length ? article.footnotes[language] : article.footnotes?.en || [];
 
   const handleCopyLink = async () => {
     await navigator.clipboard.writeText(window.location.href);
@@ -2755,9 +3359,58 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
     window.setTimeout(() => setCopied(false), 1200);
   };
 
+  useEffect(() => {
+    const selectedTrack = AMBIENT_TRACKS.find((item) => item.code === ambientTrack) || AMBIENT_TRACKS[0];
+    if (!ambientRef.current) {
+      ambientRef.current = new Audio(selectedTrack.src);
+      ambientRef.current.loop = true;
+      ambientRef.current.volume = 0.18;
+    }
+
+    const audio = ambientRef.current;
+    audio.src = selectedTrack.src;
+
+    if (ambientOn) {
+      audio.play().catch(() => {});
+    } else {
+      audio.pause();
+      audio.currentTime = 0;
+    }
+
+    return () => {
+      audio.pause();
+    };
+  }, [ambientOn, ambientTrack]);
+
+  useEffect(() => {
+    return () => {
+      window.speechSynthesis?.cancel();
+    };
+  }, []);
+
+  const toggleReadAloud = () => {
+    if (!window.speechSynthesis) {
+      return;
+    }
+    if (speaking) {
+      window.speechSynthesis.cancel();
+      setSpeaking(false);
+      return;
+    }
+    const utterance = new SpeechSynthesisUtterance(
+      [article.title[language] || article.title.en, localizedContent, ...footnotes].filter(Boolean).join(". ")
+    );
+    utterance.lang = language === "zh" ? "zh-CN" : language === "ja" ? "ja-JP" : language === "ko" ? "ko-KR" : "en-US";
+    utterance.onend = () => setSpeaking(false);
+    utterance.onerror = () => setSpeaking(false);
+    window.speechSynthesis.cancel();
+    window.speechSynthesis.speak(utterance);
+    setSpeaking(true);
+  };
+
   if (isXFlow) {
     return (
-      <main className="page xflow-article-detail-page">
+      <main className={`page xflow-article-detail-page ${readingRoom ? "reading-room reading-room--on" : ""} ${focusMode ? "reading-room--focus" : ""} ${nightMode ? "reading-room--night" : ""}`}>
         <section className="xflow-article-hero glass-card">
           <div className="xflow-article-hero__meta">
             <p className="micro-label">{article.tag}</p>
@@ -2768,12 +3421,39 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
               <button type="button" className="dock-button" onClick={handleCopyLink}>
                 {copied ? copy.linkCopied : copy.copyLink}
               </button>
+              <button type="button" className="dock-button" onClick={() => setReadingRoom((current) => !current)}>
+                {experience.readingRoom}
+              </button>
+              <button type="button" className="dock-button" onClick={() => setFocusMode((current) => !current)}>
+                {experience.focusMode}
+              </button>
+              <button type="button" className="dock-button" onClick={() => setNightMode((current) => !current)}>
+                {experience.nightMode}
+              </button>
+              <button type="button" className="dock-button" onClick={() => setAmbientOn((current) => !current)}>
+                {experience.ambientMode}
+              </button>
+              <button type="button" className="dock-button" onClick={toggleReadAloud}>
+                {speaking ? experience.stopReading : experience.readAloud}
+              </button>
               <div className="reading-progress xflow-reading-progress">
                 <span>{copy.readingProgress}</span>
                 <div className="reading-progress__bar">
                   <div className="reading-progress__fill" style={{ width: `${progress * 100}%` }} />
                 </div>
               </div>
+            </div>
+            <div className="reading-room__ambient-row">
+              {AMBIENT_TRACKS.map((item) => (
+                <button
+                  key={item.code}
+                  type="button"
+                  className={`tag-chip tag-chip--button ${ambientTrack === item.code ? "active" : ""}`}
+                  onClick={() => setAmbientTrack(item.code)}
+                >
+                  {item.title[language] || item.title.en}
+                </button>
+              ))}
             </div>
           </div>
           <div className="xflow-article-hero__lead">
@@ -2837,6 +3517,16 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
               ) : (
                 <p className="body-copy">{copy.articleEmpty}</p>
               )}
+              {footnotes.length ? (
+                <div className="article-footnotes">
+                  <p className="micro-label">{experience.footnotes}</p>
+                  <ol>
+                    {footnotes.map((note, index) => (
+                      <li key={`${index}-${note}`}>{note}</li>
+                    ))}
+                  </ol>
+                </div>
+              ) : null}
             </div>
           </article>
         </section>
@@ -2845,7 +3535,7 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
   }
 
   return (
-    <main className="page">
+    <main className={`page ${readingRoom ? "reading-room reading-room--on" : ""} ${focusMode ? "reading-room--focus" : ""} ${nightMode ? "reading-room--night" : ""}`}>
       <div className="reading-progress glass-card">
         <span>{copy.readingProgress}</span>
         <div className="reading-progress__bar">
@@ -2855,6 +3545,25 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
           {copied ? copy.linkCopied : copy.copyLink}
         </button>
       </div>
+      <section className="article-experience-bar glass-card">
+        <button type="button" className="dock-button" onClick={() => setReadingRoom((current) => !current)}>{experience.readingRoom}</button>
+        <button type="button" className="dock-button" onClick={() => setFocusMode((current) => !current)}>{experience.focusMode}</button>
+        <button type="button" className="dock-button" onClick={() => setNightMode((current) => !current)}>{experience.nightMode}</button>
+        <button type="button" className="dock-button" onClick={() => setAmbientOn((current) => !current)}>{experience.ambientMode}</button>
+        <button type="button" className="dock-button" onClick={toggleReadAloud}>{speaking ? experience.stopReading : experience.readAloud}</button>
+        <div className="reading-room__ambient-row">
+          {AMBIENT_TRACKS.map((item) => (
+            <button
+              key={item.code}
+              type="button"
+              className={`tag-chip tag-chip--button ${ambientTrack === item.code ? "active" : ""}`}
+              onClick={() => setAmbientTrack(item.code)}
+            >
+              {item.title[language] || item.title.en}
+            </button>
+          ))}
+        </div>
+      </section>
       <section className="page-banner glass-card">
         <p className="micro-label">{article.tag}</p>
         {article.coverImage ? <img className="page-banner__cover" src={article.coverImage} alt={article.title[language]} /> : null}
@@ -2905,6 +3614,16 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
               ) : (
                 <p className="body-copy">{copy.articleEmpty}</p>
               )}
+              {footnotes.length ? (
+                <div className="article-footnotes">
+                  <p className="micro-label">{experience.footnotes}</p>
+                  <ol>
+                    {footnotes.map((note, index) => (
+                      <li key={`${index}-${note}`}>{note}</li>
+                    ))}
+                  </ol>
+                </div>
+              ) : null}
             </div>
           </article>
         </Reveal>
@@ -3383,6 +4102,58 @@ function StudioPage({
     }));
   };
 
+  const handlePinnedSpaceField = (index, key, value) => {
+    setSiteDraft((current) => ({
+      ...current,
+      meta: {
+        ...current.meta,
+        pinnedSpaces: current.meta.pinnedSpaces.map((item, itemIndex) =>
+          itemIndex === index ? { ...item, [key]: value } : item
+        ),
+      },
+    }));
+  };
+
+  const handlePinnedSpaceLocalizedField = (index, key, value) => {
+    setSiteDraft((current) => ({
+      ...current,
+      meta: {
+        ...current.meta,
+        pinnedSpaces: current.meta.pinnedSpaces.map((item, itemIndex) =>
+          itemIndex === index
+            ? {
+                ...item,
+                [key]: {
+                  ...item[key],
+                  [editorLanguage]: value,
+                },
+              }
+            : item
+        ),
+      },
+    }));
+  };
+
+  const handleAddPinnedSpace = () => {
+    setSiteDraft((current) => ({
+      ...current,
+      meta: {
+        ...current.meta,
+        pinnedSpaces: [...current.meta.pinnedSpaces, createBlankPinnedSpace()],
+      },
+    }));
+  };
+
+  const handleRemovePinnedSpace = (index) => {
+    setSiteDraft((current) => ({
+      ...current,
+      meta: {
+        ...current.meta,
+        pinnedSpaces: current.meta.pinnedSpaces.filter((_, itemIndex) => itemIndex !== index),
+      },
+    }));
+  };
+
   const handleSaveSiteContent = async () => {
     const result = await saveSiteContent(siteDraft);
     if (!result.ok) {
@@ -3430,6 +4201,7 @@ function StudioPage({
       solution: ensureLocalizedMap(projectDraft.solution, ""),
       outcome: ensureLocalizedMap(projectDraft.outcome, ""),
       metrics: projectDraft.metrics.filter(Boolean),
+      updatedAt: new Date().toISOString(),
     };
 
     const result = await saveProject(nextProject, selectedProjectSlug === "__new_project__" ? null : selectedProjectSlug);
@@ -3475,10 +4247,11 @@ function StudioPage({
       { id: "studio-site-meta", label: copy.contentEditorTitle },
       { id: "studio-site-copy", label: "Site Copy" },
       { id: "studio-social", label: copy.socialEditorTitle },
+      { id: "studio-pinned", label: getExperienceCopy(language).pinnedEditorTitle },
       { id: "studio-custom-cards", label: copy.customCardsTitle },
       { id: "studio-projects", label: copy.projectsEditorTitle },
     ],
-    [copy]
+    [copy, language]
   );
   const scrollToStudioSection = (sectionId) => {
     const node = document.getElementById(sectionId);
@@ -3777,6 +4550,23 @@ function StudioPage({
                 rows="10"
                 value={draft.content[editorLanguage] || ""}
                 onChange={(event) => handleLocalizedField("content", event.target.value)}
+              />
+            </label>
+
+            <label className="studio-field">
+              <span>{getExperienceCopy(language).footnotesEditor}</span>
+              <textarea
+                rows="4"
+                value={(draft.footnotes?.[editorLanguage] || []).join("\n")}
+                onChange={(event) =>
+                  setDraft((current) => ({
+                    ...current,
+                    footnotes: {
+                      ...current.footnotes,
+                      [editorLanguage]: event.target.value.split("\n").map((item) => item.trim()).filter(Boolean),
+                    },
+                  }))
+                }
               />
             </label>
 
@@ -4080,6 +4870,119 @@ function StudioPage({
           </div>
         </section>
 
+        <section id="studio-pinned" className="studio-editor glass-card glass-card--static studio-section-card">
+          <div className="studio-editor__head">
+            <div>
+              <p className="micro-label">PINNED</p>
+              <h2>{getExperienceCopy(language).pinnedEditorTitle}</h2>
+              <p className="body-copy">{getExperienceCopy(language).pinnedEditorBody}</p>
+            </div>
+            <button type="button" className="action-button action-button--secondary" onClick={handleAddPinnedSpace}>
+              {getExperienceCopy(language).addPinnedSpace}
+            </button>
+          </div>
+
+          <div className="studio-list">
+            {siteDraft.meta.pinnedSpaces.map((item, index) => (
+              <div key={item.id} className="studio-block">
+                <div className="studio-form__row">
+                  <label className="studio-field">
+                    <span>{getExperienceCopy(language).pinnedKind}</span>
+                    <select value={item.kind} onChange={(event) => handlePinnedSpaceField(index, "kind", event.target.value)}>
+                      <option value="article">{getExperienceCopy(language).pinnedArticle}</option>
+                      <option value="project">{getExperienceCopy(language).pinnedProject}</option>
+                      <option value="link">{getExperienceCopy(language).pinnedLink}</option>
+                      <option value="audio">{getExperienceCopy(language).pinnedAudio}</option>
+                    </select>
+                  </label>
+                  {item.kind === "article" ? (
+                    <label className="studio-field">
+                      <span>{getExperienceCopy(language).pinnedTarget}</span>
+                      <select value={item.articleSlug} onChange={(event) => handlePinnedSpaceField(index, "articleSlug", event.target.value)}>
+                        <option value="">-</option>
+                        {articles.map((article) => (
+                          <option key={article.slug} value={article.slug}>
+                            {article.title[language] || article.title.en}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
+                  {item.kind === "project" ? (
+                    <label className="studio-field">
+                      <span>{getExperienceCopy(language).pinnedTarget}</span>
+                      <select value={item.projectSlug} onChange={(event) => handlePinnedSpaceField(index, "projectSlug", event.target.value)}>
+                        <option value="">-</option>
+                        {projects.map((project) => (
+                          <option key={project.slug} value={project.slug}>
+                            {project.title}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                  ) : null}
+                  {(item.kind === "link" || item.kind === "audio") ? (
+                    <label className="studio-field">
+                      <span>{getExperienceCopy(language).pinnedUrl}</span>
+                      <input
+                        type="text"
+                        value={item.kind === "audio" ? item.audioSrc : item.url}
+                        onChange={(event) =>
+                          handlePinnedSpaceField(index, item.kind === "audio" ? "audioSrc" : "url", event.target.value)
+                        }
+                      />
+                    </label>
+                  ) : null}
+                </div>
+
+                <div className="studio-form__row">
+                  <label className="studio-field">
+                    <span>{getExperienceCopy(language).pinnedLabel}</span>
+                    <input
+                      type="text"
+                      value={item.title[editorLanguage] || ""}
+                      onChange={(event) => handlePinnedSpaceLocalizedField(index, "title", event.target.value)}
+                    />
+                  </label>
+                  <label className="studio-field">
+                    <span>{getExperienceCopy(language).pinnedBodyLabel}</span>
+                    <textarea
+                      rows="3"
+                      value={item.body[editorLanguage] || ""}
+                      onChange={(event) => handlePinnedSpaceLocalizedField(index, "body", event.target.value)}
+                    />
+                  </label>
+                </div>
+
+                {item.kind === "audio" ? (
+                  <div className="studio-form__row">
+                    <label className="studio-field">
+                      <span>{getExperienceCopy(language).pinnedAudioTitle}</span>
+                      <input
+                        type="text"
+                        value={item.audioTitle[editorLanguage] || ""}
+                        onChange={(event) => handlePinnedSpaceLocalizedField(index, "audioTitle", event.target.value)}
+                      />
+                    </label>
+                    <label className="studio-field">
+                      <span>{getExperienceCopy(language).pinnedAudioArtist}</span>
+                      <input
+                        type="text"
+                        value={item.audioArtist[editorLanguage] || ""}
+                        onChange={(event) => handlePinnedSpaceLocalizedField(index, "audioArtist", event.target.value)}
+                      />
+                    </label>
+                  </div>
+                ) : null}
+
+                <button type="button" className="action-button action-button--secondary" onClick={() => handleRemovePinnedSpace(index)}>
+                  {getExperienceCopy(language).removePinnedSpace}
+                </button>
+              </div>
+            ))}
+          </div>
+        </section>
+
         <section id="studio-custom-cards" className="studio-editor glass-card glass-card--static studio-section-card">
           <div className="studio-editor__head">
             <div>
@@ -4320,8 +5223,10 @@ export default function App() {
       ...siteMeta.stats,
       ...(siteContent.meta?.stats ?? {}),
     },
+    homeLayout: siteContent.meta?.homeLayout || "magazine",
     socialLinks: Array.isArray(siteContent.meta?.socialLinks) ? siteContent.meta.socialLinks.map(normalizeSocialLink) : siteMeta.socialLinks.map(normalizeSocialLink),
     customCards: Array.isArray(siteContent.meta?.customCards) ? siteContent.meta.customCards.map(normalizeCustomCard) : [],
+    pinnedSpaces: Array.isArray(siteContent.meta?.pinnedSpaces) ? siteContent.meta.pinnedSpaces.map(normalizePinnedSpace) : [],
   };
   const activeBackground = previewBackground ?? {
     backgroundPreset: normalizeBackgroundPreset(backgroundPresetOverride || meta.backgroundPreset || "none"),
@@ -4359,6 +5264,7 @@ export default function App() {
       text={text}
       copy={copy}
       meta={meta}
+      articles={articles}
       projects={projects}
     >
       <Routes>
@@ -4381,6 +5287,7 @@ export default function App() {
         <Route path="/articles" element={<ArticlesPage language={language} text={text} copy={copy} articles={articles} meta={meta} isXFlow={isXFlow} />} />
         <Route path="/articles/:slug" element={<ArticleDetailPage language={language} copy={copy} articles={articles} meta={meta} isXFlow={isXFlow} />} />
         <Route path="/projects/:slug" element={<ProjectDetailPage language={language} text={text} projects={projects} meta={meta} isXFlow={isXFlow} />} />
+        <Route path="/archive" element={<ArchivePage language={language} articles={articles} projects={projects} meta={meta} />} />
         <Route
           path="/studio"
           element={
