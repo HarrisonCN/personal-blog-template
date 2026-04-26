@@ -1605,3 +1605,31 @@ body[data-theme="light"] .about-panel h2,
 body[data-theme="light"] .section-head h2 {
   color: var(--text);
 }
+/* 首页布局切换优先级修正：
+   主题样式会覆盖基础网格，这里把首页布局规则提权，确保 M / A / C 在所有主题下都真实生效。 */
+
+body[data-background-preset="xflow"] .home-page.home-layout--archive .card-grid,
+body[data-background-preset="xflow"] .home-page.home-layout--archive .article-grid,
+body[data-background-preset="xflow"] .home-page.home-layout--archive .xflow-shelf,
+body[data-background-preset="xflow"] .home-page.home-layout--archive .xflow-story-grid,
+body[data-background-preset="xflow"] .home-page.home-layout--archive .xflow-bottom-grid {
+  grid-template-columns: 1fr;
+}
+
+body[data-background-preset="xflow"] .home-page.home-layout--cards .card-grid,
+body[data-background-preset="xflow"] .home-page.home-layout--cards .article-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+body[data-background-preset="xflow"] .home-page.home-layout--cards .xflow-story-grid,
+body[data-background-preset="xflow"] .home-page.home-layout--cards .xflow-shelf,
+body[data-background-preset="xflow"] .home-page.home-layout--cards .xflow-bottom-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body[data-background-preset="xflow"] .home-page.home-layout--archive .card-grid > *,
+body[data-background-preset="xflow"] .home-page.home-layout--archive .article-grid > *,
+body[data-background-preset="xflow"] .home-page.home-layout--cards .card-grid > *,
+body[data-background-preset="xflow"] .home-page.home-layout--cards .article-grid > * {
+  grid-column: auto;
+}

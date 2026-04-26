@@ -2942,6 +2942,14 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
     setGuestbookForm({ name: "", message: "" });
   };
 
+  // 统一处理首页布局切换，保证点击按钮后本页、命令面板和本地缓存同步。
+  const applyHomeLayout = (nextLayout) => {
+    const normalized = normalizeHomeLayout(nextLayout);
+    setHomeLayout(normalized);
+    window.localStorage.setItem(HOME_LAYOUT_STORAGE_KEY, normalized);
+    window.dispatchEvent(new CustomEvent("template:home-layout", { detail: normalized }));
+  };
+
   useEffect(() => {
     setHomeLayout((current) => normalizeHomeLayout(current || meta.homeLayout || "magazine"));
   }, [meta.homeLayout]);
@@ -2969,7 +2977,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
         <HomeLayoutSwitcher
           experience={getExperienceCopy(language)}
           layout={homeLayout}
-          setLayout={setHomeLayout}
+          setLayout={applyHomeLayout}
           options={HOME_LAYOUT_OPTIONS}
         />
         <section className="xflow-hero glass-card">
@@ -3109,7 +3117,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
       <HomeLayoutSwitcher
         experience={getExperienceCopy(language)}
         layout={homeLayout}
-        setLayout={setHomeLayout}
+        setLayout={applyHomeLayout}
         options={HOME_LAYOUT_OPTIONS}
       />
       <section className="hero-grid">
