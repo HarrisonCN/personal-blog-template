@@ -435,11 +435,69 @@
   grid-template-columns: 1fr;
 }
 
+.home-page .hero-grid,
+.home-page .split-layout,
+.home-page .card-grid,
+.home-page .article-grid,
+.home-page .xflow-shelf,
+.home-page .xflow-story-grid,
+.home-page .xflow-bottom-grid,
+.home-page .project-card,
+.home-page .article-card,
+.home-page .xflow-story-item,
+.home-page .xflow-mini-card,
+.home-page .xflow-lead-card,
+.home-page .about-panel,
+.home-page .stats-panel {
+  transition:
+    grid-template-columns 280ms ease,
+    transform 280ms ease,
+    opacity 220ms ease,
+    padding 280ms ease,
+    gap 280ms ease,
+    min-height 280ms ease;
+}
+
 .home-layout--archive .project-card,
 .home-layout--archive .article-card,
 .home-layout--archive .xflow-story-item,
 .home-layout--archive .xflow-mini-card {
   min-height: auto;
+}
+
+.home-layout--archive .hero-grid,
+.home-layout--archive .split-layout {
+  grid-template-columns: 1fr;
+}
+
+.home-layout--archive .hero-copy,
+.home-layout--archive .intro-panel,
+.home-layout--archive .xflow-hero,
+.home-layout--archive .project-card,
+.home-layout--archive .article-card,
+.home-layout--archive .xflow-story-main,
+.home-layout--archive .xflow-story-item {
+  min-height: auto;
+}
+
+.home-layout--archive .card-grid,
+.home-layout--archive .article-grid {
+  gap: 12px;
+}
+
+.home-layout--archive .project-card,
+.home-layout--archive .article-card {
+  display: grid;
+  grid-template-columns: 180px minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+}
+
+.home-layout--archive .project-card .tag-row,
+.home-layout--archive .project-card .inline-link,
+.home-layout--archive .article-card .card-meta,
+.home-layout--archive .article-card .inline-link {
+  grid-column: 2;
 }
 
 .home-layout--cards .card-grid,
@@ -451,6 +509,26 @@
 .home-layout--cards .xflow-shelf,
 .home-layout--cards .xflow-bottom-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.home-layout--cards .hero-grid {
+  grid-template-columns: 1fr;
+}
+
+.home-layout--cards .split-layout {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.home-layout--cards .about-panel {
+  grid-column: span 2;
+}
+
+.home-layout--cards .card-grid,
+.home-layout--cards .article-grid,
+.home-layout--cards .xflow-shelf,
+.home-layout--cards .xflow-story-grid,
+.home-layout--cards .xflow-bottom-grid {
+  gap: 18px;
 }
 
 @media (max-width: 980px) {
@@ -1366,9 +1444,11 @@ select {
 
 .site-nav {
   display: flex;
+  flex-direction: row;
   justify-content: center;
   gap: 6px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  align-items: center;
 }
 
 .site-nav a,

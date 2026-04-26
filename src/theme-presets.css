@@ -703,11 +703,16 @@ body[data-background-preset="xflow"] .theme-panel {
 }
 
 body[data-background-preset="xflow"] .site-nav {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
   background: transparent;
   border: 0;
   box-shadow: none;
   padding: 0;
   gap: 6px;
+  overflow-x: auto;
 }
 
 body[data-background-preset="xflow"] .site-nav a,

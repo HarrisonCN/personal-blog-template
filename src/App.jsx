@@ -2341,6 +2341,23 @@ function Shell({
         }
       },
     }));
+    const currentLayoutLabel =
+      homeLayout === "archive"
+        ? experience.layoutArchive
+        : homeLayout === "cards"
+          ? experience.layoutCards
+          : experience.layoutMagazine;
+    const currentLayoutAction = {
+      id: "layout-current",
+      group: experience.layoutTitle,
+      label: `${experience.layoutTitle}: ${currentLayoutLabel}`,
+      keywords: `current layout ${currentLayoutLabel}`,
+      run: () => {
+        if (location.pathname !== "/") {
+          navigate("/");
+        }
+      },
+    };
 
     const routeActions = [
       { id: "route-home", group: "Route", label: text.navHome, keywords: "home", run: () => navigate("/") },
@@ -2392,6 +2409,7 @@ function Shell({
       ...recentActions,
       ...recentReadingActions,
       ...recentEditingActions,
+      currentLayoutAction,
       ...routeActions,
       ...layoutActions,
       ...themeActions,
