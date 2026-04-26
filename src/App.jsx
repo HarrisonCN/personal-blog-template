@@ -87,6 +87,7 @@ const HOME_LAYOUT_OPTIONS = [
 const RECENT_ACCESS_STORAGE_KEY = "template-recent-access";
 const RECENT_READING_STORAGE_KEY = "template-recent-reading";
 const RECENT_EDITING_STORAGE_KEY = "template-recent-editing";
+const HOME_CARD_ORDER_STORAGE_KEY = "template-home-card-order";
 const AMBIENT_TRACKS = [
   { code: "rain", title: { zh: "雨幕", en: "Rain Room" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
   { code: "harbor", title: { zh: "港湾", en: "Harbor Hush" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
@@ -2674,6 +2675,180 @@ function buildArchiveEntries(articles, projects) {
   );
 }
 
+function moveArrayItem(list, fromIndex, toIndex) {
+  const next = [...list];
+  const [item] = next.splice(fromIndex, 1);
+  next.splice(toIndex, 0, item);
+  return next;
+}
+
+function buildHomeCardItems({ language, projects, articles, customCards, text, copy }) {
+  const projectItems = projects.slice(0, 4).map((project) => ({
+    id: `project-${project.slug}`,
+    type: "project",
+    eyebrow: project.category[language] || project.category.en,
+    title: project.title,
+    body: project.summary[language] || project.summary.en,
+    href: `/projects/${project.slug}`,
+    action: text.heroSecondary,
+  }));
+
+  const articleItems = articles.slice(0, 4).map((article) => ({
+    id: `article-${article.slug}`,
+    type: "article",
+    eyebrow: article.tag,
+    title: article.title[language] || article.title.en,
+    body: article.excerpt[language] || article.excerpt.en,
+    href: `/articles/${article.slug}`,
+    action: copy.openArticle,
+  }));
+
+  const customItems = (customCards || []).map((card) => ({
+    id: `custom-${card.id}`,
+    type: "custom",
+    eyebrow: card.eyebrow[language] || card.eyebrow.en,
+    title: card.title[language] || card.title.en,
+    body: card.body[language] || card.body.en,
+    href: card.linkUrl,
+    action: card.linkLabel[language] || card.linkLabel.en || "Open",
+    external: Boolean(card.linkUrl),
+  }));
+
+  return [...projectItems, ...articleItems, ...customItems];
+}
+
+function HomeArchiveFlow({ language, entries, experience }) {
+  const groups = entries.reduce((acc, item) => {
+    if (!acc[item.year]) {
+      acc[item.year] = [];
+    }
+    acc[item.year].push(item);
+    return acc;
+  }, {});
+
+  return (
+    <section className="section home-archive-flow">
+      <aside className="home-archive-flow__rail glass-card">
+        <p className="micro-label">{experience.archiveTitle}</p>
+        <div className="home-archive-flow__years">
+          {Object.keys(groups).map((year) => (
+            <a key={year} href={`#home-archive-${year}`} className="home-archive-flow__year">
+              {year}
+            </a>
+          ))}
+        </div>
+      </aside>
+      <div className="home-archive-flow__stream">
+        {Object.entries(groups).map(([year, items], yearIndex) => (
+          <Reveal key={year} delay={yearIndex * 70}>
+            <article id={`home-archive-${year}`} className="home-archive-flow__year-group glass-card">
+              <div className="home-archive-flow__year-head">
+                <strong>{year}</strong>
+                <span>{items.length} entries</span>
+              </div>
+              <div className="home-archive-flow__list">
+                {items.map((item) => (
+                  <div key={item.id} className="home-archive-flow__item">
+                    <span className="micro-label">{item.type === "article" ? experience.timelineArticles : experience.timelineProjects}</span>
+                    <div>
+                      {item.type === "article" ? (
+                        <Link to={`/articles/${item.slug}`}>{item.title[language] || item.title.en}</Link>
+                      ) : (
+                        <Link to={`/projects/${item.slug}`}>{item.title[language] || item.title.en}</Link>
+                      )}
+                      <p className="body-copy">{item.summary[language] || item.summary.en}</p>
+                    </div>
+                    <time>{formatArticleDate(item.date)}</time>
+                  </div>
+                ))}
+              </div>
+            </article>
+          </Reveal>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function HomeCardBoard({ items }) {
+  const [orderedItems, setOrderedItems] = useState(() => {
+    try {
+      const stored = JSON.parse(window.localStorage.getItem(HOME_CARD_ORDER_STORAGE_KEY) || "[]");
+      if (!stored.length) {
+        return items;
+      }
+      const map = new Map(items.map((item) => [item.id, item]));
+      const ordered = stored.map((id) => map.get(id)).filter(Boolean);
+      const missing = items.filter((item) => !stored.includes(item.id));
+      return [...ordered, ...missing];
+    } catch {
+      return items;
+    }
+  });
+  const [draggingId, setDraggingId] = useState(null);
+
+  useEffect(() => {
+    setOrderedItems((current) => {
+      const currentIds = current.map((item) => item.id);
+      const next = items.filter((item) => currentIds.includes(item.id));
+      const missing = items.filter((item) => !currentIds.includes(item.id));
+      return [...next, ...missing];
+    });
+  }, [items]);
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      HOME_CARD_ORDER_STORAGE_KEY,
+      JSON.stringify(orderedItems.map((item) => item.id))
+    );
+  }, [orderedItems]);
+
+  const handleDrop = (targetId) => {
+    if (!draggingId || draggingId === targetId) {
+      setDraggingId(null);
+      return;
+    }
+    const fromIndex = orderedItems.findIndex((item) => item.id === draggingId);
+    const toIndex = orderedItems.findIndex((item) => item.id === targetId);
+    if (fromIndex === -1 || toIndex === -1) {
+      setDraggingId(null);
+      return;
+    }
+    setOrderedItems((current) => moveArrayItem(current, fromIndex, toIndex));
+    setDraggingId(null);
+  };
+
+  return (
+    <section className="section home-card-board">
+      {orderedItems.map((item, index) => (
+        <Reveal key={item.id} delay={index * 40}>
+          <article
+            className={`home-card-board__item glass-card ${draggingId === item.id ? "dragging" : ""}`}
+            draggable
+            onDragStart={() => setDraggingId(item.id)}
+            onDragOver={(event) => event.preventDefault()}
+            onDrop={() => handleDrop(item.id)}
+            onDragEnd={() => setDraggingId(null)}
+          >
+            <span className="micro-label">{item.eyebrow}</span>
+            <h3>{item.title}</h3>
+            <p className="body-copy">{item.body}</p>
+            {item.external ? (
+              <a className="inline-link" href={item.href} target="_blank" rel="noreferrer">
+                {item.action}
+              </a>
+            ) : (
+              <Link className="inline-link" to={item.href}>
+                {item.action}
+              </Link>
+            )}
+          </article>
+        </Reveal>
+      ))}
+    </section>
+  );
+}
+
 // 读取单篇文章的阅读室状态，供文章页和开发者编辑之间同步批注。
 function getReadingRoomSnapshot(slug) {
   if (!slug) {
@@ -2936,6 +3111,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
   const siteAvatar = getSiteAvatar(meta, templateAvatar);
   const pinnedSpaces = meta.pinnedSpaces || [];
   const archiveGroups = useMemo(() => buildArchiveGroups(articles, projects), [articles, projects]);
+  const archiveEntries = useMemo(() => buildArchiveEntries(articles, projects), [articles, projects]);
   useSeo({
     title: getBrowserTitle(meta, language),
     description: text.heroBody,
@@ -2947,6 +3123,18 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
     const rest = articles.filter((article) => !article.pinned);
     return [...pinned, ...rest].slice(0, 3);
   }, [articles]);
+  const homeCardItems = useMemo(
+    () =>
+      buildHomeCardItems({
+        language,
+        projects,
+        articles: topArticles,
+        customCards: meta.customCards || [],
+        text,
+        copy,
+      }),
+    [articles, copy, language, meta.customCards, projects, text, topArticles]
+  );
 
   const submitGuestbook = async (event) => {
     event.preventDefault();
@@ -3046,7 +3234,13 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
 
         <PinnedSpacesSection language={language} spaces={pinnedSpaces} articles={articles} projects={projects} isXFlow />
 
-        <section className="xflow-shelf">
+        {homeLayout === "archive" ? (
+          <HomeArchiveFlow language={language} entries={archiveEntries} experience={getExperienceCopy(language)} />
+        ) : null}
+
+        {homeLayout === "cards" ? <HomeCardBoard items={homeCardItems} /> : null}
+
+        {homeLayout === "magazine" ? <section className="xflow-shelf">
           <Reveal className="xflow-lead-card glass-card">
             <p className="micro-label">{text.featuredTitle}</p>
             <h2>{leadProject?.title}</h2>
@@ -3071,9 +3265,9 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
               </Reveal>
             ))}
           </div>
-        </section>
+        </section> : null}
 
-        <section className="xflow-story-grid">
+        {homeLayout === "magazine" ? <section className="xflow-story-grid">
           <Reveal className="xflow-story-main glass-card">
             <p className="micro-label">{text.articlesTitle}</p>
             {featureArticle?.coverImage ? <img className="article-card__cover" src={featureArticle.coverImage} alt={featureArticle.title[language]} /> : null}
@@ -3096,9 +3290,9 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
               </Reveal>
             ))}
           </div>
-        </section>
+        </section> : null}
 
-        <section className="xflow-bottom-grid">
+        {homeLayout === "magazine" ? <section className="xflow-bottom-grid">
           <Reveal className="about-panel glass-card">
             <p className="micro-label">{text.aboutTitle}</p>
             <h2>{text.aboutTitle}</h2>
@@ -3123,7 +3317,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
               </article>
             )) : <p className="body-copy">{copy.guestbookEmpty}</p>}
           </Reveal>
-        </section>
+        </section> : null}
 
         <ArchivePreview language={language} groups={archiveGroups} experience={getExperienceCopy(language)} />
       </main>
@@ -3184,7 +3378,13 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
 
       <PinnedSpacesSection language={language} spaces={pinnedSpaces} articles={articles} projects={projects} isXFlow={false} />
 
-      {meta.customCards?.length ? (
+      {homeLayout === "archive" ? (
+        <HomeArchiveFlow language={language} entries={archiveEntries} experience={getExperienceCopy(language)} />
+      ) : null}
+
+      {homeLayout === "cards" ? <HomeCardBoard items={homeCardItems} /> : null}
+
+      {homeLayout === "magazine" && meta.customCards?.length ? (
         <section className="section">
           <div className="card-grid custom-card-grid">
             {meta.customCards.map((card, index) => (
@@ -3205,7 +3405,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
         </section>
       ) : null}
 
-      <section className="section">
+      {homeLayout === "magazine" ? <section className="section">
         <Reveal className="about-panel glass-card now-panel">
           <div className="now-panel__head">
             <p className="micro-label">{copy.nowTitle}</p>
@@ -3218,9 +3418,9 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
             <span className="tag-chip">{copy.nowStatusC}</span>
           </div>
         </Reveal>
-      </section>
+      </section> : null}
 
-      <section className="section split-layout" id="about">
+      {homeLayout === "magazine" ? <section className="section split-layout" id="about">
         <Reveal className="about-panel glass-card">
           <p className="micro-label">{text.aboutTitle}</p>
           <h2>{text.aboutTitle}</h2>
@@ -3241,9 +3441,9 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
             <span>{text.statsLabelThree}</span>
           </div>
         </Reveal>
-      </section>
+      </section> : null}
 
-      <section className="section">
+      {homeLayout === "magazine" ? <section className="section">
         <Reveal className="section-head">
           <p className="micro-label">01</p>
           <h2>{text.featuredTitle}</h2>
@@ -3270,9 +3470,9 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
             </Reveal>
           ))}
         </div>
-      </section>
+      </section> : null}
 
-      <section className="section">
+      {homeLayout === "magazine" ? <section className="section">
         <Reveal className="section-head">
           <p className="micro-label">02</p>
           <h2>{text.articlesTitle}</h2>
@@ -3301,11 +3501,11 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
             {text.allArticles}
           </Link>
         </Reveal>
-      </section>
+      </section> : null}
 
       <ArchivePreview language={language} groups={archiveGroups} experience={getExperienceCopy(language)} />
 
-      <section className="section split-layout">
+      {homeLayout === "magazine" ? <section className="section split-layout">
         <Reveal className="about-panel glass-card">
           <p className="micro-label">{copy.guestbookTitle}</p>
           <h2>{copy.guestbookTitle}</h2>
@@ -3342,7 +3542,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
             </article>
           )) : <p className="body-copy">{copy.guestbookEmpty}</p>}
         </Reveal>
-      </section>
+      </section> : null}
     </main>
   );
 }

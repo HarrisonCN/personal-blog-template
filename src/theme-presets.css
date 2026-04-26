@@ -738,11 +738,19 @@ body[data-background-preset="xflow"] .tag-chip--button.active {
   background: #111827;
   border-color: #111827;
   color: #ffffff;
+  box-shadow: 0 12px 24px rgba(17, 24, 39, 0.18);
 }
 
 body[data-background-preset="xflow"] .site-nav a.active .nav-label,
 body[data-background-preset="xflow"] .site-nav a:hover .nav-label {
   color: #ffffff;
+}
+
+body[data-background-preset="xflow"] .site-nav a.active::after,
+body[data-background-preset="xflow"] .site-nav a:hover::after {
+  background: linear-gradient(90deg, #68d7ef, #f0b36b);
+  opacity: 1;
+  transform: scaleX(1);
 }
 
 body[data-background-preset="xflow"] .selector-menu,
