@@ -26,6 +26,8 @@
   --cursor-glow-warm: color-mix(in srgb, var(--accent-warm) 18%, transparent);
 }
 
+/* 站内控制中心：命令面板、布局切换、档案筛选、阅读室扩展样式 */
+
 .selector-trigger--command {
   min-width: 152px;
   justify-content: space-between;
@@ -182,6 +184,20 @@
   overflow: auto;
 }
 
+.command-palette__group {
+  display: grid;
+  gap: 10px;
+}
+
+.command-palette__group-title {
+  padding: 4px 4px 0;
+}
+
+.command-palette__group-list {
+  display: grid;
+  gap: 10px;
+}
+
 .command-palette__item {
   display: grid;
   gap: 4px;
@@ -295,6 +311,41 @@
   color: var(--muted);
   font-size: 0.9rem;
   line-height: 1.6;
+}
+
+.article-highlight-chip strong {
+  color: var(--text);
+}
+
+.article-highlight-chip--stats {
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface-strong));
+}
+
+.archive-filter-card {
+  display: grid;
+  gap: 14px;
+  padding: 18px;
+  border-radius: var(--radius-card);
+}
+
+.archive-filter-card__head {
+  display: grid;
+  gap: 10px;
+}
+
+.archive-filter-card__search {
+  height: 48px;
+}
+
+.archive-filter-card__row {
+  display: grid;
+  gap: 12px;
+}
+
+.archive-filter-card__jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
 }
 
 .reading-room--on .article-detail__body {

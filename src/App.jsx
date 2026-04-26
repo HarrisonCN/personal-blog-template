@@ -80,7 +80,10 @@ const HOME_LAYOUT_OPTIONS = [
   { code: "archive", icon: "A" },
   { code: "cards", icon: "C" },
 ];
+// 本地缓存键：用于记录用户在站内的访问、阅读和编辑轨迹。
 const RECENT_ACCESS_STORAGE_KEY = "template-recent-access";
+const RECENT_READING_STORAGE_KEY = "template-recent-reading";
+const RECENT_EDITING_STORAGE_KEY = "template-recent-editing";
 const AMBIENT_TRACKS = [
   { code: "rain", title: { zh: "雨幕", en: "Rain Room" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
   { code: "harbor", title: { zh: "港湾", en: "Harbor Hush" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
@@ -131,12 +134,28 @@ const EXPERIENCE_COPY = {
     quickActions: "快捷操作",
     createArticleQuick: "新建文章",
     createProjectQuick: "新建项目",
+    highlightAction: "高亮此段",
     noteOnParagraph: "添加批注",
     saveNote: "保存批注",
     removeNote: "删除批注",
     notePlaceholder: "写下这一段的理解、待改点或延展想法",
     highlightedParagraphs: "高亮段落",
+    favoriteParagraphs: "收藏段落",
     readingResume: "继续阅读",
+    recentReading: "最近阅读",
+    recentEditing: "最近编辑",
+    quickTheme: "快速切主题",
+    quickLanguage: "快速切语言",
+    exportNotes: "导出批注",
+    readingStats: "阅读统计",
+    statsWords: "字数",
+    statsParagraphs: "段落",
+    statsNotes: "批注",
+    statsFavorites: "收藏",
+    archiveFilter: "筛选",
+    archiveSearch: "搜索档案内容",
+    archiveAllYears: "全部年份",
+    archiveAllTags: "全部标签",
   },
   en: {
     commandOpen: "Command Palette",
@@ -182,12 +201,28 @@ const EXPERIENCE_COPY = {
     quickActions: "Quick Actions",
     createArticleQuick: "New Article",
     createProjectQuick: "New Project",
+    highlightAction: "Highlight",
     noteOnParagraph: "Annotate",
     saveNote: "Save Note",
     removeNote: "Remove Note",
     notePlaceholder: "Capture a thought, revision note, or follow-up idea for this paragraph",
     highlightedParagraphs: "Highlights",
+    favoriteParagraphs: "Favorites",
     readingResume: "Resume Reading",
+    recentReading: "Recent Reading",
+    recentEditing: "Recent Editing",
+    quickTheme: "Quick Theme",
+    quickLanguage: "Quick Language",
+    exportNotes: "Export Notes",
+    readingStats: "Reading Stats",
+    statsWords: "Words",
+    statsParagraphs: "Paragraphs",
+    statsNotes: "Notes",
+    statsFavorites: "Favorites",
+    archiveFilter: "Filters",
+    archiveSearch: "Search archive content",
+    archiveAllYears: "All Years",
+    archiveAllTags: "All Tags",
   },
 };
 
@@ -592,6 +627,7 @@ function ensureLocalizedList(value) {
 }
 
 function normalizeArticle(article, index) {
+  // 统一文章结构，确保后台、前台、导出逻辑都读取同一份字段。
   const updatedAt = article.updatedAt ?? parseArticleDate(article.date).toISOString();
   const title = ensureLocalizedMap(article.title, `Untitled ${index + 1}`);
   const excerpt = ensureLocalizedMap(article.excerpt, "");
@@ -2266,12 +2302,20 @@ function Shell({
   const transitionKey = `${location.pathname}|${backgroundPreset}`;
   const commandActions = useMemo(() => {
     const experience = getExperienceCopy(language);
+    // 主题、语言、布局、最近轨迹统一汇总到命令面板里，作为全站控制中心。
     const themeActions = THEME_PRESET_OPTIONS.map((item) => ({
       id: `theme-${item.code}`,
-      group: "Theme",
+      group: experience.quickTheme,
       label: item.label,
       keywords: `theme ${item.label}`,
       run: () => setBackgroundPreset(item.code),
+    }));
+    const languageActions = languages.map((item) => ({
+      id: `language-${item.code}`,
+      group: experience.quickLanguage,
+      label: item.label,
+      keywords: `language ${item.label}`,
+      run: () => setLanguage(item.code),
     }));
     const layoutActions = HOME_LAYOUT_OPTIONS.map((item) => ({
       id: `layout-${item.code}`,
@@ -2308,6 +2352,20 @@ function Shell({
       keywords: item.label,
       run: () => navigate(item.path),
     }));
+    const recentReadingActions = getRecentReadings().map((item) => ({
+      id: `recent-reading-${item.path}`,
+      group: experience.recentReading,
+      label: item.label,
+      keywords: `${item.label} reading article`,
+      run: () => navigate(item.path),
+    }));
+    const recentEditingActions = getRecentEdits().map((item) => ({
+      id: `recent-edit-${item.id}`,
+      group: experience.recentEditing,
+      label: item.label,
+      keywords: `${item.label} edit studio`,
+      run: () => navigate(item.path),
+    }));
 
     const articleActions = articles.slice(0, 12).map((article) => ({
       id: `article-${article.slug}`,
@@ -2325,8 +2383,18 @@ function Shell({
       run: () => navigate(`/projects/${project.slug}`),
     }));
 
-    return [...recentActions, ...routeActions, ...layoutActions, ...themeActions, ...articleActions, ...projectActions];
-  }, [articles, copy.navStudio, language, location.pathname, navigate, projects, setBackgroundPreset, text.navArticles, text.navHome]);
+    return [
+      ...recentActions,
+      ...recentReadingActions,
+      ...recentEditingActions,
+      ...routeActions,
+      ...layoutActions,
+      ...themeActions,
+      ...languageActions,
+      ...articleActions,
+      ...projectActions,
+    ];
+  }, [articles, copy.navStudio, language, location.pathname, navigate, projects, setBackgroundPreset, setLanguage, text.navArticles, text.navHome]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -2482,18 +2550,46 @@ function useSeo({ title, description, image }) {
   }, [description, image, title]);
 }
 
-function getRecentAccesses() {
+// 读取最近轨迹：站内控制中心会复用这组读取/写入逻辑。
+function getStoredTrail(storageKey) {
   try {
-    return JSON.parse(window.localStorage.getItem(RECENT_ACCESS_STORAGE_KEY) || "[]");
+    return JSON.parse(window.localStorage.getItem(storageKey) || "[]");
   } catch {
     return [];
   }
 }
 
+function pushStoredTrail(storageKey, entry, limit = 8) {
+  const current = getStoredTrail(storageKey).filter((item) => item.path !== entry.path);
+  const next = [entry, ...current].slice(0, limit);
+  window.localStorage.setItem(storageKey, JSON.stringify(next));
+}
+
+function getRecentAccesses() {
+  return getStoredTrail(RECENT_ACCESS_STORAGE_KEY);
+}
+
+function getRecentReadings() {
+  return getStoredTrail(RECENT_READING_STORAGE_KEY);
+}
+
+function getRecentEdits() {
+  return getStoredTrail(RECENT_EDITING_STORAGE_KEY);
+}
+
 function pushRecentAccess(entry) {
+  // 去重后只保留最近几条浏览记录，方便命令面板作为站内中枢使用。
   const current = getRecentAccesses().filter((item) => item.path !== entry.path);
   const next = [entry, ...current].slice(0, 8);
   window.localStorage.setItem(RECENT_ACCESS_STORAGE_KEY, JSON.stringify(next));
+}
+
+function pushRecentReading(entry) {
+  pushStoredTrail(RECENT_READING_STORAGE_KEY, entry, 10);
+}
+
+function pushRecentEdit(entry) {
+  pushStoredTrail(RECENT_EDITING_STORAGE_KEY, entry, 10);
 }
 
 function normalizeHomeLayout(value) {
@@ -2505,6 +2601,7 @@ function getTimelineDate(item) {
 }
 
 function buildArchiveGroups(articles, projects) {
+  // 把文章和项目按时间合并，生成统一的档案时间线数据。
   const entries = [
     ...articles.map((article) => ({
       id: `article-${article.slug}`,
@@ -2534,6 +2631,19 @@ function buildArchiveGroups(articles, projects) {
     groups[year].push(entry);
     return groups;
   }, {});
+}
+
+// 把时间档案整理成扁平条目，方便筛选、搜索和跳转。
+function buildArchiveEntries(articles, projects) {
+  return Object.entries(buildArchiveGroups(articles, projects)).flatMap(([year, items]) =>
+    items.map((item) => ({
+      ...item,
+      year,
+      tagLabel: item.tag?.zh || item.tag?.en || item.tag || "",
+      titleLabel: item.title?.zh || item.title?.en || item.title || "",
+      summaryLabel: item.summary?.zh || item.summary?.en || "",
+    }))
+  );
 }
 
 function resolvePinnedSpaces(spaces, articles, projects, language) {
@@ -2709,6 +2819,7 @@ function CommandPalette({ open, onClose, actions, language }) {
   const experience = getExperienceCopy(language);
   const [query, setQuery] = useState("");
   const inputRef = useRef(null);
+  // 命令面板支持即时搜索，并按“最近 / 快捷操作 / 主题 / 路由”等分组展示。
   const filtered = useMemo(() => {
     const lowered = query.trim().toLowerCase();
     return actions.filter((item) => {
@@ -2718,6 +2829,17 @@ function CommandPalette({ open, onClose, actions, language }) {
       return [item.label, item.group, item.keywords].filter(Boolean).join(" ").toLowerCase().includes(lowered);
     });
   }, [actions, query]);
+  const grouped = useMemo(
+    () =>
+      filtered.reduce((groups, item) => {
+        if (!groups[item.group]) {
+          groups[item.group] = [];
+        }
+        groups[item.group].push(item);
+        return groups;
+      }, {}),
+    [filtered]
+  );
 
   useEffect(() => {
     if (!open) {
@@ -2758,19 +2880,26 @@ function CommandPalette({ open, onClose, actions, language }) {
         />
         <div className="command-palette__list">
           {filtered.length ? (
-            filtered.map((item) => (
-              <button
-                key={item.id}
-                type="button"
-                className="command-palette__item"
-                onClick={() => {
-                  item.run();
-                  onClose();
-                }}
-              >
-                <span className="micro-label">{item.group}</span>
-                <strong>{item.label}</strong>
-              </button>
+            Object.entries(grouped).map(([group, items]) => (
+              <section key={group} className="command-palette__group">
+                <p className="micro-label command-palette__group-title">{group}</p>
+                <div className="command-palette__group-list">
+                  {items.map((item) => (
+                    <button
+                      key={item.id}
+                      type="button"
+                      className="command-palette__item"
+                      onClick={() => {
+                        item.run();
+                        onClose();
+                      }}
+                    >
+                      <span className="micro-label">{item.group}</span>
+                      <strong>{item.label}</strong>
+                    </button>
+                  ))}
+                </div>
+              </section>
             ))
           ) : (
             <p className="body-copy command-palette__empty">{experience.commandEmpty}</p>
@@ -2784,7 +2913,44 @@ function CommandPalette({ open, onClose, actions, language }) {
 function ArchivePage({ language, articles, projects, meta }) {
   const experience = getExperienceCopy(language);
   const siteAvatar = getSiteAvatar(meta, templateAvatar);
-  const groups = useMemo(() => buildArchiveGroups(articles, projects), [articles, projects]);
+  const entries = useMemo(() => buildArchiveEntries(articles, projects), [articles, projects]);
+  const [yearFilter, setYearFilter] = useState("all");
+  const [tagFilter, setTagFilter] = useState("all");
+  const [query, setQuery] = useState("");
+  const years = useMemo(() => ["all", ...Array.from(new Set(entries.map((item) => item.year)))], [entries]);
+  const tags = useMemo(
+    () => ["all", ...Array.from(new Set(entries.map((item) => item.tag[language] || item.tag.en || item.tag).filter(Boolean)))],
+    [entries, language]
+  );
+  const filteredEntries = useMemo(() => {
+    // 档案页支持年份、标签与关键词三重过滤，避免内容增多后难以定位。
+    const lowered = query.trim().toLowerCase();
+    return entries.filter((item) => {
+      const itemYear = item.year;
+      const itemTag = item.tag[language] || item.tag.en || item.tag;
+      const matchesYear = yearFilter === "all" || itemYear === yearFilter;
+      const matchesTag = tagFilter === "all" || itemTag === tagFilter;
+      const matchesQuery =
+        !lowered ||
+        [item.title[language] || item.title.en, item.summary[language] || item.summary.en, itemTag]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase()
+          .includes(lowered);
+      return matchesYear && matchesTag && matchesQuery;
+    });
+  }, [entries, language, query, tagFilter, yearFilter]);
+  const groups = useMemo(
+    () =>
+      filteredEntries.reduce((acc, item) => {
+        if (!acc[item.year]) {
+          acc[item.year] = [];
+        }
+        acc[item.year].push(item);
+        return acc;
+      }, {}),
+    [filteredEntries]
+  );
 
   useSeo({
     title: `${experience.archiveTitle} / ${getBrowserTitle(meta, language)}`,
@@ -2800,9 +2966,53 @@ function ArchivePage({ language, articles, projects, meta }) {
         <p className="body-copy">{experience.archiveBody}</p>
       </section>
       <section className="archive-page__timeline">
+        <article className="glass-card archive-filter-card">
+          <div className="archive-filter-card__head">
+            <p className="micro-label">{experience.archiveFilter}</p>
+            <input
+              className="command-palette__input archive-filter-card__search"
+              value={query}
+              onChange={(event) => setQuery(event.target.value)}
+              placeholder={experience.archiveSearch}
+            />
+          </div>
+          <div className="archive-filter-card__row">
+            <div className="tag-row">
+              {years.map((year) => (
+                <button
+                  key={year}
+                  type="button"
+                  className={`tag-chip tag-chip--button ${yearFilter === year ? "active" : ""}`}
+                  onClick={() => setYearFilter(year)}
+                >
+                  {year === "all" ? experience.archiveAllYears : year}
+                </button>
+              ))}
+            </div>
+            <div className="tag-row">
+              {tags.map((tag) => (
+                <button
+                  key={tag}
+                  type="button"
+                  className={`tag-chip tag-chip--button ${tagFilter === tag ? "active" : ""}`}
+                  onClick={() => setTagFilter(tag)}
+                >
+                  {tag === "all" ? experience.archiveAllTags : tag}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="archive-filter-card__jump">
+            {Object.keys(groups).map((year) => (
+              <a key={year} className="tag-chip" href={`#archive-year-${year}`}>
+                {year}
+              </a>
+            ))}
+          </div>
+        </article>
         {Object.entries(groups).map(([year, items], yearIndex) => (
           <Reveal key={year} delay={yearIndex * 60}>
-            <article className="archive-timeline-year glass-card">
+            <article id={`archive-year-${year}`} className="archive-timeline-year glass-card">
               <div className="archive-timeline-year__head">
                 <strong>{year}</strong>
                 <span>{items.length} entries</span>
@@ -2828,6 +3038,7 @@ function ArchivePage({ language, articles, projects, meta }) {
             </article>
           </Reveal>
         ))}
+        {!filteredEntries.length ? <div className="glass-card empty-state">{experience.commandEmpty}</div> : null}
       </section>
     </main>
   );
@@ -3411,6 +3622,7 @@ function ArticlesPage({ language, text, copy, articles, meta, isXFlow }) {
 
 function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
   const { slug } = useParams();
+  // 每篇文章都有独立阅读室状态，记录高亮、收藏、批注和阅读位置。
   const articleStorageKey = `template-reading-room:${slug || "article"}`;
   const article = useMemo(
     () => articles.find((item) => item.slug === slug) ?? articles[0],
@@ -3424,7 +3636,12 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
   const [ambientOn, setAmbientOn] = useState(false);
   const [ambientTrack, setAmbientTrack] = useState(AMBIENT_TRACKS[0].code);
   const [speaking, setSpeaking] = useState(false);
-  const [paragraphState, setParagraphState] = useState(() => ({ highlights: {}, notes: {}, scrollY: 0 }));
+  const [paragraphState, setParagraphState] = useState(() => ({
+    highlights: {},
+    favorites: {},
+    notes: {},
+    scrollY: 0,
+  }));
   const [noteOpenId, setNoteOpenId] = useState(null);
   const ambientRef = useRef(null);
   const experience = getExperienceCopy(language);
@@ -3453,11 +3670,12 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
       const stored = JSON.parse(window.localStorage.getItem(articleStorageKey) || "{}");
       setParagraphState({
         highlights: stored.highlights || {},
+        favorites: stored.favorites || {},
         notes: stored.notes || {},
         scrollY: Number(stored.scrollY) || 0,
       });
     } catch {
-      setParagraphState({ highlights: {}, notes: {}, scrollY: 0 });
+      setParagraphState({ highlights: {}, favorites: {}, notes: {}, scrollY: 0 });
     }
   }, [articleStorageKey]);
 
@@ -3494,6 +3712,19 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
     }, 60);
     return () => window.clearTimeout(timer);
   }, [paragraphState.scrollY, slug]);
+
+  useEffect(() => {
+    // 进入文章时写入最近阅读，供命令面板快速回到上次阅读位置。
+    if (!article) {
+      return;
+    }
+    pushRecentReading({
+      id: article.slug,
+      path: `/articles/${article.slug}`,
+      label: article.title[language] || article.title.en,
+      timestamp: Date.now(),
+    });
+  }, [article, language]);
 
   const handleCopyLink = async () => {
     await navigator.clipboard.writeText(window.location.href);
@@ -3578,15 +3809,62 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
     });
   };
 
+  const toggleFavorite = (paragraphId) => {
+    setParagraphState((current) => ({
+      ...current,
+      favorites: {
+        ...current.favorites,
+        [paragraphId]: !current.favorites[paragraphId],
+      },
+    }));
+  };
+
+  const exportNotes = () => {
+    // 导出当前文章的高亮/收藏/批注，便于整理为外部笔记。
+    const content = rendered
+      .filter((block) => block.type === "text" && (paragraphState.notes[block.id] || paragraphState.highlights[block.id] || paragraphState.favorites[block.id]))
+      .map((block, index) => {
+        const flags = [
+          paragraphState.highlights[block.id] ? experience.highlightedParagraphs : "",
+          paragraphState.favorites[block.id] ? experience.favoriteParagraphs : "",
+        ]
+          .filter(Boolean)
+          .join(" / ");
+        return [
+          `## ${index + 1}. ${flags || "Paragraph"}`,
+          block.value,
+          paragraphState.notes[block.id] ? `\n${paragraphState.notes[block.id]}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n");
+      })
+      .join("\n\n");
+    const blob = new Blob([content || article.title[language] || article.title.en], { type: "text/markdown;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${article.slug || "reading-room-notes"}.md`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   const highlightCount = Object.values(paragraphState.highlights).filter(Boolean).length;
+  const favoriteCount = Object.values(paragraphState.favorites).filter(Boolean).length;
+  const noteCount = Object.values(paragraphState.notes).filter((value) => String(value || "").trim()).length;
+  const paragraphCount = rendered.filter((block) => block.type === "text").length;
+  const wordCount = localizedContent.trim() ? localizedContent.trim().split(/\s+/).length : 0;
   const highlightedEntries = rendered.filter(
     (block) => block.type === "text" && paragraphState.highlights[block.id]
+  );
+  const favoriteEntries = rendered.filter(
+    (block) => block.type === "text" && paragraphState.favorites[block.id]
   );
 
   const renderArticleBlock = (block) => {
     if (block.type === "text") {
       const noteValue = paragraphState.notes[block.id] || "";
       const isHighlighted = Boolean(paragraphState.highlights[block.id]);
+      const isFavorite = Boolean(paragraphState.favorites[block.id]);
       const isNoteOpen = noteOpenId === block.id || Boolean(noteValue);
 
       return (
@@ -3606,7 +3884,14 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
               className={`tag-chip tag-chip--button ${isHighlighted ? "active" : ""}`}
               onClick={() => toggleHighlight(block.id)}
             >
-              {isHighlighted ? experience.highlightedParagraphs : copy.heroSecondary}
+              {isHighlighted ? experience.highlightedParagraphs : experience.highlightAction}
+            </button>
+            <button
+              type="button"
+              className={`tag-chip tag-chip--button ${isFavorite ? "active" : ""}`}
+              onClick={() => toggleFavorite(block.id)}
+            >
+              {experience.favoriteParagraphs}
             </button>
             <button
               type="button"
@@ -3692,6 +3977,9 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
               <button type="button" className="dock-button" onClick={() => setAmbientOn((current) => !current)}>
                 {experience.ambientMode}
               </button>
+              <button type="button" className="dock-button" onClick={exportNotes}>
+                {experience.exportNotes}
+              </button>
               <button type="button" className="dock-button" onClick={toggleReadAloud}>
                 {speaking ? experience.stopReading : experience.readAloud}
               </button>
@@ -3740,18 +4028,34 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
             ) : null}
             <article className="glass-card xflow-side-card">
               <p className="micro-label">
-                {highlightCount ? experience.highlightedParagraphs : copy.unplacedAttachments}
+                {highlightCount || favoriteCount ? experience.readingStats : copy.unplacedAttachments}
               </p>
-              <div className={highlightCount ? "stack-list" : "attachment-grid"}>
-                {highlightCount ? (
-                  highlightedEntries.map((block) => (
-                    <article key={block.id} className="article-highlight-chip">
-                      <p className="body-copy">{block.value}</p>
-                      {paragraphState.notes[block.id] ? (
-                        <span>{paragraphState.notes[block.id]}</span>
-                      ) : null}
+              <div className={highlightCount || favoriteCount ? "stack-list" : "attachment-grid"}>
+                {highlightCount || favoriteCount ? (
+                  <>
+                    <article className="article-highlight-chip article-highlight-chip--stats">
+                      <strong>{experience.readingStats}</strong>
+                      <span>{experience.statsWords}: {wordCount}</span>
+                      <span>{experience.statsParagraphs}: {paragraphCount}</span>
+                      <span>{experience.statsNotes}: {noteCount}</span>
+                      <span>{experience.statsFavorites}: {favoriteCount}</span>
                     </article>
-                  ))
+                    {favoriteEntries.map((block) => (
+                      <article key={`favorite-${block.id}`} className="article-highlight-chip">
+                        <strong>{experience.favoriteParagraphs}</strong>
+                        <p className="body-copy">{block.value}</p>
+                      </article>
+                    ))}
+                    {highlightedEntries.map((block) => (
+                      <article key={block.id} className="article-highlight-chip">
+                        <strong>{experience.highlightedParagraphs}</strong>
+                        <p className="body-copy">{block.value}</p>
+                        {paragraphState.notes[block.id] ? (
+                          <span>{paragraphState.notes[block.id]}</span>
+                        ) : null}
+                      </article>
+                    ))}
+                  </>
                 ) : remainingAttachments.length ? (
                   remainingAttachments.map((attachment) => <AttachmentBlock key={attachment.id} attachment={attachment} copy={copy} />)
                 ) : (
@@ -3802,6 +4106,7 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
         <button type="button" className="dock-button" onClick={() => setFocusMode((current) => !current)}>{experience.focusMode}</button>
         <button type="button" className="dock-button" onClick={() => setNightMode((current) => !current)}>{experience.nightMode}</button>
         <button type="button" className="dock-button" onClick={() => setAmbientOn((current) => !current)}>{experience.ambientMode}</button>
+        <button type="button" className="dock-button" onClick={exportNotes}>{experience.exportNotes}</button>
         <button type="button" className="dock-button" onClick={toggleReadAloud}>{speaking ? experience.stopReading : experience.readAloud}</button>
         <div className="reading-room__ambient-row">
           {AMBIENT_TRACKS.map((item) => (
@@ -3865,18 +4170,34 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
         <Reveal delay={120}>
           <article className="detail-card glass-card article-detail-card">
             <p className="micro-label">
-              {highlightCount ? experience.highlightedParagraphs : copy.unplacedAttachments}
+              {highlightCount || favoriteCount ? experience.readingStats : copy.unplacedAttachments}
             </p>
-            <div className={highlightCount ? "stack-list" : "attachment-grid"}>
-              {highlightCount ? (
-                highlightedEntries.map((block) => (
-                  <article key={block.id} className="article-highlight-chip">
-                    <p className="body-copy">{block.value}</p>
-                    {paragraphState.notes[block.id] ? (
-                      <span>{paragraphState.notes[block.id]}</span>
-                    ) : null}
+            <div className={highlightCount || favoriteCount ? "stack-list" : "attachment-grid"}>
+              {highlightCount || favoriteCount ? (
+                <>
+                  <article className="article-highlight-chip article-highlight-chip--stats">
+                    <strong>{experience.readingStats}</strong>
+                    <span>{experience.statsWords}: {wordCount}</span>
+                    <span>{experience.statsParagraphs}: {paragraphCount}</span>
+                    <span>{experience.statsNotes}: {noteCount}</span>
+                    <span>{experience.statsFavorites}: {favoriteCount}</span>
                   </article>
-                ))
+                  {favoriteEntries.map((block) => (
+                    <article key={`favorite-${block.id}`} className="article-highlight-chip">
+                      <strong>{experience.favoriteParagraphs}</strong>
+                      <p className="body-copy">{block.value}</p>
+                    </article>
+                  ))}
+                  {highlightedEntries.map((block) => (
+                    <article key={block.id} className="article-highlight-chip">
+                      <strong>{experience.highlightedParagraphs}</strong>
+                      <p className="body-copy">{block.value}</p>
+                      {paragraphState.notes[block.id] ? (
+                        <span>{paragraphState.notes[block.id]}</span>
+                      ) : null}
+                    </article>
+                  ))}
+                </>
               ) : remainingAttachments.length ? (
                 remainingAttachments.map((attachment) => (
                   <AttachmentBlock key={attachment.id} attachment={attachment} copy={copy} />
@@ -4060,9 +4381,18 @@ function StudioPage({
   }, [projects, selectedProjectSlug]);
 
   useEffect(() => {
+    // 命令面板可以通过 query 参数直接唤起“新建 / 编辑”状态。
     const params = new URLSearchParams(location.search);
     const createTarget = params.get("create");
+    const editArticle = params.get("editArticle");
+    const editProject = params.get("editProject");
     if (!createTarget) {
+      if (editArticle) {
+        setSelectedSlug(editArticle);
+      }
+      if (editProject) {
+        setSelectedProjectSlug(editProject);
+      }
       return;
     }
     if (createTarget === "article") {
@@ -4173,6 +4503,12 @@ function StudioPage({
       window.setTimeout(() => setFlash(""), 1800);
       return;
     }
+    pushRecentEdit({
+      id: `article-${nextSlug}`,
+      path: `/studio?editArticle=${nextSlug}`,
+      label: nextDraft.title[editorLanguage] || nextDraft.title.en || nextSlug,
+      timestamp: Date.now(),
+    });
     setSelectedSlug(nextSlug);
     setFlash(copy.articleSaved);
     window.setTimeout(() => setFlash(""), 1600);
@@ -4470,6 +4806,12 @@ function StudioPage({
       window.setTimeout(() => setFlash(""), 1800);
       return;
     }
+    pushRecentEdit({
+      id: `project-${nextSlug}`,
+      path: `/studio?editProject=${nextSlug}`,
+      label: nextProject.title || nextSlug,
+      timestamp: Date.now(),
+    });
     setSelectedProjectSlug(nextSlug);
     setFlash(copy.projectSaved);
     window.setTimeout(() => setFlash(""), 1600);
