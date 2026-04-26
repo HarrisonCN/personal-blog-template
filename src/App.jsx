@@ -1,8 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+﻿import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink, Route, Routes, useLocation, useParams } from "react-router-dom";
-import AntigravityBackground from "./components/AntigravityBackground";
+
 import InteractiveSceneBackground from "./components/InteractiveSceneBackground";
-import ThemePresetScene from "./components/ThemePresetScene";
+
 import Reveal from "./components/Reveal";
 import templateAvatar from "./assets/template-avatar.svg";
 import {
@@ -14,6 +14,10 @@ import {
   siteMeta,
   uiText,
 } from "./data/siteContent";
+
+const AntigravityBackground = lazy(() => import("./components/AntigravityBackground"));
+const ThemePresetScene = lazy(() => import("./components/ThemePresetScene"));
+
 
 const PALETTE_STORAGE_KEY = "template-palette";
 const GUESTBOOK_STORAGE_KEY = "template-guestbook";
@@ -54,28 +58,13 @@ const THEME_PRESET_OPTIONS = [
 const BACKGROUND_PRESETS = [
   {
     code: "xflow",
-    label: { zh: "X 娴佸姩", en: "X Flow", ja: "X Flow", ko: "X Flow" },
+    label: { zh: "X Flow", en: "X Flow", ja: "X Flow", ko: "X Flow" },
     eyebrow: { zh: "Hybrid UI", en: "Hybrid UI", ja: "Hybrid UI", ko: "Hybrid UI" },
   },
   {
     code: "none",
     label: { zh: "默认", en: "Default", ja: "Default", ko: "Default" },
     eyebrow: { zh: "Blueprint", en: "Blueprint", ja: "Blueprint", ko: "Blueprint" },
-  },
-  {
-    code: "aurora",
-    label: { zh: "极光", en: "Aurora", ja: "Aurora", ko: "Aurora" },
-    eyebrow: { zh: "Flow", en: "Flow", ja: "Flow", ko: "Flow" },
-  },
-  {
-    code: "sunset",
-    label: { zh: "晚霞", en: "Sunset", ja: "Sunset", ko: "Sunset" },
-    eyebrow: { zh: "Dunes", en: "Dunes", ja: "Dunes", ko: "Dunes" },
-  },
-  {
-    code: "ice",
-    label: { zh: "冰雾", en: "Ice Mist", ja: "Ice Mist", ko: "Ice Mist" },
-    eyebrow: { zh: "Prism", en: "Prism", ja: "Prism", ko: "Prism" },
   },
   {
     code: "antigravity",
@@ -172,10 +161,10 @@ const fallbackCopy = {
     openArticle: "查看文章",
     manageArticles: "管理文章",
     studioTitle: "开发者编辑",
-    studioBody: "在这里新增文章、补充图片和音频文件，也能继续编辑以前写过的内容。",
+    studioBody: "在这里新增文章、补充图片和音频文件，也能继续修改之前写过的内容。",
     studioHint: "写作台登录和内容保存现在由服务端处理，不再暴露在前端。",
     loginTitle: "登录开发者编辑",
-    loginBody: "输入由服务端校验的账户名和密码后才能进入写作台。",
+    loginBody: "输入由服务端校验的账号和密码后才能进入后台。",
     username: "账户名",
     password: "密码",
     login: "登录",
@@ -188,7 +177,7 @@ const fallbackCopy = {
     articleReadTime: "阅读时长",
     articleSlug: "链接标识",
     articleLanguage: "编辑语言",
-    uploadFiles: "上传图片/音频/视频/文件",
+    uploadFiles: "上传图片 / 音频 / 视频 / 文件",
     attachments: "附件展示",
     noAttachments: "还没有上传附件",
     articleSaved: "文章已保存",
@@ -224,7 +213,7 @@ const fallbackCopy = {
     statEssays: "文章数量",
     statLabs: "实验数量",
     loginLocked: "登录失败次数过多，请稍后再试",
-    sessionExpired: "写作台会话已过期，请重新登录",
+    sessionExpired: "后台会话已过期，请重新登录",
     projectsEditorTitle: "项目编辑",
     projectsEditorBody: "这里可以新增、修改项目卡片和项目详情内容。",
     saveProject: "保存项目",
@@ -579,34 +568,10 @@ function SiteBackground({ presetCode, imageSrc }) {
     );
   }
 
-  if (presetCode === "aurora") {
-    return (
-      <div className="site-background site-background--aurora" aria-hidden="true">
-        <ThemePresetScene mode="aurora" />
-      </div>
-    );
-  }
-
-  if (presetCode === "sunset") {
-    return (
-      <div className="site-background site-background--sunset" aria-hidden="true">
-        <ThemePresetScene mode="sunset" />
-      </div>
-    );
-  }
-
-  if (presetCode === "ice") {
-    return (
-      <div className="site-background site-background--ice" aria-hidden="true">
-        <ThemePresetScene mode="ice" />
-      </div>
-    );
-  }
-
   if (presetCode === "antigravity") {
     return (
       <div className="site-background site-background--antigravity" aria-hidden="true">
-        <AntigravityBackground />
+        <Suspense fallback={null}><AntigravityBackground /></Suspense>
       </div>
     );
   }
@@ -614,7 +579,7 @@ function SiteBackground({ presetCode, imageSrc }) {
   if (presetCode === "xflow") {
     return (
       <div className="site-background site-background--xflow" aria-hidden="true">
-        <ThemePresetScene mode="xflow" />
+        <Suspense fallback={null}><ThemePresetScene mode="xflow" /></Suspense>
       </div>
     );
   }
@@ -1027,7 +992,7 @@ function useInteractionGuard() {
     let timerId;
 
     const showBlockedMessage = () => {
-      setMessage("被禁止的操作");
+      setMessage("琚姝㈢殑鎿嶄綔");
       window.clearTimeout(timerId);
       timerId = window.setTimeout(() => setMessage(""), 1800);
     };
@@ -4445,3 +4410,7 @@ export default function App() {
     </>
   );
 }
+
+
+
+
