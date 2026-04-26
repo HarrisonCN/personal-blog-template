@@ -80,6 +80,7 @@ const HOME_LAYOUT_OPTIONS = [
   { code: "archive", icon: "A" },
   { code: "cards", icon: "C" },
 ];
+const RECENT_ACCESS_STORAGE_KEY = "template-recent-access";
 const AMBIENT_TRACKS = [
   { code: "rain", title: { zh: "雨幕", en: "Rain Room" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
   { code: "harbor", title: { zh: "港湾", en: "Harbor Hush" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
@@ -126,6 +127,16 @@ const EXPERIENCE_COPY = {
     pinnedTarget: "关联内容",
     footnotesEditor: "脚注",
     openCommand: "打开命令面板",
+    recentAccess: "最近访问",
+    quickActions: "快捷操作",
+    createArticleQuick: "新建文章",
+    createProjectQuick: "新建项目",
+    noteOnParagraph: "添加批注",
+    saveNote: "保存批注",
+    removeNote: "删除批注",
+    notePlaceholder: "写下这一段的理解、待改点或延展想法",
+    highlightedParagraphs: "高亮段落",
+    readingResume: "继续阅读",
   },
   en: {
     commandOpen: "Command Palette",
@@ -167,6 +178,16 @@ const EXPERIENCE_COPY = {
     pinnedTarget: "Target",
     footnotesEditor: "Footnotes",
     openCommand: "Open Command Palette",
+    recentAccess: "Recent",
+    quickActions: "Quick Actions",
+    createArticleQuick: "New Article",
+    createProjectQuick: "New Project",
+    noteOnParagraph: "Annotate",
+    saveNote: "Save Note",
+    removeNote: "Remove Note",
+    notePlaceholder: "Capture a thought, revision note, or follow-up idea for this paragraph",
+    highlightedParagraphs: "Highlights",
+    readingResume: "Resume Reading",
   },
 };
 
@@ -931,6 +952,7 @@ function renderArticleContent(content = "", attachments, copy) {
       type: "text",
       key: `text-${index}`,
       value: line,
+      id: `paragraph-${index}`,
     });
   });
 
@@ -2233,6 +2255,7 @@ function Shell({
   meta,
   articles,
   projects,
+  homeLayout,
   children,
 }) {
   const location = useLocation();
@@ -2242,6 +2265,7 @@ function Shell({
   const blockedMessage = useInteractionGuard();
   const transitionKey = `${location.pathname}|${backgroundPreset}`;
   const commandActions = useMemo(() => {
+    const experience = getExperienceCopy(language);
     const themeActions = THEME_PRESET_OPTIONS.map((item) => ({
       id: `theme-${item.code}`,
       group: "Theme",
@@ -2249,13 +2273,41 @@ function Shell({
       keywords: `theme ${item.label}`,
       run: () => setBackgroundPreset(item.code),
     }));
+    const layoutActions = HOME_LAYOUT_OPTIONS.map((item) => ({
+      id: `layout-${item.code}`,
+      group: experience.quickActions,
+      label:
+        item.code === "archive"
+          ? experience.layoutArchive
+          : item.code === "cards"
+            ? experience.layoutCards
+            : experience.layoutMagazine,
+      keywords: `layout ${item.code}`,
+      run: () => {
+        const next = normalizeHomeLayout(item.code);
+        window.localStorage.setItem(HOME_LAYOUT_STORAGE_KEY, next);
+        window.dispatchEvent(new CustomEvent("template:home-layout", { detail: next }));
+        if (location.pathname !== "/") {
+          navigate("/");
+        }
+      },
+    }));
 
     const routeActions = [
       { id: "route-home", group: "Route", label: text.navHome, keywords: "home", run: () => navigate("/") },
       { id: "route-articles", group: "Route", label: text.navArticles, keywords: "articles writing", run: () => navigate("/articles") },
-      { id: "route-archive", group: "Route", label: getExperienceCopy(language).archiveTitle, keywords: "archive timeline", run: () => navigate("/archive") },
+      { id: "route-archive", group: "Route", label: experience.archiveTitle, keywords: "archive timeline", run: () => navigate("/archive") },
       { id: "route-studio", group: "Route", label: copy.navStudio, keywords: "studio editor", run: () => navigate("/studio") },
+      { id: "create-article", group: experience.quickActions, label: experience.createArticleQuick, keywords: "new article write", run: () => navigate("/studio?create=article") },
+      { id: "create-project", group: experience.quickActions, label: experience.createProjectQuick, keywords: "new project", run: () => navigate("/studio?create=project") },
     ];
+    const recentActions = getRecentAccesses().map((item) => ({
+      id: `recent-${item.path}`,
+      group: experience.recentAccess,
+      label: item.label,
+      keywords: item.label,
+      run: () => navigate(item.path),
+    }));
 
     const articleActions = articles.slice(0, 12).map((article) => ({
       id: `article-${article.slug}`,
@@ -2273,12 +2325,30 @@ function Shell({
       run: () => navigate(`/projects/${project.slug}`),
     }));
 
-    return [...routeActions, ...themeActions, ...articleActions, ...projectActions];
-  }, [articles, copy.navStudio, language, navigate, projects, setBackgroundPreset, text.navArticles, text.navHome]);
+    return [...recentActions, ...routeActions, ...layoutActions, ...themeActions, ...articleActions, ...projectActions];
+  }, [articles, copy.navStudio, language, location.pathname, navigate, projects, setBackgroundPreset, text.navArticles, text.navHome]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });
   }, [location.pathname]);
+
+  useEffect(() => {
+    const article = articles.find((item) => `/articles/${item.slug}` === location.pathname);
+    const project = projects.find((item) => `/projects/${item.slug}` === location.pathname);
+    const experience = getExperienceCopy(language);
+    const label = article
+      ? article.title[language] || article.title.en
+      : project
+        ? project.title
+        : location.pathname === "/archive"
+          ? experience.archiveTitle
+          : location.pathname === "/articles"
+            ? text.navArticles
+            : location.pathname === "/studio"
+              ? copy.navStudio
+              : text.navHome;
+    pushRecentAccess({ path: location.pathname, label, timestamp: Date.now(), layout: homeLayout });
+  }, [articles, copy.navStudio, homeLayout, language, location.pathname, projects, text.navArticles, text.navHome]);
 
   useEffect(() => {
     const handleShortcut = (event) => {
@@ -2410,6 +2480,20 @@ function useSeo({ title, description, image }) {
     ensureMeta("property", "og:description").setAttribute("content", description);
     ensureMeta("property", "og:image").setAttribute("content", image);
   }, [description, image, title]);
+}
+
+function getRecentAccesses() {
+  try {
+    return JSON.parse(window.localStorage.getItem(RECENT_ACCESS_STORAGE_KEY) || "[]");
+  } catch {
+    return [];
+  }
+}
+
+function pushRecentAccess(entry) {
+  const current = getRecentAccesses().filter((item) => item.path !== entry.path);
+  const next = [entry, ...current].slice(0, 8);
+  window.localStorage.setItem(RECENT_ACCESS_STORAGE_KEY, JSON.stringify(next));
 }
 
 function normalizeHomeLayout(value) {
@@ -2790,6 +2874,14 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
   useEffect(() => {
     window.localStorage.setItem(HOME_LAYOUT_STORAGE_KEY, homeLayout);
   }, [homeLayout]);
+
+  useEffect(() => {
+    const handleLayoutEvent = (event) => {
+      setHomeLayout(normalizeHomeLayout(event.detail));
+    };
+    window.addEventListener("template:home-layout", handleLayoutEvent);
+    return () => window.removeEventListener("template:home-layout", handleLayoutEvent);
+  }, []);
 
   if (isXFlow) {
     const leadProject = projects[0];
@@ -3319,6 +3411,7 @@ function ArticlesPage({ language, text, copy, articles, meta, isXFlow }) {
 
 function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
   const { slug } = useParams();
+  const articleStorageKey = `template-reading-room:${slug || "article"}`;
   const article = useMemo(
     () => articles.find((item) => item.slug === slug) ?? articles[0],
     [articles, slug]
@@ -3331,6 +3424,8 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
   const [ambientOn, setAmbientOn] = useState(false);
   const [ambientTrack, setAmbientTrack] = useState(AMBIENT_TRACKS[0].code);
   const [speaking, setSpeaking] = useState(false);
+  const [paragraphState, setParagraphState] = useState(() => ({ highlights: {}, notes: {}, scrollY: 0 }));
+  const [noteOpenId, setNoteOpenId] = useState(null);
   const ambientRef = useRef(null);
   const experience = getExperienceCopy(language);
   const siteAvatar = getSiteAvatar(meta, templateAvatar);
@@ -3352,6 +3447,53 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
   const { rendered, remainingAttachments } = renderArticleContent(localizedContent, article.attachments, copy);
   const sections = extractArticleSections(localizedContent);
   const footnotes = article.footnotes?.[language]?.length ? article.footnotes[language] : article.footnotes?.en || [];
+
+  useEffect(() => {
+    try {
+      const stored = JSON.parse(window.localStorage.getItem(articleStorageKey) || "{}");
+      setParagraphState({
+        highlights: stored.highlights || {},
+        notes: stored.notes || {},
+        scrollY: Number(stored.scrollY) || 0,
+      });
+    } catch {
+      setParagraphState({ highlights: {}, notes: {}, scrollY: 0 });
+    }
+  }, [articleStorageKey]);
+
+  useEffect(() => {
+    window.localStorage.setItem(articleStorageKey, JSON.stringify(paragraphState));
+  }, [articleStorageKey, paragraphState]);
+
+  useEffect(() => {
+    let frameId = 0;
+    const scheduleSave = () => {
+      if (frameId) {
+        return;
+      }
+      frameId = window.requestAnimationFrame(() => {
+        frameId = 0;
+        setParagraphState((current) => ({ ...current, scrollY: window.scrollY }));
+      });
+    };
+    window.addEventListener("scroll", scheduleSave, { passive: true });
+    return () => {
+      if (frameId) {
+        window.cancelAnimationFrame(frameId);
+      }
+      window.removeEventListener("scroll", scheduleSave);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!paragraphState.scrollY) {
+      return undefined;
+    }
+    const timer = window.setTimeout(() => {
+      window.scrollTo({ top: paragraphState.scrollY, behavior: "auto" });
+    }, 60);
+    return () => window.clearTimeout(timer);
+  }, [paragraphState.scrollY, slug]);
 
   const handleCopyLink = async () => {
     await navigator.clipboard.writeText(window.location.href);
@@ -3406,6 +3548,123 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
     window.speechSynthesis.cancel();
     window.speechSynthesis.speak(utterance);
     setSpeaking(true);
+  };
+
+  const toggleHighlight = (paragraphId) => {
+    setParagraphState((current) => ({
+      ...current,
+      highlights: {
+        ...current.highlights,
+        [paragraphId]: !current.highlights[paragraphId],
+      },
+    }));
+  };
+
+  const setParagraphNote = (paragraphId, value) => {
+    setParagraphState((current) => ({
+      ...current,
+      notes: {
+        ...current.notes,
+        [paragraphId]: value,
+      },
+    }));
+  };
+
+  const removeParagraphNote = (paragraphId) => {
+    setParagraphState((current) => {
+      const nextNotes = { ...current.notes };
+      delete nextNotes[paragraphId];
+      return { ...current, notes: nextNotes };
+    });
+  };
+
+  const highlightCount = Object.values(paragraphState.highlights).filter(Boolean).length;
+  const highlightedEntries = rendered.filter(
+    (block) => block.type === "text" && paragraphState.highlights[block.id]
+  );
+
+  const renderArticleBlock = (block) => {
+    if (block.type === "text") {
+      const noteValue = paragraphState.notes[block.id] || "";
+      const isHighlighted = Boolean(paragraphState.highlights[block.id]);
+      const isNoteOpen = noteOpenId === block.id || Boolean(noteValue);
+
+      return (
+        <div
+          key={block.key}
+          className={`article-paragraph ${isHighlighted ? "highlighted" : ""}`}
+        >
+          <p
+            className="body-copy article-detail__copy"
+            onClick={() => toggleHighlight(block.id)}
+          >
+            {block.value}
+          </p>
+          <div className="article-paragraph__actions">
+            <button
+              type="button"
+              className={`tag-chip tag-chip--button ${isHighlighted ? "active" : ""}`}
+              onClick={() => toggleHighlight(block.id)}
+            >
+              {isHighlighted ? experience.highlightedParagraphs : copy.heroSecondary}
+            </button>
+            <button
+              type="button"
+              className="tag-chip tag-chip--button"
+              onClick={() =>
+                setNoteOpenId((current) => (current === block.id ? null : block.id))
+              }
+            >
+              {experience.noteOnParagraph}
+            </button>
+          </div>
+          {isNoteOpen ? (
+            <div className="article-paragraph__note">
+              <textarea
+                value={noteValue}
+                onChange={(event) => setParagraphNote(block.id, event.target.value)}
+                placeholder={experience.notePlaceholder}
+              />
+              <div className="article-paragraph__note-actions">
+                <button
+                  type="button"
+                  className="dock-button"
+                  onClick={() => setNoteOpenId(null)}
+                >
+                  {experience.saveNote}
+                </button>
+                {noteValue ? (
+                  <button
+                    type="button"
+                    className="dock-button"
+                    onClick={() => {
+                      removeParagraphNote(block.id);
+                      setNoteOpenId(null);
+                    }}
+                  >
+                    {experience.removeNote}
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
+        </div>
+      );
+    }
+
+    if (block.type === "heading") {
+      return block.level === 2 ? (
+        <h2 key={block.key} id={block.id} className="article-heading level-2">
+          {block.value}
+        </h2>
+      ) : (
+        <h3 key={block.key} id={block.id} className="article-heading level-3">
+          {block.value}
+        </h3>
+      );
+    }
+
+    return <AttachmentBlock key={block.key} attachment={block.value} copy={copy} />;
   };
 
   if (isXFlow) {
@@ -3480,9 +3739,20 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
               </article>
             ) : null}
             <article className="glass-card xflow-side-card">
-              <p className="micro-label">{copy.unplacedAttachments}</p>
-              <div className="attachment-grid">
-                {remainingAttachments.length ? (
+              <p className="micro-label">
+                {highlightCount ? experience.highlightedParagraphs : copy.unplacedAttachments}
+              </p>
+              <div className={highlightCount ? "stack-list" : "attachment-grid"}>
+                {highlightCount ? (
+                  highlightedEntries.map((block) => (
+                    <article key={block.id} className="article-highlight-chip">
+                      <p className="body-copy">{block.value}</p>
+                      {paragraphState.notes[block.id] ? (
+                        <span>{paragraphState.notes[block.id]}</span>
+                      ) : null}
+                    </article>
+                  ))
+                ) : remainingAttachments.length ? (
                   remainingAttachments.map((attachment) => <AttachmentBlock key={attachment.id} attachment={attachment} copy={copy} />)
                 ) : (
                   <p className="body-copy">{copy.noAttachments}</p>
@@ -3495,25 +3765,7 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
             <p className="micro-label">ARTICLE</p>
             <div className="article-detail__body">
               {localizedContent ? (
-                rendered.map((block) =>
-                  block.type === "text" ? (
-                    <p key={block.key} className="body-copy article-detail__copy">
-                      {block.value}
-                    </p>
-                  ) : block.type === "heading" ? (
-                    block.level === 2 ? (
-                      <h2 key={block.key} id={block.id} className="article-heading level-2">
-                        {block.value}
-                      </h2>
-                    ) : (
-                      <h3 key={block.key} id={block.id} className="article-heading level-3">
-                        {block.value}
-                      </h3>
-                    )
-                  ) : (
-                    <AttachmentBlock key={block.key} attachment={block.value} copy={copy} />
-                  )
-                )
+                rendered.map(renderArticleBlock)
               ) : (
                 <p className="body-copy">{copy.articleEmpty}</p>
               )}
@@ -3592,25 +3844,7 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
             <p className="micro-label">ARTICLE</p>
             <div className="article-detail__body">
               {localizedContent ? (
-                rendered.map((block) =>
-                  block.type === "text" ? (
-                    <p key={block.key} className="body-copy article-detail__copy">
-                      {block.value}
-                    </p>
-                  ) : block.type === "heading" ? (
-                    block.level === 2 ? (
-                      <h2 key={block.key} id={block.id} className="article-heading level-2">
-                        {block.value}
-                      </h2>
-                    ) : (
-                      <h3 key={block.key} id={block.id} className="article-heading level-3">
-                        {block.value}
-                      </h3>
-                    )
-                  ) : (
-                    <AttachmentBlock key={block.key} attachment={block.value} copy={copy} />
-                  )
-                )
+                rendered.map(renderArticleBlock)
               ) : (
                 <p className="body-copy">{copy.articleEmpty}</p>
               )}
@@ -3630,9 +3864,20 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
 
         <Reveal delay={120}>
           <article className="detail-card glass-card article-detail-card">
-            <p className="micro-label">{copy.unplacedAttachments}</p>
-            <div className="attachment-grid">
-              {remainingAttachments.length ? (
+            <p className="micro-label">
+              {highlightCount ? experience.highlightedParagraphs : copy.unplacedAttachments}
+            </p>
+            <div className={highlightCount ? "stack-list" : "attachment-grid"}>
+              {highlightCount ? (
+                highlightedEntries.map((block) => (
+                  <article key={block.id} className="article-highlight-chip">
+                    <p className="body-copy">{block.value}</p>
+                    {paragraphState.notes[block.id] ? (
+                      <span>{paragraphState.notes[block.id]}</span>
+                    ) : null}
+                  </article>
+                ))
+              ) : remainingAttachments.length ? (
                 remainingAttachments.map((attachment) => (
                   <AttachmentBlock key={attachment.id} attachment={attachment} copy={copy} />
                 ))
@@ -3766,6 +4011,7 @@ function StudioPage({
   saveSiteContent,
   setPreviewBackground,
 }) {
+  const location = useLocation();
   const [selectedSlug, setSelectedSlug] = useState(articles[0]?.slug ?? "__new__");
   const [selectedProjectSlug, setSelectedProjectSlug] = useState(projects[0]?.slug ?? "__new_project__");
   const [editorLanguage, setEditorLanguage] = useState(language);
@@ -3812,6 +4058,20 @@ function StudioPage({
       setProjectDraft(cloneProject(found));
     }
   }, [projects, selectedProjectSlug]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const createTarget = params.get("create");
+    if (!createTarget) {
+      return;
+    }
+    if (createTarget === "article") {
+      setSelectedSlug("__new__");
+    }
+    if (createTarget === "project") {
+      setSelectedProjectSlug("__new_project__");
+    }
+  }, [location.search]);
 
   const handleLogin = async (event) => {
     event.preventDefault();
