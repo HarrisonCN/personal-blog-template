@@ -3,6 +3,9 @@ import { Link, NavLink, Route, Routes, useLocation, useNavigate, useParams } fro
 
 import InteractiveSceneBackground from "./components/InteractiveSceneBackground";
 
+import ArchivePreview from "./components/ArchivePreview";
+import CommandPalette from "./components/CommandPalette";
+import HomeLayoutSwitcher from "./components/HomeLayoutSwitcher";
 import Reveal from "./components/Reveal";
 import templateAvatar from "./assets/template-avatar.svg";
 import {
@@ -147,6 +150,7 @@ const EXPERIENCE_COPY = {
     quickTheme: "快速切主题",
     quickLanguage: "快速切语言",
     exportNotes: "导出批注",
+    importNotesDraft: "批注已导入草稿",
     readingStats: "阅读统计",
     statsWords: "字数",
     statsParagraphs: "段落",
@@ -214,6 +218,7 @@ const EXPERIENCE_COPY = {
     quickTheme: "Quick Theme",
     quickLanguage: "Quick Language",
     exportNotes: "Export Notes",
+    importNotesDraft: "Notes imported into draft",
     readingStats: "Reading Stats",
     statsWords: "Words",
     statsParagraphs: "Paragraphs",
@@ -2454,7 +2459,12 @@ function Shell({
       />
       <div className="cursor-dot" aria-hidden="true" />
       {children}
-      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} actions={commandActions} language={language} />
+      <CommandPalette
+        open={paletteOpen}
+        onClose={() => setPaletteOpen(false)}
+        actions={commandActions}
+        experience={getExperienceCopy(language)}
+      />
       <MusicDock text={text} />
       {blockedMessage ? <div className="blocked-toast">{blockedMessage}</div> : null}
       <footer className="site-footer">
@@ -2646,6 +2656,24 @@ function buildArchiveEntries(articles, projects) {
   );
 }
 
+// 读取单篇文章的阅读室状态，供文章页和开发者编辑之间同步批注。
+function getReadingRoomSnapshot(slug) {
+  if (!slug) {
+    return { highlights: {}, favorites: {}, notes: {}, scrollY: 0 };
+  }
+  try {
+    const stored = JSON.parse(window.localStorage.getItem(`template-reading-room:${slug}`) || "{}");
+    return {
+      highlights: stored.highlights || {},
+      favorites: stored.favorites || {},
+      notes: stored.notes || {},
+      scrollY: Number(stored.scrollY) || 0,
+    };
+  } catch {
+    return { highlights: {}, favorites: {}, notes: {}, scrollY: 0 };
+  }
+}
+
 function resolvePinnedSpaces(spaces, articles, projects, language) {
   return spaces
     .map((space) => {
@@ -2704,32 +2732,6 @@ function resolvePinnedSpaces(spaces, articles, projects, language) {
     .filter(Boolean);
 }
 
-function HomeLayoutSwitcher({ language, layout, setLayout }) {
-  const experience = getExperienceCopy(language);
-  return (
-    <div className="layout-switcher glass-card">
-      <span className="micro-label">{experience.layoutTitle}</span>
-      <div className="layout-switcher__row">
-        {HOME_LAYOUT_OPTIONS.map((option) => {
-          const labelKey =
-            option.code === "archive" ? "layoutArchive" : option.code === "cards" ? "layoutCards" : "layoutMagazine";
-          return (
-            <button
-              key={option.code}
-              type="button"
-              className={`layout-switcher__button ${layout === option.code ? "active" : ""}`}
-              onClick={() => setLayout(option.code)}
-            >
-              <span>{option.icon}</span>
-              <strong>{experience[labelKey]}</strong>
-            </button>
-          );
-        })}
-      </div>
-    </div>
-  );
-}
-
 function PinnedSpacesSection({ language, spaces, articles, projects, isXFlow }) {
   const experience = getExperienceCopy(language);
   const resolved = useMemo(() => resolvePinnedSpaces(spaces, articles, projects, language), [spaces, articles, projects, language]);
@@ -2768,145 +2770,6 @@ function PinnedSpacesSection({ language, spaces, articles, projects, isXFlow }) 
         ))}
       </div>
     </section>
-  );
-}
-
-function ArchivePreview({ language, articles, projects }) {
-  const experience = getExperienceCopy(language);
-  const groups = useMemo(() => buildArchiveGroups(articles, projects), [articles, projects]);
-  const previewYears = Object.entries(groups).slice(0, 2);
-
-  return (
-    <section className="section archive-preview-section">
-      <div className="section-head">
-        <div>
-          <p className="micro-label">{experience.archiveTitle}</p>
-          <h2>{experience.archiveTitle}</h2>
-        </div>
-        <Link className="action-button action-button--secondary" to="/archive">
-          {experience.archiveOpen}
-        </Link>
-      </div>
-      <div className="archive-preview-grid">
-        {previewYears.map(([year, items], index) => (
-          <Reveal key={year} delay={index * 90}>
-            <article className="archive-year-card glass-card">
-              <strong>{year}</strong>
-              <div className="archive-year-card__list">
-                {items.slice(0, 3).map((item) =>
-                  item.type === "article" ? (
-                    <Link key={item.id} to={`/articles/${item.slug}`} className="archive-link">
-                      <span>{item.title[language] || item.title.en}</span>
-                      <em>{experience.timelineArticles}</em>
-                    </Link>
-                  ) : (
-                    <Link key={item.id} to={`/projects/${item.slug}`} className="archive-link">
-                      <span>{item.title[language] || item.title.en}</span>
-                      <em>{experience.timelineProjects}</em>
-                    </Link>
-                  )
-                )}
-              </div>
-            </article>
-          </Reveal>
-        ))}
-      </div>
-    </section>
-  );
-}
-
-function CommandPalette({ open, onClose, actions, language }) {
-  const experience = getExperienceCopy(language);
-  const [query, setQuery] = useState("");
-  const inputRef = useRef(null);
-  // 命令面板支持即时搜索，并按“最近 / 快捷操作 / 主题 / 路由”等分组展示。
-  const filtered = useMemo(() => {
-    const lowered = query.trim().toLowerCase();
-    return actions.filter((item) => {
-      if (!lowered) {
-        return true;
-      }
-      return [item.label, item.group, item.keywords].filter(Boolean).join(" ").toLowerCase().includes(lowered);
-    });
-  }, [actions, query]);
-  const grouped = useMemo(
-    () =>
-      filtered.reduce((groups, item) => {
-        if (!groups[item.group]) {
-          groups[item.group] = [];
-        }
-        groups[item.group].push(item);
-        return groups;
-      }, {}),
-    [filtered]
-  );
-
-  useEffect(() => {
-    if (!open) {
-      setQuery("");
-      return;
-    }
-    const focusTimer = window.setTimeout(() => inputRef.current?.focus(), 20);
-    return () => window.clearTimeout(focusTimer);
-  }, [open]);
-
-  useEffect(() => {
-    if (!open) {
-      return undefined;
-    }
-    const handleKey = (event) => {
-      if (event.key === "Escape") {
-        onClose();
-      }
-    };
-    window.addEventListener("keydown", handleKey);
-    return () => window.removeEventListener("keydown", handleKey);
-  }, [onClose, open]);
-
-  if (!open) {
-    return null;
-  }
-
-  return (
-    <div className="command-palette" role="dialog" aria-modal="true">
-      <button type="button" className="command-palette__backdrop" onClick={onClose} aria-label="Close command palette" />
-      <div className="command-palette__panel glass-card">
-        <input
-          ref={inputRef}
-          className="command-palette__input"
-          value={query}
-          onChange={(event) => setQuery(event.target.value)}
-          placeholder={experience.commandPlaceholder}
-        />
-        <div className="command-palette__list">
-          {filtered.length ? (
-            Object.entries(grouped).map(([group, items]) => (
-              <section key={group} className="command-palette__group">
-                <p className="micro-label command-palette__group-title">{group}</p>
-                <div className="command-palette__group-list">
-                  {items.map((item) => (
-                    <button
-                      key={item.id}
-                      type="button"
-                      className="command-palette__item"
-                      onClick={() => {
-                        item.run();
-                        onClose();
-                      }}
-                    >
-                      <span className="micro-label">{item.group}</span>
-                      <strong>{item.label}</strong>
-                    </button>
-                  ))}
-                </div>
-              </section>
-            ))
-          ) : (
-            <p className="body-copy command-palette__empty">{experience.commandEmpty}</p>
-          )}
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -3054,6 +2917,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
   });
   const siteAvatar = getSiteAvatar(meta, templateAvatar);
   const pinnedSpaces = meta.pinnedSpaces || [];
+  const archiveGroups = useMemo(() => buildArchiveGroups(articles, projects), [articles, projects]);
   useSeo({
     title: getBrowserTitle(meta, language),
     description: text.heroBody,
@@ -3102,7 +2966,12 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
 
     return (
       <main className={`page home-page xflow-home home-layout--${homeLayout}`}>
-        <HomeLayoutSwitcher language={language} layout={homeLayout} setLayout={setHomeLayout} />
+        <HomeLayoutSwitcher
+          experience={getExperienceCopy(language)}
+          layout={homeLayout}
+          setLayout={setHomeLayout}
+          options={HOME_LAYOUT_OPTIONS}
+        />
         <section className="xflow-hero glass-card">
           <div className="xflow-hero__copy">
             <p className="micro-label">{text.heroEyebrow}</p>
@@ -3230,14 +3099,19 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
           </Reveal>
         </section>
 
-        <ArchivePreview language={language} articles={articles} projects={projects} />
+        <ArchivePreview language={language} groups={archiveGroups} experience={getExperienceCopy(language)} />
       </main>
     );
   }
 
   return (
     <main className={`page home-page home-layout--${homeLayout}`}>
-      <HomeLayoutSwitcher language={language} layout={homeLayout} setLayout={setHomeLayout} />
+      <HomeLayoutSwitcher
+        experience={getExperienceCopy(language)}
+        layout={homeLayout}
+        setLayout={setHomeLayout}
+        options={HOME_LAYOUT_OPTIONS}
+      />
       <section className="hero-grid">
         <Reveal className="intro-panel glass-card" delay={40}>
           <div className="intro-avatar">
@@ -3403,7 +3277,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
         </Reveal>
       </section>
 
-      <ArchivePreview language={language} articles={articles} projects={projects} />
+      <ArchivePreview language={language} groups={archiveGroups} experience={getExperienceCopy(language)} />
 
       <section className="section split-layout">
         <Reveal className="about-panel glass-card">
@@ -4345,6 +4219,17 @@ function StudioPage({
   const [siteFlash, setSiteFlash] = useState("");
   const [authFocusField, setAuthFocusField] = useState("idle");
   const [authPointer, setAuthPointer] = useState({ x: 0, y: 0 });
+  const experience = getExperienceCopy(language);
+  const readingRoomSnapshot = useMemo(() => getReadingRoomSnapshot(selectedSlug === "__new__" ? draft.slug : selectedSlug), [draft.slug, selectedSlug]);
+  const readingRoomBlocks = useMemo(() => {
+    const localized = draft.content[editorLanguage] || "";
+    const rendered = renderArticleContent(localized, draft.attachments, copy).rendered;
+    return rendered.filter((block) => block.type === "text" && (
+      readingRoomSnapshot.highlights?.[block.id] ||
+      readingRoomSnapshot.favorites?.[block.id] ||
+      readingRoomSnapshot.notes?.[block.id]
+    ));
+  }, [copy, draft.attachments, draft.content, editorLanguage, readingRoomSnapshot]);
 
   useEffect(() => {
     setEditorLanguage(language);
@@ -4466,6 +4351,41 @@ function StudioPage({
         [editorLanguage]: insertAttachmentIntoContent(current.content[editorLanguage] || "", attachmentId),
       },
     }));
+  };
+
+  const handleImportReadingRoomNotes = () => {
+    if (!readingRoomBlocks.length) {
+      return;
+    }
+
+    const noteDraft = readingRoomBlocks
+      .map((block, index) => {
+        const flags = [
+          readingRoomSnapshot.highlights?.[block.id] ? experience.highlightedParagraphs : "",
+          readingRoomSnapshot.favorites?.[block.id] ? experience.favoriteParagraphs : "",
+        ]
+          .filter(Boolean)
+          .join(" / ");
+        const noteText = readingRoomSnapshot.notes?.[block.id] || "";
+        return [
+          `## ${index + 1}. ${flags || experience.readingRoom}`,
+          block.value,
+          noteText ? `- ${noteText}` : "",
+        ]
+          .filter(Boolean)
+          .join("\n");
+      })
+      .join("\n\n");
+
+    setDraft((current) => ({
+      ...current,
+      content: {
+        ...current.content,
+        [editorLanguage]: [current.content[editorLanguage] || "", noteDraft].filter(Boolean).join("\n\n"),
+      },
+    }));
+    setFlash(experience.importNotesDraft);
+    window.setTimeout(() => setFlash(""), 1200);
   };
 
   const handleSave = async () => {
@@ -5171,6 +5091,37 @@ function StudioPage({
                 }
               />
             </label>
+
+            <div className="studio-reading-room">
+              <div className="studio-reading-room__head">
+                <div>
+                  <span className="micro-label">{experience.readingRoom}</span>
+                  <strong>{experience.highlightedParagraphs} / {experience.favoriteParagraphs}</strong>
+                </div>
+                <button
+                  type="button"
+                  className="action-button action-button--secondary"
+                  onClick={handleImportReadingRoomNotes}
+                  disabled={!readingRoomBlocks.length}
+                >
+                  {experience.importNotesDraft}
+                </button>
+              </div>
+              <div className="studio-reading-room__list">
+                {readingRoomBlocks.length ? (
+                  readingRoomBlocks.map((block) => (
+                    <article key={block.id} className="studio-reading-room__item">
+                      <p className="body-copy">{block.value}</p>
+                      {readingRoomSnapshot.notes?.[block.id] ? (
+                        <span>{readingRoomSnapshot.notes[block.id]}</span>
+                      ) : null}
+                    </article>
+                  ))
+                ) : (
+                  <p className="body-copy">{copy.noAttachments}</p>
+                )}
+              </div>
+            </div>
 
             <label className="studio-field studio-upload">
               <span>{copy.uploadFiles}</span>
