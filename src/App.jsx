@@ -1,5 +1,6 @@
-Ôªøimport { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
+import { useLayoutEffect } from "react";
 
 import InteractiveSceneBackground from "./components/InteractiveSceneBackground";
 
@@ -25,6 +26,8 @@ const ThemePresetScene = lazy(() => import("./components/ThemePresetScene"));
 const PALETTE_STORAGE_KEY = "template-palette";
 const GUESTBOOK_STORAGE_KEY = "template-guestbook";
 const HOME_LAYOUT_STORAGE_KEY = "template-home-layout";
+const HOME_CARD_META_STORAGE_KEY = "template-home-card-meta";
+const HOME_ARCHIVE_STATE_STORAGE_KEY = "template-home-archive-state";
 const STUDIO_MAX_ATTEMPTS = 5;
 const STUDIO_LOCK_MS = 15 * 60 * 1000;
 const EDITABLE_TEXT_KEYS = [
@@ -67,12 +70,12 @@ const BACKGROUND_PRESETS = [
   },
   {
     code: "none",
-    label: { zh: "ÈªòËÆ§", en: "Default", ja: "Default", ko: "Default" },
+    label: { zh: "ƒ¨»œ", en: "Default", ja: "Default", ko: "Default" },
     eyebrow: { zh: "Blueprint", en: "Blueprint", ja: "Blueprint", ko: "Blueprint" },
   },
   {
     code: "antigravity",
-    label: { zh: "ÂèçÈáçÂäõ", en: "Antigravity", ja: "Antigravity", ko: "Antigravity" },
+    label: { zh: "∑¥÷ÿ¡¶", en: "Antigravity", ja: "Antigravity", ko: "Antigravity" },
     eyebrow: { zh: "Google-like", en: "Google-like", ja: "Google-like", ko: "Google-like" },
   },
 ];
@@ -83,84 +86,84 @@ const HOME_LAYOUT_OPTIONS = [
   { code: "archive", icon: "A" },
   { code: "cards", icon: "C" },
 ];
-// Êú¨Âú∞ÁºìÂ≠òÈîÆÔºöÁî®‰∫éËÆ∞ÂΩïÁî®Êà∑Âú®Á´ôÂÜÖÁöÑËÆøÈóÆ„ÄÅÈòÖËØªÂíåÁºñËæëËΩ®Ëøπ„ÄÇ
+// ±æµÿª∫¥Êº¸£∫”√”⁄º«¬º”√ªß‘⁄’æƒ⁄µƒ∑√Œ °¢‘ƒ∂¡∫Õ±‡º≠πÏº£°£
 const RECENT_ACCESS_STORAGE_KEY = "template-recent-access";
 const RECENT_READING_STORAGE_KEY = "template-recent-reading";
 const RECENT_EDITING_STORAGE_KEY = "template-recent-editing";
 const HOME_CARD_ORDER_STORAGE_KEY = "template-home-card-order";
 const AMBIENT_TRACKS = [
-  { code: "rain", title: { zh: "Èõ®Âπï", en: "Rain Room" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
-  { code: "harbor", title: { zh: "Ê∏ØÊπæ", en: "Harbor Hush" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
-  { code: "night", title: { zh: "Â§úËØª", en: "Night Air" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
+  { code: "rain", title: { zh: "”Íƒª", en: "Rain Room" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
+  { code: "harbor", title: { zh: "∏€ÕÂ", en: "Harbor Hush" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
+  { code: "night", title: { zh: "“π∂¡", en: "Night Air" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
 ];
 const EXPERIENCE_COPY = {
   zh: {
-    commandOpen: "ÂëΩ‰ª§Èù¢Êùø",
-    commandPlaceholder: "ÊêúÁ¥¢ÊñáÁ´†„ÄÅÈ°πÁõÆ„ÄÅ‰∏ªÈ¢ò„ÄÅËÉåÊôØÊàñÂêéÂè∞ÂÖ•Âè£",
-    commandEmpty: "Ê≤°ÊúâÂåπÈÖçÁªìÊûú",
-    archiveTitle: "Êó∂Èó¥Ê°£Ê°à",
-    archiveBody: "ÊääÊñáÁ´†„ÄÅÈ°πÁõÆÂíåÊåÅÁª≠ÂÆûÈ™åÊîæËøõÂêå‰∏ÄÊù°Êó∂Èó¥ËΩ¥Èáå„ÄÇ",
-    archiveOpen: "ÊâìÂºÄÊ°£Ê°à",
+    commandOpen: "√¸¡Ó√Ê∞Â",
+    commandPlaceholder: "À—À˜Œƒ’¬°¢œÓƒø°¢÷˜Ã‚°¢±≥æ∞ªÚ∫ÛÃ®»Îø⁄",
+    commandEmpty: "√ª”–∆•≈‰Ω·π˚",
+    archiveTitle: " ±º‰µµ∞∏",
+    archiveBody: "∞—Œƒ’¬°¢œÓƒø∫Õ≥÷–¯ µ—È∑≈Ω¯Õ¨“ªÃı ±º‰÷·¿Ô°£",
+    archiveOpen: "¥Úø™µµ∞∏",
     pinnedTitle: "Pinned Spaces",
-    pinnedBody: "ÊääÊúÄÊÉ≥ÂÖàË¢´ÁúãÂà∞ÁöÑÂÜÖÂÆπÂõ∫ÂÆöÂú®È¶ñÈ°µÂÖ•Âè£„ÄÇ",
-    layoutTitle: "È¶ñÈ°µÂ∏ÉÂ±Ä",
-    layoutMagazine: "ÊùÇÂøóÊµÅ",
-    layoutArchive: "Ê°£Ê°àÊµÅ",
-    layoutCards: "Âç°ÁâáÊµÅ",
-    readingRoom: "ÈòÖËØªÂÆ§",
-    focusMode: "‰∏ìÊ≥®",
-    nightMode: "Â§úËØª",
-    ambientMode: "ÁéØÂ¢ÉÈü≥",
-    readAloud: "ÊúóËØª",
-    stopReading: "ÂÅúÊ≠¢ÊúóËØª",
-    footnotes: "ËÑöÊ≥®",
-    timelineArticles: "ÊñáÁ´†",
-    timelineProjects: "È°πÁõÆ",
-    pinnedEditorTitle: "Âõ∫ÂÆöÁ©∫Èó¥",
-    pinnedEditorBody: "ÊääÊñáÁ´†„ÄÅÈ°πÁõÆ„ÄÅÈìæÊé•ÊàñÈü≥È¢ëÂõ∫ÂÆöÂà∞È¶ñÈ°µ„ÄÇ",
-    addPinnedSpace: "Êñ∞Â¢ûÂõ∫ÂÆöÈ°π",
-    removePinnedSpace: "Âà†Èô§Âõ∫ÂÆöÈ°π",
-    pinnedKind: "ÂÜÖÂÆπÁ±ªÂûã",
-    pinnedArticle: "ÊñáÁ´†",
-    pinnedProject: "È°πÁõÆ",
-    pinnedLink: "ÈìæÊé•",
-    pinnedAudio: "Èü≥È¢ë",
-    pinnedLabel: "Ê†áÈ¢ò",
-    pinnedBodyLabel: "ËØ¥Êòé",
-    pinnedUrl: "ÈìæÊé•Âú∞ÂùÄ",
-    pinnedAudioTitle: "Èü≥È¢ëÊ†áÈ¢ò",
-    pinnedAudioArtist: "Èü≥È¢ë‰ΩúËÄÖ",
-    pinnedAudioSrc: "Èü≥È¢ëÂú∞ÂùÄ",
-    pinnedTarget: "ÂÖ≥ËÅîÂÜÖÂÆπ",
-    footnotesEditor: "ËÑöÊ≥®",
-    openCommand: "ÊâìÂºÄÂëΩ‰ª§Èù¢Êùø",
-    recentAccess: "ÊúÄËøëËÆøÈóÆ",
-    quickActions: "Âø´Êç∑Êìç‰Ωú",
-    createArticleQuick: "Êñ∞Âª∫ÊñáÁ´†",
-    createProjectQuick: "Êñ∞Âª∫È°πÁõÆ",
-    highlightAction: "È´ò‰∫ÆÊ≠§ÊÆµ",
-    noteOnParagraph: "Ê∑ªÂä†ÊâπÊ≥®",
-    saveNote: "‰øùÂ≠òÊâπÊ≥®",
-    removeNote: "Âà†Èô§ÊâπÊ≥®",
-    notePlaceholder: "ÂÜô‰∏ãËøô‰∏ÄÊÆµÁöÑÁêÜËß£„ÄÅÂæÖÊîπÁÇπÊàñÂª∂Â±ïÊÉ≥Ê≥ï",
-    highlightedParagraphs: "È´ò‰∫ÆÊÆµËêΩ",
-    favoriteParagraphs: "Êî∂ËóèÊÆµËêΩ",
-    readingResume: "ÁªßÁª≠ÈòÖËØª",
-    recentReading: "ÊúÄËøëÈòÖËØª",
-    recentEditing: "ÊúÄËøëÁºñËæë",
-    quickTheme: "Âø´ÈÄüÂàá‰∏ªÈ¢ò",
-    quickLanguage: "Âø´ÈÄüÂàáËØ≠Ë®Ä",
-    exportNotes: "ÂØºÂá∫ÊâπÊ≥®",
-    importNotesDraft: "ÊâπÊ≥®Â∑≤ÂØºÂÖ•ËçâÁ®ø",
-    readingStats: "ÈòÖËØªÁªüËÆ°",
-    statsWords: "Â≠óÊï∞",
-    statsParagraphs: "ÊÆµËêΩ",
-    statsNotes: "ÊâπÊ≥®",
-    statsFavorites: "Êî∂Ëóè",
-    archiveFilter: "Á≠õÈÄâ",
-    archiveSearch: "ÊêúÁ¥¢Ê°£Ê°àÂÜÖÂÆπ",
-    archiveAllYears: "ÂÖ®ÈÉ®Âπ¥‰ªΩ",
-    archiveAllTags: "ÂÖ®ÈÉ®Ê†áÁ≠æ",
+    pinnedBody: "∞—◊ÓœÎœ»±ªø¥µΩµƒƒ⁄»›πÃ∂®‘⁄ ◊“≥»Îø⁄°£",
+    layoutTitle: " ◊“≥≤ºæ÷",
+    layoutMagazine: "‘”÷æ¡˜",
+    layoutArchive: "µµ∞∏¡˜",
+    layoutCards: "ø®∆¨¡˜",
+    readingRoom: "‘ƒ∂¡ “",
+    focusMode: "◊®◊¢",
+    nightMode: "“π∂¡",
+    ambientMode: "ª∑æ≥“Ù",
+    readAloud: "¿ ∂¡",
+    stopReading: "Õ£÷π¿ ∂¡",
+    footnotes: "Ω≈◊¢",
+    timelineArticles: "Œƒ’¬",
+    timelineProjects: "œÓƒø",
+    pinnedEditorTitle: "πÃ∂®ø’º‰",
+    pinnedEditorBody: "∞—Œƒ’¬°¢œÓƒø°¢¡¥Ω”ªÚ“Ù∆µπÃ∂®µΩ ◊“≥°£",
+    addPinnedSpace: "–¬‘ˆπÃ∂®œÓ",
+    removePinnedSpace: "…æ≥˝πÃ∂®œÓ",
+    pinnedKind: "ƒ⁄»›¿‡–Õ",
+    pinnedArticle: "Œƒ’¬",
+    pinnedProject: "œÓƒø",
+    pinnedLink: "¡¥Ω”",
+    pinnedAudio: "“Ù∆µ",
+    pinnedLabel: "±ÍÃ‚",
+    pinnedBodyLabel: "Àµ√˜",
+    pinnedUrl: "¡¥Ω”µÿ÷∑",
+    pinnedAudioTitle: "“Ù∆µ±ÍÃ‚",
+    pinnedAudioArtist: "“Ù∆µ◊˜’ﬂ",
+    pinnedAudioSrc: "“Ù∆µµÿ÷∑",
+    pinnedTarget: "πÿ¡™ƒ⁄»›",
+    footnotesEditor: "Ω≈◊¢",
+    openCommand: "¥Úø™√¸¡Ó√Ê∞Â",
+    recentAccess: "◊ÓΩ¸∑√Œ ",
+    quickActions: "øÏΩ›≤Ÿ◊˜",
+    createArticleQuick: "–¬Ω®Œƒ’¬",
+    createProjectQuick: "–¬Ω®œÓƒø",
+    highlightAction: "∏ﬂ¡¡¥À∂Œ",
+    noteOnParagraph: "ÃÌº”≈˙◊¢",
+    saveNote: "±£¥Ê≈˙◊¢",
+    removeNote: "…æ≥˝≈˙◊¢",
+    notePlaceholder: "–¥œ¬’‚“ª∂Œµƒ¿ÌΩ‚°¢¥˝∏ƒµ„ªÚ—”’πœÎ∑®",
+    highlightedParagraphs: "∏ﬂ¡¡∂Œ¬‰",
+    favoriteParagraphs: " ’≤ÿ∂Œ¬‰",
+    readingResume: "ºÃ–¯‘ƒ∂¡",
+    recentReading: "◊ÓΩ¸‘ƒ∂¡",
+    recentEditing: "◊ÓΩ¸±‡º≠",
+    quickTheme: "øÏÀŸ«–÷˜Ã‚",
+    quickLanguage: "øÏÀŸ«–”Ô—‘",
+    exportNotes: "µº≥ˆ≈˙◊¢",
+    importNotesDraft: "≈˙◊¢“—µº»Î≤›∏Â",
+    readingStats: "‘ƒ∂¡Õ≥º∆",
+    statsWords: "◊÷ ˝",
+    statsParagraphs: "∂Œ¬‰",
+    statsNotes: "≈˙◊¢",
+    statsFavorites: " ’≤ÿ",
+    archiveFilter: "…∏—°",
+    archiveSearch: "À—À˜µµ∞∏ƒ⁄»›",
+    archiveAllYears: "»´≤øƒÍ∑›",
+    archiveAllTags: "»´≤ø±Í«©",
   },
   en: {
     commandOpen: "Command Palette",
@@ -315,109 +318,109 @@ function parseStoredPalette(value) {
 
 const fallbackCopy = {
   zh: {
-    navStudio: "ÂºÄÂèëËÄÖÁºñËæë",
-    editedLabel: "ÊúÄÂêéÁºñËæë‰∫é",
-    saveArticle: "‰øùÂ≠òÊñáÁ´†",
-    createArticle: "Êñ∞Âª∫ÊñáÁ´†",
-    openArticle: "Êü•ÁúãÊñáÁ´†",
-    manageArticles: "ÁÆ°ÁêÜÊñáÁ´†",
-    studioTitle: "ÂºÄÂèëËÄÖÁºñËæë",
-    studioBody: "Âú®ËøôÈáåÊñ∞Â¢ûÊñáÁ´†„ÄÅË°•ÂÖÖÂõæÁâáÂíåÈü≥È¢ëÊñá‰ª∂Ôºå‰πüËÉΩÁªßÁª≠‰øÆÊîπ‰πãÂâçÂÜôËøáÁöÑÂÜÖÂÆπ„ÄÇ",
-    studioHint: "ÂÜô‰ΩúÂè∞ÁôªÂΩïÂíåÂÜÖÂÆπ‰øùÂ≠òÁé∞Âú®Áî±ÊúçÂä°Á´ØÂ§ÑÁêÜÔºå‰∏çÂÜçÊö¥Èú≤Âú®ÂâçÁ´Ø„ÄÇ",
-    loginTitle: "ÁôªÂΩïÂºÄÂèëËÄÖÁºñËæë",
-    loginBody: "ËæìÂÖ•Áî±ÊúçÂä°Á´ØÊ†°È™åÁöÑË¥¶Âè∑ÂíåÂØÜÁ†ÅÂêéÊâçËÉΩËøõÂÖ•ÂêéÂè∞„ÄÇ",
-    username: "Ë¥¶Êà∑Âêç",
-    password: "ÂØÜÁ†Å",
-    login: "ÁôªÂΩï",
-    logout: "ÈÄÄÂá∫ÁôªÂΩï",
-    loginError: "Ë¥¶Êà∑ÂêçÊàñÂØÜÁ†ÅÈîôËØØ",
-    articleTitle: "Ê†áÈ¢ò",
-    articleExcerpt: "ÊëòË¶Å",
-    articleContent: "Ê≠£Êñá",
-    articleTag: "Ê†áÁ≠æ",
-    articleReadTime: "ÈòÖËØªÊó∂Èïø",
-    articleSlug: "ÈìæÊé•Ê†áËØÜ",
-    articleLanguage: "ÁºñËæëËØ≠Ë®Ä",
-    uploadFiles: "‰∏ä‰º†ÂõæÁâá / Èü≥È¢ë / ËßÜÈ¢ë / Êñá‰ª∂",
-    attachments: "ÈôÑ‰ª∂Â±ïÁ§∫",
-    noAttachments: "ËøòÊ≤°Êúâ‰∏ä‰º†ÈôÑ‰ª∂",
-    articleSaved: "ÊñáÁ´†Â∑≤‰øùÂ≠ò",
-    articleListTitle: "Â∑≤ÊúâÊñáÁ´†",
-    newDraftTitle: "Êñ∞ÊñáÁ´†",
-    attachmentCount: "‰∏™ÈôÑ‰ª∂",
-    mediaImage: "ÂõæÁâá",
-    mediaAudio: "Èü≥È¢ë",
-    mediaVideo: "ËßÜÈ¢ë",
-    mediaFile: "Êñá‰ª∂",
-    remove: "Âà†Èô§",
-    preview: "È¢ÑËßà",
-    studioEntry: "ËøõÂÖ•ÂêéÂè∞",
-    articleEmpty: "ËøôÁØáÊñáÁ´†ËøòÊ≤°ÊúâÊ≠£ÊñáÂÜÖÂÆπ„ÄÇ",
-    insertAttachment: "ÊèíÂÖ•Âà∞Ê≠£Êñá",
-    insertedAttachment: "Â∑≤ÊèíÂÖ•Ê≠£Êñá",
-    unplacedAttachments: "Êú™ÊèíÂÖ•Ê≠£ÊñáÁöÑÈôÑ‰ª∂",
-    contentEditorTitle: "ÁΩëÈ°µÂÜÖÂÆπÁºñËæë",
-    contentEditorBody: "ËøôÈáåÂèØ‰ª•Áõ¥Êé•‰øÆÊîπÈ¶ñÈ°µÂíåÁ´ôÂÜÖ‰∏ªË¶ÅÊñáÊ°àÔºå‰øùÂ≠òÂêéÈ°µÈù¢‰ºöÁ´ãÂç≥‰ΩøÁî®Êñ∞ÂÜÖÂÆπ„ÄÇ",
-    saveSiteContent: "‰øùÂ≠òÁΩëÁ´ôÂÜÖÂÆπ",
-    siteContentSaved: "ÁΩëÁ´ôÂÜÖÂÆπÂ∑≤‰øùÂ≠ò",
-    browserTitle: "Ê†áÁ≠æÈ°µÂêçÁß∞",
-    backgroundTitle: "ÁΩëÈ°µËÉåÊôØ",
-    uploadBackground: "‰∏ä‰º†ËÉåÊôØÂõæ",
-    clearBackground: "Ê∏ÖÈô§ËÉåÊôØ",
-    backgroundPreset: "ËÉåÊôØÈ¢ÑËÆæ",
-    brandName: "Á´ôÁÇπÂêçÁß∞",
-    brandEmail: "ËÅîÁ≥ªÈÇÆÁÆ±",
-    brandLocation: "ÊâÄÂú®Âú∞Âå∫",
-    roleLabel: "‰∏™‰∫∫ËßíËâ≤",
-    introLabel: "‰∏™‰∫∫‰ªãÁªç",
-    statProjects: "È°πÁõÆÊï∞Èáè",
-    statEssays: "ÊñáÁ´†Êï∞Èáè",
-    statLabs: "ÂÆûÈ™åÊï∞Èáè",
-    loginLocked: "ÁôªÂΩïÂ§±Ë¥•Ê¨°Êï∞ËøáÂ§öÔºåËØ∑Á®çÂêéÂÜçËØï",
-    sessionExpired: "ÂêéÂè∞‰ºöËØùÂ∑≤ËøáÊúüÔºåËØ∑ÈáçÊñ∞ÁôªÂΩï",
-    projectsEditorTitle: "È°πÁõÆÁºñËæë",
-    projectsEditorBody: "ËøôÈáåÂèØ‰ª•Êñ∞Â¢û„ÄÅ‰øÆÊîπÈ°πÁõÆÂç°ÁâáÂíåÈ°πÁõÆËØ¶ÊÉÖÂÜÖÂÆπ„ÄÇ",
-    saveProject: "‰øùÂ≠òÈ°πÁõÆ",
-    deleteProject: "Âà†Èô§È°πÁõÆ",
-    createProject: "Êñ∞Âª∫È°πÁõÆ",
-    projectSaved: "È°πÁõÆÂ∑≤‰øùÂ≠ò",
-    projectListTitle: "Â∑≤ÊúâÈ°πÁõÆ",
-    projectTitle: "È°πÁõÆÊ†áÈ¢ò",
-    projectCategory: "È°πÁõÆÂàÜÁ±ª",
-    projectSummary: "È°πÁõÆÊëòË¶Å",
-    projectMetrics: "ÊäÄÊúØÊ†áÁ≠æ",
-    projectChallenge: "ÈóÆÈ¢ò",
-    projectSolution: "ÊñπÊ°à",
-    projectOutcome: "ÁªìÊûú",
-    articleSearch: "ÊêúÁ¥¢ÊñáÁ´†",
-    articleSearchPlaceholder: "ËæìÂÖ•Ê†áÈ¢ò„ÄÅÊëòË¶ÅÊàñÊ†áÁ≠æ",
-    allTags: "ÂÖ®ÈÉ®Ê†áÁ≠æ",
-    noArticleResults: "Ê≤°ÊúâÂåπÈÖçÁöÑÊñáÁ´†",
-    readingProgress: "ÈòÖËØªËøõÂ∫¶",
-    copyLink: "Â§çÂà∂ÈìæÊé•",
-    linkCopied: "ÈìæÊé•Â∑≤Â§çÂà∂",
+    navStudio: "ø™∑¢’ﬂ±‡º≠",
+    editedLabel: "◊Ó∫Û±‡º≠”⁄",
+    saveArticle: "±£¥ÊŒƒ’¬",
+    createArticle: "–¬Ω®Œƒ’¬",
+    openArticle: "≤Èø¥Œƒ’¬",
+    manageArticles: "π‹¿ÌŒƒ’¬",
+    studioTitle: "ø™∑¢’ﬂ±‡º≠",
+    studioBody: "‘⁄’‚¿Ô–¬‘ˆŒƒ’¬°¢≤π≥‰Õº∆¨∫Õ“Ù∆µŒƒº˛£¨“≤ƒ‹ºÃ–¯–ﬁ∏ƒ÷Æ«∞–¥π˝µƒƒ⁄»›°£",
+    studioHint: "–¥◊˜Ã®µ«¬º∫Õƒ⁄»›±£¥Êœ÷‘⁄”…∑˛ŒÒ∂À¥¶¿Ì£¨≤ª‘Ÿ±©¬∂‘⁄«∞∂À°£",
+    loginTitle: "µ«¬ºø™∑¢’ﬂ±‡º≠",
+    loginBody: " ‰»Î”…∑˛ŒÒ∂À–£—Èµƒ’À∫≈∫Õ√‹¬Î∫Û≤≈ƒ‹Ω¯»Î∫ÛÃ®°£",
+    username: "’Àªß√˚",
+    password: "√‹¬Î",
+    login: "µ«¬º",
+    logout: "ÕÀ≥ˆµ«¬º",
+    loginError: "’Àªß√˚ªÚ√‹¬Î¥ÌŒÛ",
+    articleTitle: "±ÍÃ‚",
+    articleExcerpt: "’™“™",
+    articleContent: "’˝Œƒ",
+    articleTag: "±Í«©",
+    articleReadTime: "‘ƒ∂¡ ±≥§",
+    articleSlug: "¡¥Ω”±Í ∂",
+    articleLanguage: "±‡º≠”Ô—‘",
+    uploadFiles: "…œ¥´Õº∆¨ / “Ù∆µ /  ”∆µ / Œƒº˛",
+    attachments: "∏Ωº˛’π æ",
+    noAttachments: "ªπ√ª”–…œ¥´∏Ωº˛",
+    articleSaved: "Œƒ’¬“—±£¥Ê",
+    articleListTitle: "“—”–Œƒ’¬",
+    newDraftTitle: "–¬Œƒ’¬",
+    attachmentCount: "∏ˆ∏Ωº˛",
+    mediaImage: "Õº∆¨",
+    mediaAudio: "“Ù∆µ",
+    mediaVideo: " ”∆µ",
+    mediaFile: "Œƒº˛",
+    remove: "…æ≥˝",
+    preview: "‘§¿¿",
+    studioEntry: "Ω¯»Î∫ÛÃ®",
+    articleEmpty: "’‚∆™Œƒ’¬ªπ√ª”–’˝Œƒƒ⁄»›°£",
+    insertAttachment: "≤Â»ÎµΩ’˝Œƒ",
+    insertedAttachment: "“—≤Â»Î’˝Œƒ",
+    unplacedAttachments: "Œ¥≤Â»Î’˝Œƒµƒ∏Ωº˛",
+    contentEditorTitle: "Õ¯“≥ƒ⁄»›±‡º≠",
+    contentEditorBody: "’‚¿Ôø…“‘÷±Ω”–ﬁ∏ƒ ◊“≥∫Õ’æƒ⁄÷˜“™Œƒ∞∏£¨±£¥Ê∫Û“≥√Êª·¡¢º¥ π”√–¬ƒ⁄»›°£",
+    saveSiteContent: "±£¥ÊÕ¯’æƒ⁄»›",
+    siteContentSaved: "Õ¯’æƒ⁄»›“—±£¥Ê",
+    browserTitle: "±Í«©“≥√˚≥∆",
+    backgroundTitle: "Õ¯“≥±≥æ∞",
+    uploadBackground: "…œ¥´±≥æ∞Õº",
+    clearBackground: "«Â≥˝±≥æ∞",
+    backgroundPreset: "±≥æ∞‘§…Ë",
+    brandName: "’æµ„√˚≥∆",
+    brandEmail: "¡™œµ” œ‰",
+    brandLocation: "À˘‘⁄µÿ«¯",
+    roleLabel: "∏ˆ»ÀΩ«…´",
+    introLabel: "∏ˆ»ÀΩÈ…‹",
+    statProjects: "œÓƒø ˝¡ø",
+    statEssays: "Œƒ’¬ ˝¡ø",
+    statLabs: " µ—È ˝¡ø",
+    loginLocked: "µ«¬º ß∞‹¥Œ ˝π˝∂‡£¨«Î…‘∫Û‘Ÿ ‘",
+    sessionExpired: "∫ÛÃ®ª·ª∞“—π˝∆⁄£¨«Î÷ÿ–¬µ«¬º",
+    projectsEditorTitle: "œÓƒø±‡º≠",
+    projectsEditorBody: "’‚¿Ôø…“‘–¬‘ˆ°¢–ﬁ∏ƒœÓƒøø®∆¨∫ÕœÓƒøœÍ«Èƒ⁄»›°£",
+    saveProject: "±£¥ÊœÓƒø",
+    deleteProject: "…æ≥˝œÓƒø",
+    createProject: "–¬Ω®œÓƒø",
+    projectSaved: "œÓƒø“—±£¥Ê",
+    projectListTitle: "“—”–œÓƒø",
+    projectTitle: "œÓƒø±ÍÃ‚",
+    projectCategory: "œÓƒø∑÷¿‡",
+    projectSummary: "œÓƒø’™“™",
+    projectMetrics: "ºº ı±Í«©",
+    projectChallenge: "Œ Ã‚",
+    projectSolution: "∑Ω∞∏",
+    projectOutcome: "Ω·π˚",
+    articleSearch: "À—À˜Œƒ’¬",
+    articleSearchPlaceholder: " ‰»Î±ÍÃ‚°¢’™“™ªÚ±Í«©",
+    allTags: "»´≤ø±Í«©",
+    noArticleResults: "√ª”–∆•≈‰µƒŒƒ’¬",
+    readingProgress: "‘ƒ∂¡Ω¯∂»",
+    copyLink: "∏¥÷∆¡¥Ω”",
+    linkCopied: "¡¥Ω”“—∏¥÷∆",
     nowTitle: "Now",
-    nowBody: "Ê≠£Âú®ÊâìÁ£®‰∏™‰∫∫ÂçöÂÆ¢„ÄÅÊï¥ÁêÜÈïøÊúüÂÜÖÂÆπÁ≥ªÁªüÔºåÂπ∂ÊåÅÁª≠ÂÅöÁïåÈù¢ÂÆûÈ™å‰∏éÈ°πÁõÆÂÜô‰Ωú„ÄÇ",
-    nowStatusA: "ÂÜôÂçöÂÆ¢ÂêéÂè∞",
-    nowStatusB: "ÂÅöÈ°πÁõÆÈáçÊûÑ",
-    nowStatusC: "Êï¥ÁêÜÂÜÖÂÆπËµÑ‰∫ß",
-    socialEditorTitle: "Á§æ‰∫§Âπ≥Âè∞ÈìæÊé•",
-    socialEditorBody: "ËøôÈáåÂèØ‰ª•‰øÆÊîπÁ§æ‰∫§Âπ≥Âè∞ÂêçÁß∞„ÄÅÈìæÊé•ÂíåÂõæÊ†áÔºåÊîØÊåÅ‰∏ä‰º†Ëá™ÂÆö‰πâÂõæÊ†á„ÄÇ",
-    addSocialLink: "Êñ∞Â¢ûÁ§æ‰∫§ÈìæÊé•",
-    socialLabel: "Âπ≥Âè∞ÂêçÁß∞",
-    socialUrl: "Âπ≥Âè∞ÈìæÊé•",
-    socialIcon: "ÂõæÊ†áÁ±ªÂûã",
-    uploadSocialIcon: "‰∏ä‰º†ÂõæÊ†á",
-    removeSocialLink: "Âà†Èô§ÈìæÊé•",
-    customCardsTitle: "Ëá™ÂÆö‰πâÂç°Áâá",
-    customCardsBody: "Êñ∞Â¢ûÈ¶ñÈ°µÂç°ÁâáÔºåËá™ÂÆö‰πâÊ†áÈ¢ò„ÄÅÊ≠£ÊñáÂíåË∑≥ËΩ¨ÈìæÊé•„ÄÇ",
-    addCustomCard: "Êñ∞Â¢ûÂç°Áâá",
-    removeCustomCard: "Âà†Èô§Âç°Áâá",
-    cardEyebrow: "Âç°ÁâáÁúâÊ†á",
-    cardTitle: "Âç°ÁâáÊ†áÈ¢ò",
-    cardBody: "Âç°ÁâáÊ≠£Êñá",
-    cardLinkLabel: "ÊåâÈíÆÊñáÂ≠ó",
-    cardLinkUrl: "ÊåâÈíÆÈìæÊé•",
+    nowBody: "’˝‘⁄¥Úƒ•∏ˆ»À≤©øÕ°¢’˚¿Ì≥§∆⁄ƒ⁄»›œµÕ≥£¨≤¢≥÷–¯◊ˆΩÁ√Ê µ—È”ÎœÓƒø–¥◊˜°£",
+    nowStatusA: "–¥≤©øÕ∫ÛÃ®",
+    nowStatusB: "◊ˆœÓƒø÷ÿππ",
+    nowStatusC: "’˚¿Ìƒ⁄»›◊ ≤˙",
+    socialEditorTitle: "…ÁΩª∆ΩÃ®¡¥Ω”",
+    socialEditorBody: "’‚¿Ôø…“‘–ﬁ∏ƒ…ÁΩª∆ΩÃ®√˚≥∆°¢¡¥Ω”∫ÕÕº±Í£¨÷ß≥÷…œ¥´◊‘∂®“ÂÕº±Í°£",
+    addSocialLink: "–¬‘ˆ…ÁΩª¡¥Ω”",
+    socialLabel: "∆ΩÃ®√˚≥∆",
+    socialUrl: "∆ΩÃ®¡¥Ω”",
+    socialIcon: "Õº±Í¿‡–Õ",
+    uploadSocialIcon: "…œ¥´Õº±Í",
+    removeSocialLink: "…æ≥˝¡¥Ω”",
+    customCardsTitle: "◊‘∂®“Âø®∆¨",
+    customCardsBody: "–¬‘ˆ ◊“≥ø®∆¨£¨◊‘∂®“Â±ÍÃ‚°¢’˝Œƒ∫ÕÃ¯◊™¡¥Ω”°£",
+    addCustomCard: "–¬‘ˆø®∆¨",
+    removeCustomCard: "…æ≥˝ø®∆¨",
+    cardEyebrow: "ø®∆¨√º±Í",
+    cardTitle: "ø®∆¨±ÍÃ‚",
+    cardBody: "ø®∆¨’˝Œƒ",
+    cardLinkLabel: "∞¥≈•Œƒ◊÷",
+    cardLinkUrl: "∞¥≈•¡¥Ω”",
   },
   en: {
     navStudio: "Developer Editor",
@@ -633,7 +636,7 @@ function ensureLocalizedList(value) {
 }
 
 function normalizeArticle(article, index) {
-  // Áªü‰∏ÄÊñáÁ´†ÁªìÊûÑÔºåÁ°Æ‰øùÂêéÂè∞„ÄÅÂâçÂè∞„ÄÅÂØºÂá∫ÈÄªËæëÈÉΩËØªÂèñÂêå‰∏Ä‰ªΩÂ≠óÊÆµ„ÄÇ
+  // Õ≥“ªŒƒ’¬Ω·ππ£¨»∑±£∫ÛÃ®°¢«∞Ã®°¢µº≥ˆ¬ﬂº≠∂º∂¡»°Õ¨“ª∑›◊÷∂Œ°£
   const updatedAt = article.updatedAt ?? parseArticleDate(article.date).toISOString();
   const title = ensureLocalizedMap(article.title, `Untitled ${index + 1}`);
   const excerpt = ensureLocalizedMap(article.excerpt, "");
@@ -1227,7 +1230,7 @@ function useInteractionGuard() {
     let timerId;
 
     const showBlockedMessage = () => {
-      setMessage("ÁêöÓÇ§Óõ¶Âßù„à¢ÊÆëÈéøÂ∂ÑÁ∂î");
+      setMessage("Ë¢´Á¶ÅÊ≠¢ÁöÑÊìç‰Ωú");
       window.clearTimeout(timerId);
       timerId = window.setTimeout(() => setMessage(""), 1800);
     };
@@ -1630,7 +1633,7 @@ function ExpandableSelector({ label, value, onChange, options }) {
       <button type="button" className="selector-trigger" onClick={() => setOpen((prev) => !prev)}>
         <span className="micro-label">{label}</span>
         <strong>{active?.label}</strong>
-        <span className="selector-caret">{open ? "‚àí" : "+"}</span>
+        <span className="selector-caret">{open ? "?" : "+"}</span>
       </button>
       {open ? (
         <div className="selector-menu glass-card">
@@ -2217,6 +2220,64 @@ function Header({
   onOpenCommandPalette,
 }) {
   const experience = getExperienceCopy(language);
+  const location = useLocation();
+  const navRef = useRef(null);
+  const navItemsRef = useRef({});
+  const [capsuleStyle, setCapsuleStyle] = useState(null);
+
+  const activeNavKey = useMemo(() => {
+    if (location.pathname.startsWith("/studio")) {
+      return "studio";
+    }
+    if (location.pathname.startsWith("/projects")) {
+      return "projects";
+    }
+    if (location.pathname.startsWith("/articles")) {
+      return "articles";
+    }
+    if (location.hash === "#about") {
+      return "about";
+    }
+    return "home";
+  }, [location.hash, location.pathname]);
+
+  const syncNavCapsule = useMemo(
+    () => () => {
+      const navNode = navRef.current;
+      const activeNode = navItemsRef.current[activeNavKey];
+      if (!navNode || !activeNode) {
+        setCapsuleStyle(null);
+        return;
+      }
+      const navRect = navNode.getBoundingClientRect();
+      const activeRect = activeNode.getBoundingClientRect();
+      setCapsuleStyle({
+        width: activeRect.width,
+        height: activeRect.height,
+        transform: `translate(${activeRect.left - navRect.left + navNode.scrollLeft}px, ${activeRect.top - navRect.top + navNode.scrollTop}px)`,
+        opacity: 1,
+      });
+    },
+    [activeNavKey]
+  );
+
+  useLayoutEffect(() => {
+    syncNavCapsule();
+  }, [syncNavCapsule, backgroundPreset, language, location.hash, location.pathname]);
+
+  useEffect(() => {
+    const navNode = navRef.current;
+    if (!navNode) {
+      return undefined;
+    }
+    window.addEventListener("resize", syncNavCapsule);
+    navNode.addEventListener("scroll", syncNavCapsule, { passive: true });
+    return () => {
+      window.removeEventListener("resize", syncNavCapsule);
+      navNode.removeEventListener("scroll", syncNavCapsule);
+    };
+  }, [syncNavCapsule]);
+
   return (
     <header className="site-header">
       <div className="header-panel palette-panel">
@@ -2230,19 +2291,30 @@ function Header({
       </div>
 
       <div className="header-panel nav-panel">
-        <nav className="site-nav">
-          <NavLink to="/">{text.navHome}</NavLink>
-          <NavLink to="/articles">{text.navArticles}</NavLink>
-          <NavLink to={`/projects/${projects[0]?.slug ?? ""}`}>{text.navProjects}</NavLink>
-          <a href="#about">{text.navAbout}</a>
-          <NavLink to="/studio">{copy.navStudio}</NavLink>
+        <nav ref={navRef} className={`site-nav ${capsuleStyle ? "site-nav--ready" : ""}`}>
+          <span className="site-nav__capsule" style={capsuleStyle || undefined} aria-hidden="true" />
+          <NavLink to="/" ref={(node) => (navItemsRef.current.home = node)}>
+            <span className="nav-label">{text.navHome}</span>
+          </NavLink>
+          <NavLink to="/articles" ref={(node) => (navItemsRef.current.articles = node)}>
+            <span className="nav-label">{text.navArticles}</span>
+          </NavLink>
+          <NavLink to={`/projects/${projects[0]?.slug ?? ""}`} ref={(node) => (navItemsRef.current.projects = node)}>
+            <span className="nav-label">{text.navProjects}</span>
+          </NavLink>
+          <a href="#about" ref={(node) => (navItemsRef.current.about = node)}>
+            <span className="nav-label">{text.navAbout}</span>
+          </a>
+          <NavLink to="/studio" ref={(node) => (navItemsRef.current.studio = node)}>
+            <span className="nav-label">{copy.navStudio}</span>
+          </NavLink>
         </nav>
       </div>
 
       <div className="header-panel tool-panel">
         <div className="tool-stack">
           <button type="button" className="selector-trigger selector-trigger--command" onClick={onOpenCommandPalette}>
-            <span className="micro-label">‚åòK</span>
+            <span className="micro-label">?K</span>
             <strong>{experience.commandOpen}</strong>
           </button>
           <ExpandableSelector label={text.backgroundPreset} value={backgroundPreset} onChange={setBackgroundPreset} options={THEME_PRESET_OPTIONS} />
@@ -2308,7 +2380,7 @@ function Shell({
   const transitionKey = `${location.pathname}|${backgroundPreset}`;
   const commandActions = useMemo(() => {
     const experience = getExperienceCopy(language);
-    // ‰∏ªÈ¢ò„ÄÅËØ≠Ë®Ä„ÄÅÂ∏ÉÂ±Ä„ÄÅÊúÄËøëËΩ®ËøπÁªü‰∏ÄÊ±áÊÄªÂà∞ÂëΩ‰ª§Èù¢ÊùøÈáåÔºå‰Ωú‰∏∫ÂÖ®Á´ôÊéßÂà∂‰∏≠ÂøÉ„ÄÇ
+    // ÷˜Ã‚°¢”Ô—‘°¢≤ºæ÷°¢◊ÓΩ¸πÏº£Õ≥“ªª„◊‹µΩ√¸¡Ó√Ê∞Â¿Ô£¨◊˜Œ™»´’æøÿ÷∆÷––ƒ°£
     const themeActions = THEME_PRESET_OPTIONS.map((item) => ({
       id: `theme-${item.code}`,
       group: experience.quickTheme,
@@ -2579,7 +2651,7 @@ function useSeo({ title, description, image }) {
   }, [description, image, title]);
 }
 
-// ËØªÂèñÊúÄËøëËΩ®ËøπÔºöÁ´ôÂÜÖÊéßÂà∂‰∏≠ÂøÉ‰ºöÂ§çÁî®ËøôÁªÑËØªÂèñ/ÂÜôÂÖ•ÈÄªËæë„ÄÇ
+// ∂¡»°◊ÓΩ¸πÏº££∫’æƒ⁄øÿ÷∆÷––ƒª·∏¥”√’‚◊È∂¡»°/–¥»Î¬ﬂº≠°£
 function getStoredTrail(storageKey) {
   try {
     return JSON.parse(window.localStorage.getItem(storageKey) || "[]");
@@ -2607,7 +2679,7 @@ function getRecentEdits() {
 }
 
 function pushRecentAccess(entry) {
-  // ÂéªÈáçÂêéÂè™‰øùÁïôÊúÄËøëÂá†Êù°ÊµèËßàËÆ∞ÂΩïÔºåÊñπ‰æøÂëΩ‰ª§Èù¢Êùø‰Ωú‰∏∫Á´ôÂÜÖ‰∏≠Êû¢‰ΩøÁî®„ÄÇ
+  // »•÷ÿ∫Û÷ª±£¡Ù◊ÓΩ¸º∏Ãı‰Ø¿¿º«¬º£¨∑Ω±„√¸¡Ó√Ê∞Â◊˜Œ™’æƒ⁄÷– ‡ π”√°£
   const current = getRecentAccesses().filter((item) => item.path !== entry.path);
   const next = [entry, ...current].slice(0, 8);
   window.localStorage.setItem(RECENT_ACCESS_STORAGE_KEY, JSON.stringify(next));
@@ -2630,7 +2702,7 @@ function getTimelineDate(item) {
 }
 
 function buildArchiveGroups(articles, projects) {
-  // ÊääÊñáÁ´†ÂíåÈ°πÁõÆÊåâÊó∂Èó¥ÂêàÂπ∂ÔºåÁîüÊàêÁªü‰∏ÄÁöÑÊ°£Ê°àÊó∂Èó¥Á∫øÊï∞ÊçÆ„ÄÇ
+  // ∞—Œƒ’¬∫ÕœÓƒø∞¥ ±º‰∫œ≤¢£¨…˙≥…Õ≥“ªµƒµµ∞∏ ±º‰œﬂ ˝æ›°£
   const entries = [
     ...articles.map((article) => ({
       id: `article-${article.slug}`,
@@ -2662,7 +2734,7 @@ function buildArchiveGroups(articles, projects) {
   }, {});
 }
 
-// ÊääÊó∂Èó¥Ê°£Ê°àÊï¥ÁêÜÊàêÊâÅÂπ≥Êù°ÁõÆÔºåÊñπ‰æøÁ≠õÈÄâ„ÄÅÊêúÁ¥¢ÂíåË∑≥ËΩ¨„ÄÇ
+// ∞— ±º‰µµ∞∏’˚¿Ì≥…±‚∆ΩÃıƒø£¨∑Ω±„…∏—°°¢À—À˜∫ÕÃ¯◊™°£
 function buildArchiveEntries(articles, projects) {
   return Object.entries(buildArchiveGroups(articles, projects)).flatMap(([year, items]) =>
     items.map((item) => ({
@@ -2718,18 +2790,77 @@ function buildHomeCardItems({ language, projects, articles, customCards, text, c
 }
 
 function HomeArchiveFlow({ language, entries, experience }) {
-  const groups = entries.reduce((acc, item) => {
-    if (!acc[item.year]) {
-      acc[item.year] = [];
+  const [activeType, setActiveType] = useState(() => {
+    try {
+      const stored = JSON.parse(window.localStorage.getItem(HOME_ARCHIVE_STATE_STORAGE_KEY) || "{}");
+      return stored.activeType || "all";
+    } catch {
+      return "all";
     }
-    acc[item.year].push(item);
-    return acc;
-  }, {});
+  });
+  const [collapsedYears, setCollapsedYears] = useState(() => {
+    try {
+      const stored = JSON.parse(window.localStorage.getItem(HOME_ARCHIVE_STATE_STORAGE_KEY) || "{}");
+      return stored.collapsedYears || [];
+    } catch {
+      return [];
+    }
+  });
+
+  const typeOptions = [
+    { code: "all", label: experience.timelineAll || "All" },
+    { code: "article", label: experience.timelineArticles },
+    { code: "project", label: experience.timelineProjects },
+  ];
+
+  const filteredEntries = useMemo(() => {
+    if (activeType === "all") {
+      return entries;
+    }
+    return entries.filter((item) => item.type === activeType);
+  }, [activeType, entries]);
+
+  const groups = useMemo(
+    () =>
+      filteredEntries.reduce((acc, item) => {
+        if (!acc[item.year]) {
+          acc[item.year] = [];
+        }
+        acc[item.year].push(item);
+        return acc;
+      }, {}),
+    [filteredEntries]
+  );
+
+  useEffect(() => {
+    window.localStorage.setItem(
+      HOME_ARCHIVE_STATE_STORAGE_KEY,
+      JSON.stringify({ activeType, collapsedYears })
+    );
+  }, [activeType, collapsedYears]);
+
+  const toggleYear = (year) => {
+    setCollapsedYears((current) =>
+      current.includes(year) ? current.filter((item) => item !== year) : [...current, year]
+    );
+  };
 
   return (
     <section className="section home-archive-flow">
       <aside className="home-archive-flow__rail glass-card">
         <p className="micro-label">{experience.archiveTitle}</p>
+        <div className="home-archive-flow__filters">
+          {typeOptions.map((option) => (
+            <button
+              key={option.code}
+              type="button"
+              className={`home-archive-flow__filter ${activeType === option.code ? "active" : ""}`}
+              onClick={() => setActiveType(option.code)}
+            >
+              {option.label}
+            </button>
+          ))}
+        </div>
         <div className="home-archive-flow__years">
           {Object.keys(groups).map((year) => (
             <a key={year} href={`#home-archive-${year}`} className="home-archive-flow__year">
@@ -2739,32 +2870,47 @@ function HomeArchiveFlow({ language, entries, experience }) {
         </div>
       </aside>
       <div className="home-archive-flow__stream">
-        {Object.entries(groups).map(([year, items], yearIndex) => (
-          <Reveal key={year} delay={yearIndex * 70}>
-            <article id={`home-archive-${year}`} className="home-archive-flow__year-group glass-card">
-              <div className="home-archive-flow__year-head">
-                <strong>{year}</strong>
-                <span>{items.length} entries</span>
-              </div>
-              <div className="home-archive-flow__list">
-                {items.map((item) => (
-                  <div key={item.id} className="home-archive-flow__item">
-                    <span className="micro-label">{item.type === "article" ? experience.timelineArticles : experience.timelineProjects}</span>
-                    <div>
-                      {item.type === "article" ? (
-                        <Link to={`/articles/${item.slug}`}>{item.title[language] || item.title.en}</Link>
-                      ) : (
-                        <Link to={`/projects/${item.slug}`}>{item.title[language] || item.title.en}</Link>
-                      )}
-                      <p className="body-copy">{item.summary[language] || item.summary.en}</p>
-                    </div>
-                    <time>{formatArticleDate(item.date)}</time>
+        {Object.entries(groups).map(([year, items], yearIndex) => {
+          const collapsed = collapsedYears.includes(year);
+          return (
+            <Reveal key={year} delay={yearIndex * 70}>
+              <article
+                id={`home-archive-${year}`}
+                className={`home-archive-flow__year-group glass-card ${collapsed ? "collapsed" : ""}`}
+              >
+                <div className="home-archive-flow__year-head">
+                  <div>
+                    <strong>{year}</strong>
+                    <span>{items.length} entries</span>
                   </div>
-                ))}
-              </div>
-            </article>
-          </Reveal>
-        ))}
+                  <button
+                    type="button"
+                    className="home-archive-flow__collapse"
+                    onClick={() => toggleYear(year)}
+                  >
+                    {collapsed ? (experience.expandLabel || "Expand") : (experience.collapseLabel || "Collapse")}
+                  </button>
+                </div>
+                <div className="home-archive-flow__list" hidden={collapsed}>
+                  {items.map((item) => (
+                    <div key={item.id} className="home-archive-flow__item">
+                      <span className="micro-label">{item.type === "article" ? experience.timelineArticles : experience.timelineProjects}</span>
+                      <div>
+                        {item.type === "article" ? (
+                          <Link to={`/articles/${item.slug}`}>{item.title[language] || item.title.en}</Link>
+                        ) : (
+                          <Link to={`/projects/${item.slug}`}>{item.title[language] || item.title.en}</Link>
+                        )}
+                        <p className="body-copy">{item.summary[language] || item.summary.en}</p>
+                      </div>
+                      <time>{formatArticleDate(item.date)}</time>
+                    </div>
+                  ))}
+                </div>
+              </article>
+            </Reveal>
+          );
+        })}
       </div>
     </section>
   );
@@ -2785,7 +2931,18 @@ function HomeCardBoard({ items }) {
       return items;
     }
   });
+  const [cardMeta, setCardMeta] = useState(() => {
+    try {
+      return JSON.parse(window.localStorage.getItem(HOME_CARD_META_STORAGE_KEY) || "{}");
+    } catch {
+      return {};
+    }
+  });
   const [draggingId, setDraggingId] = useState(null);
+  const hiddenIds = cardMeta.hiddenIds || [];
+  const lockedIds = cardMeta.lockedIds || [];
+  const sizeMap = cardMeta.sizeMap || {};
+  const sizeOrder = ["normal", "wide", "tall"];
 
   useEffect(() => {
     setOrderedItems((current) => {
@@ -2803,6 +2960,24 @@ function HomeCardBoard({ items }) {
     );
   }, [orderedItems]);
 
+  useEffect(() => {
+    const validIds = new Set(items.map((item) => item.id));
+    setCardMeta((current) => ({
+      hiddenIds: (current.hiddenIds || []).filter((id) => validIds.has(id)),
+      lockedIds: (current.lockedIds || []).filter((id) => validIds.has(id)),
+      sizeMap: Object.fromEntries(
+        Object.entries(current.sizeMap || {}).filter(([id]) => validIds.has(id))
+      ),
+    }));
+  }, [items]);
+
+  useEffect(() => {
+    window.localStorage.setItem(HOME_CARD_META_STORAGE_KEY, JSON.stringify(cardMeta));
+  }, [cardMeta]);
+
+  const visibleItems = orderedItems.filter((item) => !hiddenIds.includes(item.id));
+  const hiddenItems = orderedItems.filter((item) => hiddenIds.includes(item.id));
+
   const handleDrop = (targetId) => {
     if (!draggingId || draggingId === targetId) {
       setDraggingId(null);
@@ -2818,38 +2993,94 @@ function HomeCardBoard({ items }) {
     setDraggingId(null);
   };
 
+  const toggleCardFlag = (field, id) => {
+    setCardMeta((current) => {
+      const list = current[field] || [];
+      return {
+        ...current,
+        [field]: list.includes(id) ? list.filter((item) => item !== id) : [...list, id],
+      };
+    });
+  };
+
+  const cycleCardSize = (id) => {
+    setCardMeta((current) => {
+      const currentSize = (current.sizeMap || {})[id] || "normal";
+      const nextSize = sizeOrder[(sizeOrder.indexOf(currentSize) + 1) % sizeOrder.length];
+      return {
+        ...current,
+        sizeMap: {
+          ...(current.sizeMap || {}),
+          [id]: nextSize,
+        },
+      };
+    });
+  };
+
   return (
     <section className="section home-card-board">
-      {orderedItems.map((item, index) => (
-        <Reveal key={item.id} delay={index * 40}>
-          <article
-            className={`home-card-board__item glass-card ${draggingId === item.id ? "dragging" : ""}`}
-            draggable
-            onDragStart={() => setDraggingId(item.id)}
-            onDragOver={(event) => event.preventDefault()}
-            onDrop={() => handleDrop(item.id)}
-            onDragEnd={() => setDraggingId(null)}
-          >
-            <span className="micro-label">{item.eyebrow}</span>
-            <h3>{item.title}</h3>
-            <p className="body-copy">{item.body}</p>
-            {item.external ? (
-              <a className="inline-link" href={item.href} target="_blank" rel="noreferrer">
-                {item.action}
-              </a>
-            ) : (
-              <Link className="inline-link" to={item.href}>
-                {item.action}
-              </Link>
-            )}
-          </article>
-        </Reveal>
-      ))}
+      {visibleItems.map((item, index) => {
+        const isLocked = lockedIds.includes(item.id);
+        const size = sizeMap[item.id] || "normal";
+        return (
+          <Reveal key={item.id} delay={index * 40}>
+            <article
+              className={`home-card-board__item home-card-board__item--${size} glass-card ${draggingId === item.id ? "dragging" : ""} ${isLocked ? "locked" : ""}`}
+              draggable={!isLocked}
+              onDragStart={() => !isLocked && setDraggingId(item.id)}
+              onDragOver={(event) => event.preventDefault()}
+              onDrop={() => handleDrop(item.id)}
+              onDragEnd={() => setDraggingId(null)}
+            >
+              <div className="home-card-board__toolbar">
+                <span className="micro-label">{item.eyebrow}</span>
+                <div className="home-card-board__actions">
+                  <button type="button" onClick={() => cycleCardSize(item.id)}>
+                    {size === "wide" ? "øÌ" : size === "tall" ? "∏ﬂ" : "±Í◊º"}
+                  </button>
+                  <button type="button" onClick={() => toggleCardFlag("lockedIds", item.id)}>
+                    {isLocked ? "Ω‚À¯" : "À¯∂®"}
+                  </button>
+                  <button type="button" onClick={() => toggleCardFlag("hiddenIds", item.id)}>
+                    …æ≥˝
+                  </button>
+                </div>
+              </div>
+              <h3>{item.title}</h3>
+              <p className="body-copy">{item.body}</p>
+              {item.external ? (
+                <a className="inline-link" href={item.href} target="_blank" rel="noreferrer">
+                  {item.action}
+                </a>
+              ) : (
+                <Link className="inline-link" to={item.href}>
+                  {item.action}
+                </Link>
+              )}
+            </article>
+          </Reveal>
+        );
+      })}
+      {hiddenItems.length ? (
+        <div className="home-card-board__hidden glass-card">
+          <div className="home-card-board__hidden-head">
+            <span className="micro-label">“˛≤ÿø®∆¨</span>
+            <strong>{hiddenItems.length}</strong>
+          </div>
+          <div className="home-card-board__hidden-list">
+            {hiddenItems.map((item) => (
+              <button key={item.id} type="button" onClick={() => toggleCardFlag("hiddenIds", item.id)}>
+                ª÷∏¥ {item.title}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
     </section>
   );
 }
 
-// ËØªÂèñÂçïÁØáÊñáÁ´†ÁöÑÈòÖËØªÂÆ§Áä∂ÊÄÅÔºå‰æõÊñáÁ´†È°µÂíåÂºÄÂèëËÄÖÁºñËæë‰πãÈó¥ÂêåÊ≠•ÊâπÊ≥®„ÄÇ
+// ∂¡»°µ•∆™Œƒ’¬µƒ‘ƒ∂¡ “◊¥Ã¨£¨π©Œƒ’¬“≥∫Õø™∑¢’ﬂ±‡º≠÷Æº‰Õ¨≤Ω≈˙◊¢°£
 function getReadingRoomSnapshot(slug) {
   if (!slug) {
     return { highlights: {}, favorites: {}, notes: {}, scrollY: 0 };
@@ -2979,7 +3210,7 @@ function ArchivePage({ language, articles, projects, meta }) {
     [entries, language]
   );
   const filteredEntries = useMemo(() => {
-    // Ê°£Ê°àÈ°µÊîØÊåÅÂπ¥‰ªΩ„ÄÅÊ†áÁ≠æ‰∏éÂÖ≥ÈîÆËØç‰∏âÈáçËøáÊª§ÔºåÈÅøÂÖçÂÜÖÂÆπÂ¢ûÂ§öÂêéÈöæ‰ª•ÂÆö‰Ωç„ÄÇ
+    // µµ∞∏“≥÷ß≥÷ƒÍ∑›°¢±Í«©”Îπÿº¸¥ »˝÷ÿπ˝¬À£¨±‹√‚ƒ⁄»›‘ˆ∂‡∫Ûƒ—“‘∂®Œª°£
     const lowered = query.trim().toLowerCase();
     return entries.filter((item) => {
       const itemYear = item.year;
@@ -3148,7 +3379,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
     setGuestbookForm({ name: "", message: "" });
   };
 
-  // Áªü‰∏ÄÂ§ÑÁêÜÈ¶ñÈ°µÂ∏ÉÂ±ÄÂàáÊç¢Ôºå‰øùËØÅÁÇπÂáªÊåâÈíÆÂêéÊú¨È°µ„ÄÅÂëΩ‰ª§Èù¢ÊùøÂíåÊú¨Âú∞ÁºìÂ≠òÂêåÊ≠•„ÄÇ
+  // Õ≥“ª¥¶¿Ì ◊“≥≤ºæ÷«–ªª£¨±£÷§µ„ª˜∞¥≈•∫Û±æ“≥°¢√¸¡Ó√Ê∞Â∫Õ±æµÿª∫¥ÊÕ¨≤Ω°£
   const applyHomeLayout = (nextLayout) => {
     const normalized = normalizeHomeLayout(nextLayout);
     setHomeLayout(normalized);
@@ -3722,7 +3953,7 @@ function ArticlesPage({ language, text, copy, articles, meta, isXFlow }) {
 
 function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
   const { slug } = useParams();
-  // ÊØèÁØáÊñáÁ´†ÈÉΩÊúâÁã¨Á´ãÈòÖËØªÂÆ§Áä∂ÊÄÅÔºåËÆ∞ÂΩïÈ´ò‰∫Æ„ÄÅÊî∂Ëóè„ÄÅÊâπÊ≥®ÂíåÈòÖËØª‰ΩçÁΩÆ„ÄÇ
+  // √ø∆™Œƒ’¬∂º”–∂¿¡¢‘ƒ∂¡ “◊¥Ã¨£¨º«¬º∏ﬂ¡¡°¢ ’≤ÿ°¢≈˙◊¢∫Õ‘ƒ∂¡Œª÷√°£
   const articleStorageKey = `template-reading-room:${slug || "article"}`;
   const article = useMemo(
     () => articles.find((item) => item.slug === slug) ?? articles[0],
@@ -3814,7 +4045,7 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
   }, [paragraphState.scrollY, slug]);
 
   useEffect(() => {
-    // ËøõÂÖ•ÊñáÁ´†Êó∂ÂÜôÂÖ•ÊúÄËøëÈòÖËØªÔºå‰æõÂëΩ‰ª§Èù¢ÊùøÂø´ÈÄüÂõûÂà∞‰∏äÊ¨°ÈòÖËØª‰ΩçÁΩÆ„ÄÇ
+    // Ω¯»ÎŒƒ’¬ ±–¥»Î◊ÓΩ¸‘ƒ∂¡£¨π©√¸¡Ó√Ê∞ÂøÏÀŸªÿµΩ…œ¥Œ‘ƒ∂¡Œª÷√°£
     if (!article) {
       return;
     }
@@ -3920,7 +4151,7 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
   };
 
   const exportNotes = () => {
-    // ÂØºÂá∫ÂΩìÂâçÊñáÁ´†ÁöÑÈ´ò‰∫Æ/Êî∂Ëóè/ÊâπÊ≥®Ôºå‰æø‰∫éÊï¥ÁêÜ‰∏∫Â§ñÈÉ®Á¨îËÆ∞„ÄÇ
+    // µº≥ˆµ±«∞Œƒ’¬µƒ∏ﬂ¡¡/ ’≤ÿ/≈˙◊¢£¨±„”⁄’˚¿ÌŒ™Õ‚≤ø± º«°£
     const content = rendered
       .filter((block) => block.type === "text" && (paragraphState.notes[block.id] || paragraphState.highlights[block.id] || paragraphState.favorites[block.id]))
       .map((block, index) => {
@@ -4492,7 +4723,7 @@ function StudioPage({
   }, [projects, selectedProjectSlug]);
 
   useEffect(() => {
-    // ÂëΩ‰ª§Èù¢ÊùøÂèØ‰ª•ÈÄöËøá query ÂèÇÊï∞Áõ¥Êé•Âî§Ëµ∑‚ÄúÊñ∞Âª∫ / ÁºñËæë‚ÄùÁä∂ÊÄÅ„ÄÇ
+    // √¸¡Ó√Ê∞Âø…“‘Õ®π˝ query ≤Œ ˝÷±Ω”ªΩ∆°∞–¬Ω® / ±‡º≠°±◊¥Ã¨°£
     const params = new URLSearchParams(location.search);
     const createTarget = params.get("create");
     const editArticle = params.get("editArticle");
@@ -6096,7 +6327,6 @@ export default function App() {
     </>
   );
 }
-
 
 
 

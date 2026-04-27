@@ -715,6 +715,11 @@ body[data-background-preset="xflow"] .site-nav {
   overflow-x: auto;
 }
 
+body[data-background-preset="xflow"] .site-nav__capsule {
+  background: #8ce9f4;
+  box-shadow: 0 14px 28px rgba(104, 215, 239, 0.24);
+}
+
 body[data-background-preset="xflow"] .site-nav a,
 body[data-background-preset="xflow"] .selector-trigger,
 body[data-background-preset="xflow"] .theme-toggle,
@@ -735,10 +740,10 @@ body[data-background-preset="xflow"] .theme-toggle {
 body[data-background-preset="xflow"] .site-nav a.active,
 body[data-background-preset="xflow"] .site-nav a:hover,
 body[data-background-preset="xflow"] .tag-chip--button.active {
-  background: #111827;
-  border-color: #111827;
-  color: #ffffff;
-  box-shadow: 0 12px 24px rgba(17, 24, 39, 0.18);
+  background: transparent;
+  border-color: transparent;
+  color: #0f172a;
+  box-shadow: none;
 }
 
 body[data-background-preset="xflow"] .site-nav a.active .nav-label,
@@ -751,6 +756,15 @@ body[data-background-preset="xflow"] .site-nav a:hover::after {
   background: linear-gradient(90deg, #68d7ef, #f0b36b);
   opacity: 1;
   transform: scaleX(1);
+}
+
+body[data-background-preset="xflow"] .home-archive-flow__filter.active,
+body[data-background-preset="xflow"] .home-archive-flow__collapse:hover,
+body[data-background-preset="xflow"] .home-card-board__actions button:hover,
+body[data-background-preset="xflow"] .home-card-board__hidden-list button:hover {
+  background: #8ce9f4;
+  color: #0f172a;
+  box-shadow: 0 12px 24px rgba(104, 215, 239, 0.22);
 }
 
 body[data-background-preset="xflow"] .selector-menu,
