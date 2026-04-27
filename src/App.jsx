@@ -3306,6 +3306,23 @@ function HomeCardBoard({ items, onSaveCardOverride, canEditContent }) {
     updateCardEdit(item.id, "coverImage", item.coverImage || "");
   };
 
+  // 将快捷编辑里的文案字段恢复为卡片原始内容，方便只回滚文本覆盖而保留布局设置。
+  const restoreDefaultCardContent = (item) => {
+    setCardMeta((current) => ({
+      ...current,
+      editMap: {
+        ...(current.editMap || {}),
+        [item.id]: {
+          ...((current.editMap || {})[item.id] || {}),
+          title: item.title || "",
+          body: item.body || "",
+          href: item.href || "",
+          action: item.action || "",
+        },
+      },
+    }));
+  };
+
   const handleResizeStart = (event, id, currentSize) => {
     event.preventDefault();
     event.stopPropagation();
@@ -3410,6 +3427,9 @@ function HomeCardBoard({ items, onSaveCardOverride, canEditContent }) {
                   <textarea value={body} onChange={(event) => updateCardEdit(item.id, "body", event.target.value)} placeholder="摘要" rows={3} />
                   <input value={href} onChange={(event) => updateCardEdit(item.id, "href", event.target.value)} placeholder="链接" />
                   <input value={action} onChange={(event) => updateCardEdit(item.id, "action", event.target.value)} placeholder="按钮文案" />
+                  <div className="home-card-board__editor-actions">
+                    <button type="button" onClick={() => restoreDefaultCardContent(item)}>恢复默认文案</button>
+                  </div>
                   <div className="home-card-board__editor-cover">
                     <label className="home-card-board__cover-upload">
                       <span>上传封面</span>
