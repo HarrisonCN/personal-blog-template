@@ -2267,6 +2267,7 @@ function Header({
         width: activeRect.width,
         height: activeRect.height,
         transform: `translate(${activeRect.left - navRect.left + navNode.scrollLeft}px, ${activeRect.top - navRect.top + navNode.scrollTop}px)`,
+        "--nav-transform": `translate(${activeRect.left - navRect.left + navNode.scrollLeft}px, ${activeRect.top - navRect.top + navNode.scrollTop}px)`,
         opacity: 1,
       });
     },
@@ -2492,6 +2493,22 @@ function Shell({
 
     const archiveEntries = buildArchiveEntries(articles, projects);
     const archiveYears = Array.from(new Set(archiveEntries.map((item) => item.year)));
+    const archiveParams = new URLSearchParams(location.search);
+    const currentArchiveType = archiveParams.get("archiveType") || "all";
+    const currentArchiveYear = archiveParams.get("archiveYear") || "all";
+    const currentArchiveTypeLabel =
+      currentArchiveType === "article"
+        ? experience.timelineArticles
+        : currentArchiveType === "project"
+          ? experience.timelineProjects
+          : experience.timelineAll || "All";
+    const currentArchiveAction = {
+      id: "archive-current",
+      group: experience.archiveTitle,
+      label: `${experience.archiveTitle}: ${currentArchiveYear === "all" ? "All Years" : currentArchiveYear} / ${currentArchiveTypeLabel}`,
+      keywords: `archive current ${currentArchiveYear} ${currentArchiveType}`,
+      run: () => navigate(location.pathname === "/archive" ? `${location.pathname}${location.search}` : "/archive"),
+    };
     const archiveTypeActions = [
       { code: "all", label: experience.timelineAll || "All" },
       { code: "article", label: experience.timelineArticles },
@@ -2520,12 +2537,13 @@ function Shell({
       ...layoutActions,
       ...themeActions,
       ...languageActions,
+      currentArchiveAction,
       ...archiveTypeActions,
       ...archiveYearActions,
       ...articleActions,
       ...projectActions,
     ];
-  }, [articles, copy.navStudio, language, location.pathname, navigate, projects, setBackgroundPreset, setLanguage, text.navArticles, text.navHome]);
+  }, [articles, copy.navStudio, language, location.pathname, location.search, navigate, projects, setBackgroundPreset, setLanguage, text.navArticles, text.navHome]);
 
   useEffect(() => {
     window.scrollTo({ top: 0, behavior: "auto" });
@@ -6425,6 +6443,7 @@ function StudioPage({
                 <div className="studio-list">
                   {Object.entries(siteDraft.meta.homeCardOverrides || {}).map(([cardId, override]) => (
                     <div key={cardId} className="studio-block">
+                      {override.coverImage ? <img className="studio-cover-preview" src={override.coverImage} alt={`${cardId} cover`} /> : null}
                       <div className="studio-form__row">
                         <label className="studio-field">
                           <span>Card ID</span>
