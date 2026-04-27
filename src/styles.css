@@ -24,10 +24,77 @@
   --cursor-ring: rgba(255, 255, 255, 0.28);
   --cursor-glow: color-mix(in srgb, var(--accent) 42%, transparent);
   --cursor-glow-warm: color-mix(in srgb, var(--accent-warm) 18%, transparent);
+  --motion-fast: 160ms;
+  --motion-base: 260ms;
+  --motion-slow: 420ms;
+  --motion-slower: 680ms;
+  --ease-standard: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-spring: cubic-bezier(0.18, 0.9, 0.22, 1.12);
+  --ease-soft: cubic-bezier(0.16, 1, 0.3, 1);
+  --lift-distance: -3px;
+  --press-scale: 0.985;
+  --focus-ring:
+    0 0 0 1px color-mix(in srgb, var(--accent) 38%, transparent),
+    0 0 0 6px color-mix(in srgb, var(--accent) 12%, transparent);
 }
 
-/* 绔欏唴鎺у埗涓績锛氬懡浠ら潰鏉裤€佸竷灞€鍒囨崲銆佹。妗堢瓫閫夈€侀槄璇诲鎵╁睍鏍峰紡 */
+/* 统一全站交互节奏，让导航、卡片、菜单、播放器和阅读层使用同一套动效语言。 */
 
+html {
+  scroll-behavior: smooth;
+}
+
+button,
+a,
+input,
+textarea,
+select {
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    background-color var(--motion-fast) ease,
+    color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease,
+    box-shadow var(--motion-base) ease,
+    opacity var(--motion-fast) ease,
+    filter var(--motion-fast) ease;
+}
+
+:is(
+  button,
+  .site-nav a,
+  .selector-trigger,
+  .selector-option,
+  .theme-toggle,
+  .dock-button,
+  .action-button,
+  .control-pill,
+  .layout-switcher__button,
+  .command-palette__item,
+  .music-dock__toggle,
+  .inline-link
+):hover {
+  transform: translateY(var(--lift-distance));
+}
+
+:is(
+  button,
+  .site-nav a,
+  .selector-trigger,
+  .selector-option,
+  .theme-toggle,
+  .dock-button,
+  .action-button,
+  .control-pill,
+  .layout-switcher__button,
+  .command-palette__item,
+  .music-dock__toggle
+):active {
+  transform: translateY(0) scale(var(--press-scale));
+}
+
+:is(input, textarea, select, .command-palette__input):focus-visible {
+  box-shadow: var(--focus-ring);
+}
 .selector-trigger--command {
   min-width: 152px;
   justify-content: space-between;
@@ -153,6 +220,7 @@
   border: 0;
   background: rgba(7, 11, 18, 0.34);
   backdrop-filter: blur(8px);
+  animation: overlay-fade var(--motion-base) var(--ease-soft) both;
 }
 
 .command-palette__panel {
@@ -163,6 +231,8 @@
   gap: 12px;
   padding: 16px;
   border-radius: 28px;
+  transform-origin: top center;
+  animation: surface-enter 340ms var(--ease-soft) both;
 }
 
 .command-palette__input {
@@ -175,6 +245,11 @@
   color: var(--text);
   outline: none;
   font-size: 0.96rem;
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) ease,
+    background var(--motion-fast) ease,
+    box-shadow var(--motion-base) ease;
 }
 
 .command-palette__list {
@@ -208,6 +283,13 @@
   color: var(--text);
   text-align: left;
   cursor: pointer;
+  transform-origin: center;
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    border-color var(--motion-fast) ease,
+    background var(--motion-fast) ease,
+    box-shadow var(--motion-base) ease,
+    color var(--motion-fast) ease;
 }
 
 .command-palette__item:hover {
@@ -1629,9 +1711,11 @@ select {
     translateZ(0);
   transform-style: preserve-3d;
   transition:
-    transform 220ms cubic-bezier(0.22, 1, 0.36, 1),
-    border-color 220ms ease,
-    box-shadow 220ms ease;
+    transform var(--motion-base) var(--ease-standard),
+    border-color var(--motion-fast) ease,
+    box-shadow var(--motion-base) ease,
+    background var(--motion-fast) ease,
+    filter var(--motion-fast) ease;
 }
 
 .header-panel,
@@ -1668,7 +1752,7 @@ select {
     linear-gradient(black, black);
   -webkit-mask-composite: source-over;
   pointer-events: none;
-  transition: opacity 220ms ease;
+  transition: opacity var(--motion-base) ease, transform var(--motion-base) var(--ease-standard);
 }
 
 .glass-card::after,
@@ -1689,7 +1773,7 @@ select {
   opacity: calc(var(--light-opacity) * 0.66);
   mix-blend-mode: screen;
   pointer-events: none;
-  transition: opacity 220ms ease;
+  transition: opacity var(--motion-base) ease, transform var(--motion-base) var(--ease-standard);
 }
 
 .glass-card > *,
@@ -1706,7 +1790,7 @@ select {
   --rotate-y: 0deg;
   --light-opacity: 0;
   transform: none;
-  transition: border-color 220ms ease, box-shadow 220ms ease;
+  transition: border-color var(--motion-fast) ease, box-shadow var(--motion-base) ease, background var(--motion-fast) ease;
 }
 
 .glass-card--static::before,
@@ -1768,7 +1852,12 @@ select {
   border-radius: 999px;
   background: color-mix(in srgb, var(--accent) 16%, var(--surface-strong));
   box-shadow: 0 14px 28px color-mix(in srgb, var(--accent) 15%, transparent);
-  transition: transform 340ms cubic-bezier(0.18, 0.9, 0.22, 1.12), width 340ms cubic-bezier(0.18, 0.9, 0.22, 1.12), height 340ms cubic-bezier(0.18, 0.9, 0.22, 1.12), opacity 180ms ease;
+  transition:
+    transform 340ms var(--ease-spring),
+    width 340ms var(--ease-spring),
+    height 340ms var(--ease-spring),
+    opacity var(--motion-fast) ease,
+    filter var(--motion-base) ease;
   pointer-events: none;
   z-index: 0;
   opacity: 0;
@@ -1781,7 +1870,7 @@ select {
   border-radius: inherit;
   background: linear-gradient(90deg, color-mix(in srgb, #ffffff 46%, transparent), transparent 68%);
   opacity: 0;
-  transition: opacity 180ms ease;
+  transition: opacity var(--motion-fast) ease, transform var(--motion-base) var(--ease-standard);
 }
 
 .site-nav__capsule.is-moving {
@@ -1802,7 +1891,11 @@ select {
   word-break: keep-all;
   writing-mode: horizontal-tb;
   text-orientation: mixed;
-  transition: color 180ms ease, background-position 280ms ease, filter 180ms ease;
+  transition:
+    color var(--motion-fast) ease,
+    background-position var(--motion-base) ease,
+    filter var(--motion-fast) ease,
+    letter-spacing var(--motion-fast) ease;
 }
 
 .site-nav.is-moving a.active .nav-label {
@@ -1871,7 +1964,12 @@ select {
   word-break: keep-all;
   writing-mode: horizontal-tb;
   text-orientation: mixed;
-  transition: transform 160ms ease, color 160ms ease, background 160ms ease, box-shadow 180ms ease;
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    color var(--motion-fast) ease,
+    background var(--motion-fast) ease,
+    box-shadow var(--motion-base) ease,
+    filter var(--motion-fast) ease;
 }
 
 .site-nav a::after {
@@ -1885,7 +1983,7 @@ select {
   background: linear-gradient(90deg, var(--accent), var(--accent-warm));
   opacity: 0;
   transform: scaleX(0.4);
-  transition: opacity 180ms ease, transform 220ms ease;
+  transition: opacity var(--motion-fast) ease, transform var(--motion-base) var(--ease-standard);
 }
 
 .site-nav a.active,
@@ -2913,6 +3011,11 @@ body[data-background-preset="ice"] .article-card:first-child {
     0 22px 58px rgba(9, 12, 20, 0.32),
     inset 0 1px 0 rgba(255, 255, 255, 0.34),
     inset 0 -1px 0 rgba(255, 255, 255, 0.05);
+  transition:
+    transform var(--motion-base) var(--ease-standard),
+    box-shadow var(--motion-base) ease,
+    background var(--motion-fast) ease,
+    border-color var(--motion-fast) ease;
 }
 
 .music-dock__toggle {
@@ -2925,6 +3028,10 @@ body[data-background-preset="ice"] .article-card:first-child {
   background: transparent;
   color: inherit;
   text-align: left;
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    opacity var(--motion-fast) ease,
+    filter var(--motion-fast) ease;
 }
 
 .music-dock__compact {
@@ -2985,6 +3092,7 @@ body[data-background-preset="ice"] .article-card:first-child {
   height: 100%;
   border-radius: inherit;
   background: linear-gradient(90deg, var(--accent), var(--accent-warm));
+  transition: width var(--motion-fast) linear, transform var(--motion-fast) var(--ease-standard);
 }
 
 .music-dock__body {
@@ -2992,6 +3100,7 @@ body[data-background-preset="ice"] .article-card:first-child {
   gap: 0;
   transform-origin: top center;
   will-change: transform, opacity;
+  transition: opacity var(--motion-base) ease, transform var(--motion-base) var(--ease-standard);
 }
 
 .music-dock.collapsed .music-dock__body {
@@ -3351,6 +3460,132 @@ body[data-background-preset="ice"] .article-card:first-child {
   }
   100% {
     opacity: 0;
+  }
+}
+
+@keyframes overlay-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes surface-enter {
+  0% {
+    opacity: 0;
+    transform: translateY(18px) scale(0.985);
+    filter: saturate(0.92) blur(10px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+    filter: saturate(1) blur(0);
+  }
+}
+
+.selector-menu,
+.palette-menu,
+.music-source-panel {
+  transform-origin: top center;
+  animation: surface-enter 280ms var(--ease-soft) both;
+}
+
+.header-panel,
+.nav-panel,
+.brand-panel,
+.tool-panel,
+.glass-card,
+.music-dock,
+.command-palette__panel {
+  will-change: transform, box-shadow, opacity;
+}
+
+.header-panel:hover,
+.nav-panel:hover,
+.brand-panel:hover,
+.tool-panel:hover,
+.glass-card:hover,
+.music-dock:hover,
+.command-palette__panel:hover {
+  box-shadow:
+    0 18px 40px color-mix(in srgb, var(--shadow) 74%, transparent),
+    inset 0 1px 0 rgba(255, 255, 255, 0.34),
+    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.command-palette__status-item {
+  animation: surface-enter 360ms var(--ease-soft) both;
+}
+
+.command-palette__status-item:nth-child(1) {
+  animation-delay: 40ms;
+}
+
+.command-palette__status-item:nth-child(2) {
+  animation-delay: 80ms;
+}
+
+.command-palette__status-item:nth-child(3) {
+  animation-delay: 120ms;
+}
+
+.selector-option,
+.selector-trigger,
+.theme-toggle,
+.dock-button,
+.action-button,
+.layout-switcher__button,
+.command-palette__item,
+.inline-link,
+.archive-link,
+.social-pill {
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    background var(--motion-fast) ease,
+    color var(--motion-fast) ease,
+    border-color var(--motion-fast) ease,
+    box-shadow var(--motion-base) ease,
+    opacity var(--motion-fast) ease,
+    filter var(--motion-fast) ease;
+}
+
+.selector-option:hover,
+.selector-trigger:hover,
+.theme-toggle:hover,
+.dock-button:hover,
+.action-button:hover,
+.layout-switcher__button:hover,
+.inline-link:hover,
+.archive-link:hover,
+.social-pill:hover {
+  filter: saturate(1.05);
+}
+
+.reading-room__ambient button,
+.reading-room__toolbar button,
+.reading-room__footnotes button,
+.article-experience-bar button {
+  transition:
+    transform var(--motion-fast) var(--ease-standard),
+    background var(--motion-fast) ease,
+    color var(--motion-fast) ease,
+    box-shadow var(--motion-base) ease;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
   }
 }
 
