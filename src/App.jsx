@@ -2806,6 +2806,8 @@ function HomeArchiveFlow({ language, entries, experience }) {
       return [];
     }
   });
+  const [activeYear, setActiveYear] = useState("");
+  const yearSectionRefs = useRef({});
 
   const typeOptions = [
     { code: "all", label: experience.timelineAll || "All" },
@@ -2839,6 +2841,36 @@ function HomeArchiveFlow({ language, entries, experience }) {
     );
   }, [activeType, collapsedYears]);
 
+  useEffect(() => {
+    const years = Object.keys(groups);
+    if (!years.length) {
+      setActiveYear("");
+      return undefined;
+    }
+    setActiveYear((current) => (years.includes(current) ? current : years[0]));
+    const observer = new IntersectionObserver(
+      (entriesList) => {
+        const visible = entriesList
+          .filter((entry) => entry.isIntersecting)
+          .sort((left, right) => right.intersectionRatio - left.intersectionRatio);
+        if (visible[0]?.target?.dataset?.year) {
+          setActiveYear(visible[0].target.dataset.year);
+        }
+      },
+      {
+        rootMargin: "-18% 0px -52% 0px",
+        threshold: [0.2, 0.45, 0.7],
+      }
+    );
+    years.forEach((year) => {
+      const node = yearSectionRefs.current[year];
+      if (node) {
+        observer.observe(node);
+      }
+    });
+    return () => observer.disconnect();
+  }, [groups]);
+
   const toggleYear = (year) => {
     setCollapsedYears((current) =>
       current.includes(year) ? current.filter((item) => item !== year) : [...current, year]
@@ -2863,7 +2895,11 @@ function HomeArchiveFlow({ language, entries, experience }) {
         </div>
         <div className="home-archive-flow__years">
           {Object.keys(groups).map((year) => (
-            <a key={year} href={`#home-archive-${year}`} className="home-archive-flow__year">
+            <a
+              key={year}
+              href={`#home-archive-${year}`}
+              className={`home-archive-flow__year ${activeYear === year ? "active" : ""}`}
+            >
               {year}
             </a>
           ))}
@@ -2876,6 +2912,10 @@ function HomeArchiveFlow({ language, entries, experience }) {
             <Reveal key={year} delay={yearIndex * 70}>
               <article
                 id={`home-archive-${year}`}
+                ref={(node) => {
+                  yearSectionRefs.current[year] = node;
+                }}
+                data-year={year}
                 className={`home-archive-flow__year-group glass-card ${collapsed ? "collapsed" : ""}`}
               >
                 <div className="home-archive-flow__year-head">
@@ -2939,9 +2979,11 @@ function HomeCardBoard({ items }) {
     }
   });
   const [draggingId, setDraggingId] = useState(null);
+  const [resizingId, setResizingId] = useState(null);
   const hiddenIds = cardMeta.hiddenIds || [];
   const lockedIds = cardMeta.lockedIds || [];
   const sizeMap = cardMeta.sizeMap || {};
+  const pinnedIds = cardMeta.pinnedIds || [];
   const sizeOrder = ["normal", "wide", "tall"];
 
   useEffect(() => {
@@ -2965,6 +3007,7 @@ function HomeCardBoard({ items }) {
     setCardMeta((current) => ({
       hiddenIds: (current.hiddenIds || []).filter((id) => validIds.has(id)),
       lockedIds: (current.lockedIds || []).filter((id) => validIds.has(id)),
+      pinnedIds: (current.pinnedIds || []).filter((id) => validIds.has(id)),
       sizeMap: Object.fromEntries(
         Object.entries(current.sizeMap || {}).filter(([id]) => validIds.has(id))
       ),
@@ -2975,7 +3018,16 @@ function HomeCardBoard({ items }) {
     window.localStorage.setItem(HOME_CARD_META_STORAGE_KEY, JSON.stringify(cardMeta));
   }, [cardMeta]);
 
-  const visibleItems = orderedItems.filter((item) => !hiddenIds.includes(item.id));
+  const visibleItems = orderedItems
+    .filter((item) => !hiddenIds.includes(item.id))
+    .sort((left, right) => {
+      const leftPinned = pinnedIds.includes(left.id) ? 1 : 0;
+      const rightPinned = pinnedIds.includes(right.id) ? 1 : 0;
+      if (leftPinned !== rightPinned) {
+        return rightPinned - leftPinned;
+      }
+      return 0;
+    });
   const hiddenItems = orderedItems.filter((item) => hiddenIds.includes(item.id));
 
   const handleDrop = (targetId) => {
@@ -3017,15 +3069,69 @@ function HomeCardBoard({ items }) {
     });
   };
 
+  const handleResizeStart = (event, id, currentSize) => {
+    event.preventDefault();
+    event.stopPropagation();
+    setResizingId(id);
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const sizeRank = {
+      normal: { width: 1, height: 1 },
+      wide: { width: 2, height: 1 },
+      tall: { width: 1, height: 2 },
+      hero: { width: 2, height: 2 },
+    };
+    const currentRank = sizeRank[currentSize] || sizeRank.normal;
+    const onMove = (moveEvent) => {
+      const deltaX = moveEvent.clientX - startX;
+      const deltaY = moveEvent.clientY - startY;
+      const nextWidth = deltaX > 80 ? 2 : 1;
+      const nextHeight = deltaY > 80 ? 2 : 1;
+      const nextSize =
+        nextWidth === 2 && nextHeight === 2
+          ? "hero"
+          : nextWidth === 2
+            ? "wide"
+            : nextHeight === 2
+              ? "tall"
+              : "normal";
+      if (nextSize !== currentSize) {
+        setCardMeta((current) => ({
+          ...current,
+          sizeMap: {
+            ...(current.sizeMap || {}),
+            [id]: nextSize,
+          },
+        }));
+      } else if (currentRank.width === nextWidth && currentRank.height === nextHeight) {
+        setCardMeta((current) => ({
+          ...current,
+          sizeMap: {
+            ...(current.sizeMap || {}),
+            [id]: currentSize,
+          },
+        }));
+      }
+    };
+    const onUp = () => {
+      setResizingId(null);
+      window.removeEventListener("pointermove", onMove);
+      window.removeEventListener("pointerup", onUp);
+    };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+  };
+
   return (
     <section className="section home-card-board">
       {visibleItems.map((item, index) => {
         const isLocked = lockedIds.includes(item.id);
         const size = sizeMap[item.id] || "normal";
+        const isPinned = pinnedIds.includes(item.id);
         return (
           <Reveal key={item.id} delay={index * 40}>
             <article
-              className={`home-card-board__item home-card-board__item--${size} glass-card ${draggingId === item.id ? "dragging" : ""} ${isLocked ? "locked" : ""}`}
+              className={`home-card-board__item home-card-board__item--${size} glass-card ${draggingId === item.id ? "dragging" : ""} ${isLocked ? "locked" : ""} ${isPinned ? "pinned" : ""} ${resizingId === item.id ? "resizing" : ""}`}
               draggable={!isLocked}
               onDragStart={() => !isLocked && setDraggingId(item.id)}
               onDragOver={(event) => event.preventDefault()}
@@ -3036,7 +3142,10 @@ function HomeCardBoard({ items }) {
                 <span className="micro-label">{item.eyebrow}</span>
                 <div className="home-card-board__actions">
                   <button type="button" onClick={() => cycleCardSize(item.id)}>
-                    {size === "wide" ? "宽" : size === "tall" ? "高" : "标准"}
+                    {size === "wide" ? "宽" : size === "tall" ? "高" : size === "hero" ? "超大" : "标准"}
+                  </button>
+                  <button type="button" onClick={() => toggleCardFlag("pinnedIds", item.id)}>
+                    {isPinned ? "取消置顶" : "置顶"}
                   </button>
                   <button type="button" onClick={() => toggleCardFlag("lockedIds", item.id)}>
                     {isLocked ? "解锁" : "锁定"}
@@ -3057,6 +3166,12 @@ function HomeCardBoard({ items }) {
                   {item.action}
                 </Link>
               )}
+              <button
+                type="button"
+                className="home-card-board__resize-handle"
+                onPointerDown={(event) => handleResizeStart(event, item.id, size)}
+                aria-label="调整卡片尺寸"
+              />
             </article>
           </Reveal>
         );

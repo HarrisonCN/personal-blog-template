@@ -748,7 +748,7 @@ body[data-background-preset="xflow"] .tag-chip--button.active {
 
 body[data-background-preset="xflow"] .site-nav a.active .nav-label,
 body[data-background-preset="xflow"] .site-nav a:hover .nav-label {
-  color: #ffffff;
+  color: #0f172a;
 }
 
 body[data-background-preset="xflow"] .site-nav a.active::after,
@@ -765,6 +765,11 @@ body[data-background-preset="xflow"] .home-card-board__hidden-list button:hover 
   background: #8ce9f4;
   color: #0f172a;
   box-shadow: 0 12px 24px rgba(104, 215, 239, 0.22);
+}
+
+body[data-background-preset="xflow"] .home-archive-flow__year.active {
+  border-color: #68d7ef;
+  color: #0f172a;
 }
 
 body[data-background-preset="xflow"] .selector-menu,
