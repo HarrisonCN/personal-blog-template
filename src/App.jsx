@@ -1,4 +1,4 @@
-﻿import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useLayoutEffect } from "react";
 
@@ -8,7 +8,7 @@ import ArchivePreview from "./components/ArchivePreview";
 import CommandPalette from "./components/CommandPalette";
 import HomeLayoutSwitcher from "./components/HomeLayoutSwitcher";
 import Reveal from "./components/Reveal";
-import winstonAvatar from "./assets/winston-avatar.jpg";
+import templateAvatar from "./assets/template-avatar.svg";
 import {
   articles as seedArticles,
   featuredProjects,
@@ -1535,7 +1535,7 @@ function buildDefaultSiteContent() {
       name: siteMeta.name,
       email: siteMeta.email,
       location: siteMeta.location,
-      avatarImage: winstonAvatar,
+      avatarImage: templateAvatar,
       browserTitle: ensureLocalizedMap(siteMeta.name, siteMeta.name),
       backgroundPreset: "none",
       backgroundImage: "",
@@ -3558,7 +3558,7 @@ function PinnedSpacesSection({ language, spaces, articles, projects, isXFlow }) 
 
 function ArchivePage({ language, articles, projects, meta }) {
   const experience = getExperienceCopy(language);
-  const siteAvatar = getSiteAvatar(meta, winstonAvatar);
+  const siteAvatar = getSiteAvatar(meta, templateAvatar);
   const entries = useMemo(() => buildArchiveEntries(articles, projects), [articles, projects]);
   const [yearFilter, setYearFilter] = useState("all");
   const [tagFilter, setTagFilter] = useState("all");
@@ -3698,7 +3698,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
     }
     return normalizeHomeLayout(window.localStorage.getItem(HOME_LAYOUT_STORAGE_KEY) || meta.homeLayout || "magazine");
   });
-  const siteAvatar = getSiteAvatar(meta, winstonAvatar);
+  const siteAvatar = getSiteAvatar(meta, templateAvatar);
   const pinnedSpaces = meta.pinnedSpaces || [];
   const archiveGroups = useMemo(() => buildArchiveGroups(articles, projects), [articles, projects]);
   const archiveEntries = useMemo(() => buildArchiveEntries(articles, projects), [articles, projects]);
@@ -4141,7 +4141,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
 function ArticlesPage({ language, text, copy, articles, meta, isXFlow }) {
   const [query, setQuery] = useState("");
   const [activeTag, setActiveTag] = useState("all");
-  const siteAvatar = getSiteAvatar(meta, winstonAvatar);
+  const siteAvatar = getSiteAvatar(meta, templateAvatar);
   useSeo({
     title: `${text.articleIndexTitle} / ${getBrowserTitle(meta, language)}`,
     description: text.articleIndexBody,
@@ -4336,7 +4336,7 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
   const [noteOpenId, setNoteOpenId] = useState(null);
   const ambientRef = useRef(null);
   const experience = getExperienceCopy(language);
-  const siteAvatar = getSiteAvatar(meta, winstonAvatar);
+  const siteAvatar = getSiteAvatar(meta, templateAvatar);
   const browserTitle = getBrowserTitle(meta, language);
   const seoTitle = article ? `${article.title[language]} / ${browserTitle}` : browserTitle;
   const seoDescription = article ? article.excerpt[language] || article.excerpt.en : "";
@@ -4910,7 +4910,7 @@ function ProjectDetailPage({ language, text, projects, meta, isXFlow }) {
     () => projects.find((item) => item.slug === slug) ?? projects[0],
     [projects, slug]
   );
-  const siteAvatar = getSiteAvatar(meta, winstonAvatar);
+  const siteAvatar = getSiteAvatar(meta, templateAvatar);
   useSeo({
     title: `${project.title} / ${getBrowserTitle(meta, language)}`,
     description: project.summary[language] || project.summary.en,
