@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 
-// 命令面板：承担站内控制中心职责，支持搜索、分组、键盘导航与回车执行。
-export default function CommandPalette({ open, onClose, actions, experience }) {
+// 命令面板：站内控制中心，负责搜索、分组、键盘导航，以及展示当前全站状态。
+export default function CommandPalette({ open, onClose, actions, experience, statusItems = [] }) {
   const [query, setQuery] = useState("");
   const [activeIndex, setActiveIndex] = useState(0);
   const inputRef = useRef(null);
@@ -98,6 +98,16 @@ export default function CommandPalette({ open, onClose, actions, experience }) {
     <div className="command-palette" role="dialog" aria-modal="true">
       <button type="button" className="command-palette__backdrop" onClick={onClose} aria-label="Close command palette" />
       <div className="command-palette__panel glass-card">
+        {statusItems.length ? (
+          <div className="command-palette__status">
+            {statusItems.map((item) => (
+              <div key={item.label} className="command-palette__status-item">
+                <span className="micro-label">{item.label}</span>
+                <strong>{item.value}</strong>
+              </div>
+            ))}
+          </div>
+        ) : null}
         <input
           ref={inputRef}
           className="command-palette__input"

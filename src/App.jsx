@@ -2391,6 +2391,31 @@ function Shell({
   useGlassTracking(location.pathname);
   const blockedMessage = useInteractionGuard();
   const transitionKey = `${location.pathname}|${backgroundPreset}`;
+  const commandStatusItems = useMemo(() => {
+    const experience = getExperienceCopy(language);
+    const themeLabel = THEME_PRESET_OPTIONS.find((item) => item.code === backgroundPreset)?.label || backgroundPreset;
+    const layoutLabel =
+      homeLayout === "archive"
+        ? experience.layoutArchive
+        : homeLayout === "cards"
+          ? experience.layoutCards
+          : experience.layoutMagazine;
+    const archiveParams = new URLSearchParams(location.search);
+    const archiveType = archiveParams.get("archiveType") || "all";
+    const archiveYear = archiveParams.get("archiveYear") || "all";
+    const archiveTypeLabel =
+      archiveType === "article"
+        ? experience.timelineArticles
+        : archiveType === "project"
+          ? experience.timelineProjects
+          : experience.timelineAll || "All";
+    return [
+      { label: experience.quickTheme, value: themeLabel },
+      { label: experience.layoutTitle, value: layoutLabel },
+      { label: experience.archiveTitle, value: `${archiveYear === "all" ? "All Years" : archiveYear} / ${archiveTypeLabel}` },
+    ];
+  }, [backgroundPreset, homeLayout, language, location.search]);
+
   const commandActions = useMemo(() => {
     const experience = getExperienceCopy(language);
     // 主题、语言、布局、最近轨迹统一汇总到命令面板里，作为全站控制中心。
@@ -2608,6 +2633,7 @@ function Shell({
         onClose={() => setPaletteOpen(false)}
         actions={commandActions}
         experience={getExperienceCopy(language)}
+        statusItems={commandStatusItems}
       />
       <MusicDock text={text} />
       {blockedMessage ? <div className="blocked-toast">{blockedMessage}</div> : null}
@@ -3276,6 +3302,10 @@ function HomeCardBoard({ items, onSaveCardOverride, canEditContent }) {
     event.target.value = "";
   };
 
+  const restoreOriginalCover = (item) => {
+    updateCardEdit(item.id, "coverImage", item.coverImage || "");
+  };
+
   const handleResizeStart = (event, id, currentSize) => {
     event.preventDefault();
     event.stopPropagation();
@@ -3388,7 +3418,12 @@ function HomeCardBoard({ items, onSaveCardOverride, canEditContent }) {
                     {coverImage ? (
                       <>
                         <img src={coverImage} alt={`${title} cover`} className="home-card-board__cover-preview" />
-                        <button type="button" onClick={() => updateCardEdit(item.id, "coverImage", "")}>移除封面</button>
+                        <div className="home-card-board__editor-actions">
+                          {item.coverImage ? (
+                            <button type="button" onClick={() => restoreOriginalCover(item)}>恢复原始封面</button>
+                          ) : null}
+                          <button type="button" onClick={() => updateCardEdit(item.id, "coverImage", "")}>移除封面</button>
+                        </div>
                       </>
                     ) : null}
                   </div>

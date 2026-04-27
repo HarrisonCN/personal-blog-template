@@ -1811,6 +1811,22 @@ select {
   filter: saturate(1.1);
 }
 
+.command-palette__status {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.command-palette__status-item {
+  display: grid;
+  gap: 4px;
+  padding: 10px 12px;
+  border-radius: 16px;
+  background: color-mix(in srgb, var(--surface-strong) 90%, transparent);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--line-strong) 68%, transparent);
+}
+
 @keyframes nav-capsule-settle {
   0% {
     transform: var(--nav-transform, translate(0, 0)) scale(1.02, 0.98);
