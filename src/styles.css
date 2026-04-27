@@ -44,11 +44,10 @@ html {
   scroll-behavior: smooth;
 }
 
-button,
-a,
 input,
 textarea,
-select {
+select,
+button {
   transition:
     transform var(--motion-fast) var(--ease-standard),
     background-color var(--motion-fast) ease,
@@ -60,8 +59,6 @@ select {
 }
 
 :is(
-  button,
-  .site-nav a,
   .selector-trigger,
   .selector-option,
   .theme-toggle,
@@ -71,14 +68,14 @@ select {
   .layout-switcher__button,
   .command-palette__item,
   .music-dock__toggle,
-  .inline-link
+  .inline-link,
+  .archive-link,
+  .social-pill
 ):hover {
   transform: translateY(var(--lift-distance));
 }
 
 :is(
-  button,
-  .site-nav a,
   .selector-trigger,
   .selector-option,
   .theme-toggle,
@@ -1972,6 +1969,11 @@ select {
     filter var(--motion-fast) ease;
 }
 
+.site-nav a:hover,
+.site-nav a.active {
+  transform: none;
+}
+
 .site-nav a::after {
   content: "";
   position: absolute;
@@ -3492,27 +3494,9 @@ body[data-background-preset="ice"] .article-card:first-child {
   animation: surface-enter 280ms var(--ease-soft) both;
 }
 
-.header-panel,
-.nav-panel,
-.brand-panel,
-.tool-panel,
-.glass-card,
-.music-dock,
-.command-palette__panel {
-  will-change: transform, box-shadow, opacity;
-}
-
-.header-panel:hover,
-.nav-panel:hover,
-.brand-panel:hover,
-.tool-panel:hover,
-.glass-card:hover,
-.music-dock:hover,
-.command-palette__panel:hover {
-  box-shadow:
-    0 18px 40px color-mix(in srgb, var(--shadow) 74%, transparent),
-    inset 0 1px 0 rgba(255, 255, 255, 0.34),
-    inset 0 -1px 0 rgba(255, 255, 255, 0.06);
+.command-palette__panel,
+.music-dock {
+  will-change: transform, opacity;
 }
 
 .command-palette__status-item {
