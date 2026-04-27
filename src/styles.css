@@ -381,6 +381,34 @@
   gap: 8px;
 }
 
+.home-archive-flow__map {
+  display: grid;
+  gap: 8px;
+}
+
+.home-archive-flow__map-track {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.home-archive-flow__map-dot {
+  width: 10px;
+  height: 10px;
+  border: 0;
+  border-radius: 999px;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--line-strong) 76%, transparent);
+  transition: transform 180ms ease, background 180ms ease, box-shadow 180ms ease;
+}
+
+.home-archive-flow__map-dot.active {
+  background: var(--accent);
+  transform: scale(1.45);
+  box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent) 14%, transparent);
+}
+
 .home-archive-flow__filter,
 .home-archive-flow__collapse,
 .home-card-board__actions button,
@@ -422,6 +450,7 @@
 .home-archive-flow__stream {
   display: grid;
   gap: 18px;
+  scroll-snap-type: y proximity;
 }
 
 .home-archive-flow__year-group {
@@ -429,6 +458,7 @@
   gap: 16px;
   padding: 20px;
   border-radius: var(--radius-panel);
+  scroll-snap-align: start;
 }
 
 .home-archive-flow__year-head {
@@ -548,6 +578,38 @@
   gap: 12px;
   padding: 18px;
   border-radius: var(--radius-card);
+}
+
+.home-card-board__editor {
+  display: grid;
+  gap: 10px;
+}
+
+.home-card-board__editor input,
+.home-card-board__editor textarea {
+  width: 100%;
+  border: 0;
+  border-radius: 14px;
+  padding: 12px 14px;
+  resize: vertical;
+  background: color-mix(in srgb, var(--surface-strong) 94%, transparent);
+  color: var(--text);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--line-strong) 72%, transparent);
+}
+
+.home-card-board__editor-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.home-card-board__editor-actions button {
+  border: 0;
+  border-radius: 999px;
+  padding: 10px 14px;
+  cursor: pointer;
+  background: color-mix(in srgb, var(--surface-strong) 92%, transparent);
+  color: var(--text);
 }
 
 .home-card-board__resize-handle {
@@ -1673,6 +1735,24 @@ select {
   pointer-events: none;
   z-index: 0;
   opacity: 0;
+}
+
+.site-nav__capsule::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(90deg, color-mix(in srgb, #ffffff 46%, transparent), transparent 68%);
+  opacity: 0;
+  transition: opacity 180ms ease;
+}
+
+.site-nav__capsule.is-moving {
+  filter: saturate(1.08);
+}
+
+.site-nav__capsule.is-moving::after {
+  opacity: 0.78;
 }
 
 .site-nav a,

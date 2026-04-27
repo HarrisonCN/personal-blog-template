@@ -1,4 +1,4 @@
-import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+ï»¿import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
 import { Link, NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useLayoutEffect } from "react";
 
@@ -8,7 +8,7 @@ import ArchivePreview from "./components/ArchivePreview";
 import CommandPalette from "./components/CommandPalette";
 import HomeLayoutSwitcher from "./components/HomeLayoutSwitcher";
 import Reveal from "./components/Reveal";
-import templateAvatar from "./assets/template-avatar.svg";
+import winstonAvatar from "./assets/winston-avatar.jpg";
 import {
   articles as seedArticles,
   featuredProjects,
@@ -70,12 +70,12 @@ const BACKGROUND_PRESETS = [
   },
   {
     code: "none",
-    label: { zh: "Ä¬ÈÏ", en: "Default", ja: "Default", ko: "Default" },
+    label: { zh: "é»˜è®¤", en: "Default", ja: "Default", ko: "Default" },
     eyebrow: { zh: "Blueprint", en: "Blueprint", ja: "Blueprint", ko: "Blueprint" },
   },
   {
     code: "antigravity",
-    label: { zh: "·´ÖØÁ¦", en: "Antigravity", ja: "Antigravity", ko: "Antigravity" },
+    label: { zh: "åé‡åŠ›", en: "Antigravity", ja: "Antigravity", ko: "Antigravity" },
     eyebrow: { zh: "Google-like", en: "Google-like", ja: "Google-like", ko: "Google-like" },
   },
 ];
@@ -86,84 +86,84 @@ const HOME_LAYOUT_OPTIONS = [
   { code: "archive", icon: "A" },
   { code: "cards", icon: "C" },
 ];
-// ±¾µØ»º´æ¼ü£ºÓÃÓÚ¼ÇÂ¼ÓÃ»§ÔÚÕ¾ÄÚµÄ·ÃÎÊ¡¢ÔÄ¶ÁºÍ±à¼­¹ì¼£¡£
+// æœ¬åœ°ç¼“å­˜é”®ï¼šç”¨äºè®°å½•ç”¨æˆ·åœ¨ç«™å†…çš„è®¿é—®ã€é˜…è¯»å’Œç¼–è¾‘è½¨è¿¹ã€‚
 const RECENT_ACCESS_STORAGE_KEY = "template-recent-access";
 const RECENT_READING_STORAGE_KEY = "template-recent-reading";
 const RECENT_EDITING_STORAGE_KEY = "template-recent-editing";
 const HOME_CARD_ORDER_STORAGE_KEY = "template-home-card-order";
 const AMBIENT_TRACKS = [
-  { code: "rain", title: { zh: "ÓêÄ»", en: "Rain Room" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
-  { code: "harbor", title: { zh: "¸ÛÍå", en: "Harbor Hush" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
-  { code: "night", title: { zh: "Ò¹¶Á", en: "Night Air" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
+  { code: "rain", title: { zh: "é›¨å¹•", en: "Rain Room" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
+  { code: "harbor", title: { zh: "æ¸¯æ¹¾", en: "Harbor Hush" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
+  { code: "night", title: { zh: "å¤œè¯»", en: "Night Air" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
 ];
 const EXPERIENCE_COPY = {
   zh: {
-    commandOpen: "ÃüÁîÃæ°å",
-    commandPlaceholder: "ËÑË÷ÎÄÕÂ¡¢ÏîÄ¿¡¢Ö÷Ìâ¡¢±³¾°»òºóÌ¨Èë¿Ú",
-    commandEmpty: "Ã»ÓĞÆ¥Åä½á¹û",
-    archiveTitle: "Ê±¼äµµ°¸",
-    archiveBody: "°ÑÎÄÕÂ¡¢ÏîÄ¿ºÍ³ÖĞøÊµÑé·Å½øÍ¬Ò»ÌõÊ±¼äÖáÀï¡£",
-    archiveOpen: "´ò¿ªµµ°¸",
+    commandOpen: "å‘½ä»¤é¢æ¿",
+    commandPlaceholder: "æœç´¢æ–‡ç« ã€é¡¹ç›®ã€ä¸»é¢˜ã€èƒŒæ™¯æˆ–åå°å…¥å£",
+    commandEmpty: "æ²¡æœ‰åŒ¹é…ç»“æœ",
+    archiveTitle: "æ—¶é—´æ¡£æ¡ˆ",
+    archiveBody: "æŠŠæ–‡ç« ã€é¡¹ç›®å’ŒæŒç»­å®éªŒæ”¾è¿›åŒä¸€æ¡æ—¶é—´è½´é‡Œã€‚",
+    archiveOpen: "æ‰“å¼€æ¡£æ¡ˆ",
     pinnedTitle: "Pinned Spaces",
-    pinnedBody: "°Ñ×îÏëÏÈ±»¿´µ½µÄÄÚÈİ¹Ì¶¨ÔÚÊ×Ò³Èë¿Ú¡£",
-    layoutTitle: "Ê×Ò³²¼¾Ö",
-    layoutMagazine: "ÔÓÖ¾Á÷",
-    layoutArchive: "µµ°¸Á÷",
-    layoutCards: "¿¨Æ¬Á÷",
-    readingRoom: "ÔÄ¶ÁÊÒ",
-    focusMode: "×¨×¢",
-    nightMode: "Ò¹¶Á",
-    ambientMode: "»·¾³Òô",
-    readAloud: "ÀÊ¶Á",
-    stopReading: "Í£Ö¹ÀÊ¶Á",
-    footnotes: "½Å×¢",
-    timelineArticles: "ÎÄÕÂ",
-    timelineProjects: "ÏîÄ¿",
-    pinnedEditorTitle: "¹Ì¶¨¿Õ¼ä",
-    pinnedEditorBody: "°ÑÎÄÕÂ¡¢ÏîÄ¿¡¢Á´½Ó»òÒôÆµ¹Ì¶¨µ½Ê×Ò³¡£",
-    addPinnedSpace: "ĞÂÔö¹Ì¶¨Ïî",
-    removePinnedSpace: "É¾³ı¹Ì¶¨Ïî",
-    pinnedKind: "ÄÚÈİÀàĞÍ",
-    pinnedArticle: "ÎÄÕÂ",
-    pinnedProject: "ÏîÄ¿",
-    pinnedLink: "Á´½Ó",
-    pinnedAudio: "ÒôÆµ",
-    pinnedLabel: "±êÌâ",
-    pinnedBodyLabel: "ËµÃ÷",
-    pinnedUrl: "Á´½ÓµØÖ·",
-    pinnedAudioTitle: "ÒôÆµ±êÌâ",
-    pinnedAudioArtist: "ÒôÆµ×÷Õß",
-    pinnedAudioSrc: "ÒôÆµµØÖ·",
-    pinnedTarget: "¹ØÁªÄÚÈİ",
-    footnotesEditor: "½Å×¢",
-    openCommand: "´ò¿ªÃüÁîÃæ°å",
-    recentAccess: "×î½ü·ÃÎÊ",
-    quickActions: "¿ì½İ²Ù×÷",
-    createArticleQuick: "ĞÂ½¨ÎÄÕÂ",
-    createProjectQuick: "ĞÂ½¨ÏîÄ¿",
-    highlightAction: "¸ßÁÁ´Ë¶Î",
-    noteOnParagraph: "Ìí¼ÓÅú×¢",
-    saveNote: "±£´æÅú×¢",
-    removeNote: "É¾³ıÅú×¢",
-    notePlaceholder: "Ğ´ÏÂÕâÒ»¶ÎµÄÀí½â¡¢´ı¸Äµã»òÑÓÕ¹Ïë·¨",
-    highlightedParagraphs: "¸ßÁÁ¶ÎÂä",
-    favoriteParagraphs: "ÊÕ²Ø¶ÎÂä",
-    readingResume: "¼ÌĞøÔÄ¶Á",
-    recentReading: "×î½üÔÄ¶Á",
-    recentEditing: "×î½ü±à¼­",
-    quickTheme: "¿ìËÙÇĞÖ÷Ìâ",
-    quickLanguage: "¿ìËÙÇĞÓïÑÔ",
-    exportNotes: "µ¼³öÅú×¢",
-    importNotesDraft: "Åú×¢ÒÑµ¼Èë²İ¸å",
-    readingStats: "ÔÄ¶ÁÍ³¼Æ",
-    statsWords: "×ÖÊı",
-    statsParagraphs: "¶ÎÂä",
-    statsNotes: "Åú×¢",
-    statsFavorites: "ÊÕ²Ø",
-    archiveFilter: "É¸Ñ¡",
-    archiveSearch: "ËÑË÷µµ°¸ÄÚÈİ",
-    archiveAllYears: "È«²¿Äê·İ",
-    archiveAllTags: "È«²¿±êÇ©",
+    pinnedBody: "æŠŠæœ€æƒ³å…ˆè¢«çœ‹åˆ°çš„å†…å®¹å›ºå®šåœ¨é¦–é¡µå…¥å£ã€‚",
+    layoutTitle: "é¦–é¡µå¸ƒå±€",
+    layoutMagazine: "æ‚å¿—æµ",
+    layoutArchive: "æ¡£æ¡ˆæµ",
+    layoutCards: "å¡ç‰‡æµ",
+    readingRoom: "é˜…è¯»å®¤",
+    focusMode: "ä¸“æ³¨",
+    nightMode: "å¤œè¯»",
+    ambientMode: "ç¯å¢ƒéŸ³",
+    readAloud: "æœ—è¯»",
+    stopReading: "åœæ­¢æœ—è¯»",
+    footnotes: "è„šæ³¨",
+    timelineArticles: "æ–‡ç« ",
+    timelineProjects: "é¡¹ç›®",
+    pinnedEditorTitle: "å›ºå®šç©ºé—´",
+    pinnedEditorBody: "æŠŠæ–‡ç« ã€é¡¹ç›®ã€é“¾æ¥æˆ–éŸ³é¢‘å›ºå®šåˆ°é¦–é¡µã€‚",
+    addPinnedSpace: "æ–°å¢å›ºå®šé¡¹",
+    removePinnedSpace: "åˆ é™¤å›ºå®šé¡¹",
+    pinnedKind: "å†…å®¹ç±»å‹",
+    pinnedArticle: "æ–‡ç« ",
+    pinnedProject: "é¡¹ç›®",
+    pinnedLink: "é“¾æ¥",
+    pinnedAudio: "éŸ³é¢‘",
+    pinnedLabel: "æ ‡é¢˜",
+    pinnedBodyLabel: "è¯´æ˜",
+    pinnedUrl: "é“¾æ¥åœ°å€",
+    pinnedAudioTitle: "éŸ³é¢‘æ ‡é¢˜",
+    pinnedAudioArtist: "éŸ³é¢‘ä½œè€…",
+    pinnedAudioSrc: "éŸ³é¢‘åœ°å€",
+    pinnedTarget: "å…³è”å†…å®¹",
+    footnotesEditor: "è„šæ³¨",
+    openCommand: "æ‰“å¼€å‘½ä»¤é¢æ¿",
+    recentAccess: "æœ€è¿‘è®¿é—®",
+    quickActions: "å¿«æ·æ“ä½œ",
+    createArticleQuick: "æ–°å»ºæ–‡ç« ",
+    createProjectQuick: "æ–°å»ºé¡¹ç›®",
+    highlightAction: "é«˜äº®æ­¤æ®µ",
+    noteOnParagraph: "æ·»åŠ æ‰¹æ³¨",
+    saveNote: "ä¿å­˜æ‰¹æ³¨",
+    removeNote: "åˆ é™¤æ‰¹æ³¨",
+    notePlaceholder: "å†™ä¸‹è¿™ä¸€æ®µçš„ç†è§£ã€å¾…æ”¹ç‚¹æˆ–å»¶å±•æƒ³æ³•",
+    highlightedParagraphs: "é«˜äº®æ®µè½",
+    favoriteParagraphs: "æ”¶è—æ®µè½",
+    readingResume: "ç»§ç»­é˜…è¯»",
+    recentReading: "æœ€è¿‘é˜…è¯»",
+    recentEditing: "æœ€è¿‘ç¼–è¾‘",
+    quickTheme: "å¿«é€Ÿåˆ‡ä¸»é¢˜",
+    quickLanguage: "å¿«é€Ÿåˆ‡è¯­è¨€",
+    exportNotes: "å¯¼å‡ºæ‰¹æ³¨",
+    importNotesDraft: "æ‰¹æ³¨å·²å¯¼å…¥è‰ç¨¿",
+    readingStats: "é˜…è¯»ç»Ÿè®¡",
+    statsWords: "å­—æ•°",
+    statsParagraphs: "æ®µè½",
+    statsNotes: "æ‰¹æ³¨",
+    statsFavorites: "æ”¶è—",
+    archiveFilter: "ç­›é€‰",
+    archiveSearch: "æœç´¢æ¡£æ¡ˆå†…å®¹",
+    archiveAllYears: "å…¨éƒ¨å¹´ä»½",
+    archiveAllTags: "å…¨éƒ¨æ ‡ç­¾",
   },
   en: {
     commandOpen: "Command Palette",
@@ -318,109 +318,109 @@ function parseStoredPalette(value) {
 
 const fallbackCopy = {
   zh: {
-    navStudio: "¿ª·¢Õß±à¼­",
-    editedLabel: "×îºó±à¼­ÓÚ",
-    saveArticle: "±£´æÎÄÕÂ",
-    createArticle: "ĞÂ½¨ÎÄÕÂ",
-    openArticle: "²é¿´ÎÄÕÂ",
-    manageArticles: "¹ÜÀíÎÄÕÂ",
-    studioTitle: "¿ª·¢Õß±à¼­",
-    studioBody: "ÔÚÕâÀïĞÂÔöÎÄÕÂ¡¢²¹³äÍ¼Æ¬ºÍÒôÆµÎÄ¼ş£¬Ò²ÄÜ¼ÌĞøĞŞ¸ÄÖ®Ç°Ğ´¹ıµÄÄÚÈİ¡£",
-    studioHint: "Ğ´×÷Ì¨µÇÂ¼ºÍÄÚÈİ±£´æÏÖÔÚÓÉ·şÎñ¶Ë´¦Àí£¬²»ÔÙ±©Â¶ÔÚÇ°¶Ë¡£",
-    loginTitle: "µÇÂ¼¿ª·¢Õß±à¼­",
-    loginBody: "ÊäÈëÓÉ·şÎñ¶ËĞ£ÑéµÄÕËºÅºÍÃÜÂëºó²ÅÄÜ½øÈëºóÌ¨¡£",
-    username: "ÕË»§Ãû",
-    password: "ÃÜÂë",
-    login: "µÇÂ¼",
-    logout: "ÍË³öµÇÂ¼",
-    loginError: "ÕË»§Ãû»òÃÜÂë´íÎó",
-    articleTitle: "±êÌâ",
-    articleExcerpt: "ÕªÒª",
-    articleContent: "ÕıÎÄ",
-    articleTag: "±êÇ©",
-    articleReadTime: "ÔÄ¶ÁÊ±³¤",
-    articleSlug: "Á´½Ó±êÊ¶",
-    articleLanguage: "±à¼­ÓïÑÔ",
-    uploadFiles: "ÉÏ´«Í¼Æ¬ / ÒôÆµ / ÊÓÆµ / ÎÄ¼ş",
-    attachments: "¸½¼şÕ¹Ê¾",
-    noAttachments: "»¹Ã»ÓĞÉÏ´«¸½¼ş",
-    articleSaved: "ÎÄÕÂÒÑ±£´æ",
-    articleListTitle: "ÒÑÓĞÎÄÕÂ",
-    newDraftTitle: "ĞÂÎÄÕÂ",
-    attachmentCount: "¸ö¸½¼ş",
-    mediaImage: "Í¼Æ¬",
-    mediaAudio: "ÒôÆµ",
-    mediaVideo: "ÊÓÆµ",
-    mediaFile: "ÎÄ¼ş",
-    remove: "É¾³ı",
-    preview: "Ô¤ÀÀ",
-    studioEntry: "½øÈëºóÌ¨",
-    articleEmpty: "ÕâÆªÎÄÕÂ»¹Ã»ÓĞÕıÎÄÄÚÈİ¡£",
-    insertAttachment: "²åÈëµ½ÕıÎÄ",
-    insertedAttachment: "ÒÑ²åÈëÕıÎÄ",
-    unplacedAttachments: "Î´²åÈëÕıÎÄµÄ¸½¼ş",
-    contentEditorTitle: "ÍøÒ³ÄÚÈİ±à¼­",
-    contentEditorBody: "ÕâÀï¿ÉÒÔÖ±½ÓĞŞ¸ÄÊ×Ò³ºÍÕ¾ÄÚÖ÷ÒªÎÄ°¸£¬±£´æºóÒ³Ãæ»áÁ¢¼´Ê¹ÓÃĞÂÄÚÈİ¡£",
-    saveSiteContent: "±£´æÍøÕ¾ÄÚÈİ",
-    siteContentSaved: "ÍøÕ¾ÄÚÈİÒÑ±£´æ",
-    browserTitle: "±êÇ©Ò³Ãû³Æ",
-    backgroundTitle: "ÍøÒ³±³¾°",
-    uploadBackground: "ÉÏ´«±³¾°Í¼",
-    clearBackground: "Çå³ı±³¾°",
-    backgroundPreset: "±³¾°Ô¤Éè",
-    brandName: "Õ¾µãÃû³Æ",
-    brandEmail: "ÁªÏµÓÊÏä",
-    brandLocation: "ËùÔÚµØÇø",
-    roleLabel: "¸öÈË½ÇÉ«",
-    introLabel: "¸öÈË½éÉÜ",
-    statProjects: "ÏîÄ¿ÊıÁ¿",
-    statEssays: "ÎÄÕÂÊıÁ¿",
-    statLabs: "ÊµÑéÊıÁ¿",
-    loginLocked: "µÇÂ¼Ê§°Ü´ÎÊı¹ı¶à£¬ÇëÉÔºóÔÙÊÔ",
-    sessionExpired: "ºóÌ¨»á»°ÒÑ¹ıÆÚ£¬ÇëÖØĞÂµÇÂ¼",
-    projectsEditorTitle: "ÏîÄ¿±à¼­",
-    projectsEditorBody: "ÕâÀï¿ÉÒÔĞÂÔö¡¢ĞŞ¸ÄÏîÄ¿¿¨Æ¬ºÍÏîÄ¿ÏêÇéÄÚÈİ¡£",
-    saveProject: "±£´æÏîÄ¿",
-    deleteProject: "É¾³ıÏîÄ¿",
-    createProject: "ĞÂ½¨ÏîÄ¿",
-    projectSaved: "ÏîÄ¿ÒÑ±£´æ",
-    projectListTitle: "ÒÑÓĞÏîÄ¿",
-    projectTitle: "ÏîÄ¿±êÌâ",
-    projectCategory: "ÏîÄ¿·ÖÀà",
-    projectSummary: "ÏîÄ¿ÕªÒª",
-    projectMetrics: "¼¼Êõ±êÇ©",
-    projectChallenge: "ÎÊÌâ",
-    projectSolution: "·½°¸",
-    projectOutcome: "½á¹û",
-    articleSearch: "ËÑË÷ÎÄÕÂ",
-    articleSearchPlaceholder: "ÊäÈë±êÌâ¡¢ÕªÒª»ò±êÇ©",
-    allTags: "È«²¿±êÇ©",
-    noArticleResults: "Ã»ÓĞÆ¥ÅäµÄÎÄÕÂ",
-    readingProgress: "ÔÄ¶Á½ø¶È",
-    copyLink: "¸´ÖÆÁ´½Ó",
-    linkCopied: "Á´½ÓÒÑ¸´ÖÆ",
+    navStudio: "å¼€å‘è€…ç¼–è¾‘",
+    editedLabel: "æœ€åç¼–è¾‘äº",
+    saveArticle: "ä¿å­˜æ–‡ç« ",
+    createArticle: "æ–°å»ºæ–‡ç« ",
+    openArticle: "æŸ¥çœ‹æ–‡ç« ",
+    manageArticles: "ç®¡ç†æ–‡ç« ",
+    studioTitle: "å¼€å‘è€…ç¼–è¾‘",
+    studioBody: "åœ¨è¿™é‡Œæ–°å¢æ–‡ç« ã€è¡¥å……å›¾ç‰‡å’ŒéŸ³é¢‘æ–‡ä»¶ï¼Œä¹Ÿèƒ½ç»§ç»­ä¿®æ”¹ä¹‹å‰å†™è¿‡çš„å†…å®¹ã€‚",
+    studioHint: "å†™ä½œå°ç™»å½•å’Œå†…å®¹ä¿å­˜ç°åœ¨ç”±æœåŠ¡ç«¯å¤„ç†ï¼Œä¸å†æš´éœ²åœ¨å‰ç«¯ã€‚",
+    loginTitle: "ç™»å½•å¼€å‘è€…ç¼–è¾‘",
+    loginBody: "è¾“å…¥ç”±æœåŠ¡ç«¯æ ¡éªŒçš„è´¦å·å’Œå¯†ç åæ‰èƒ½è¿›å…¥åå°ã€‚",
+    username: "è´¦æˆ·å",
+    password: "å¯†ç ",
+    login: "ç™»å½•",
+    logout: "é€€å‡ºç™»å½•",
+    loginError: "è´¦æˆ·åæˆ–å¯†ç é”™è¯¯",
+    articleTitle: "æ ‡é¢˜",
+    articleExcerpt: "æ‘˜è¦",
+    articleContent: "æ­£æ–‡",
+    articleTag: "æ ‡ç­¾",
+    articleReadTime: "é˜…è¯»æ—¶é•¿",
+    articleSlug: "é“¾æ¥æ ‡è¯†",
+    articleLanguage: "ç¼–è¾‘è¯­è¨€",
+    uploadFiles: "ä¸Šä¼ å›¾ç‰‡ / éŸ³é¢‘ / è§†é¢‘ / æ–‡ä»¶",
+    attachments: "é™„ä»¶å±•ç¤º",
+    noAttachments: "è¿˜æ²¡æœ‰ä¸Šä¼ é™„ä»¶",
+    articleSaved: "æ–‡ç« å·²ä¿å­˜",
+    articleListTitle: "å·²æœ‰æ–‡ç« ",
+    newDraftTitle: "æ–°æ–‡ç« ",
+    attachmentCount: "ä¸ªé™„ä»¶",
+    mediaImage: "å›¾ç‰‡",
+    mediaAudio: "éŸ³é¢‘",
+    mediaVideo: "è§†é¢‘",
+    mediaFile: "æ–‡ä»¶",
+    remove: "åˆ é™¤",
+    preview: "é¢„è§ˆ",
+    studioEntry: "è¿›å…¥åå°",
+    articleEmpty: "è¿™ç¯‡æ–‡ç« è¿˜æ²¡æœ‰æ­£æ–‡å†…å®¹ã€‚",
+    insertAttachment: "æ’å…¥åˆ°æ­£æ–‡",
+    insertedAttachment: "å·²æ’å…¥æ­£æ–‡",
+    unplacedAttachments: "æœªæ’å…¥æ­£æ–‡çš„é™„ä»¶",
+    contentEditorTitle: "ç½‘é¡µå†…å®¹ç¼–è¾‘",
+    contentEditorBody: "è¿™é‡Œå¯ä»¥ç›´æ¥ä¿®æ”¹é¦–é¡µå’Œç«™å†…ä¸»è¦æ–‡æ¡ˆï¼Œä¿å­˜åé¡µé¢ä¼šç«‹å³ä½¿ç”¨æ–°å†…å®¹ã€‚",
+    saveSiteContent: "ä¿å­˜ç½‘ç«™å†…å®¹",
+    siteContentSaved: "ç½‘ç«™å†…å®¹å·²ä¿å­˜",
+    browserTitle: "æ ‡ç­¾é¡µåç§°",
+    backgroundTitle: "ç½‘é¡µèƒŒæ™¯",
+    uploadBackground: "ä¸Šä¼ èƒŒæ™¯å›¾",
+    clearBackground: "æ¸…é™¤èƒŒæ™¯",
+    backgroundPreset: "èƒŒæ™¯é¢„è®¾",
+    brandName: "ç«™ç‚¹åç§°",
+    brandEmail: "è”ç³»é‚®ç®±",
+    brandLocation: "æ‰€åœ¨åœ°åŒº",
+    roleLabel: "ä¸ªäººè§’è‰²",
+    introLabel: "ä¸ªäººä»‹ç»",
+    statProjects: "é¡¹ç›®æ•°é‡",
+    statEssays: "æ–‡ç« æ•°é‡",
+    statLabs: "å®éªŒæ•°é‡",
+    loginLocked: "ç™»å½•å¤±è´¥æ¬¡æ•°è¿‡å¤šï¼Œè¯·ç¨åå†è¯•",
+    sessionExpired: "åå°ä¼šè¯å·²è¿‡æœŸï¼Œè¯·é‡æ–°ç™»å½•",
+    projectsEditorTitle: "é¡¹ç›®ç¼–è¾‘",
+    projectsEditorBody: "è¿™é‡Œå¯ä»¥æ–°å¢ã€ä¿®æ”¹é¡¹ç›®å¡ç‰‡å’Œé¡¹ç›®è¯¦æƒ…å†…å®¹ã€‚",
+    saveProject: "ä¿å­˜é¡¹ç›®",
+    deleteProject: "åˆ é™¤é¡¹ç›®",
+    createProject: "æ–°å»ºé¡¹ç›®",
+    projectSaved: "é¡¹ç›®å·²ä¿å­˜",
+    projectListTitle: "å·²æœ‰é¡¹ç›®",
+    projectTitle: "é¡¹ç›®æ ‡é¢˜",
+    projectCategory: "é¡¹ç›®åˆ†ç±»",
+    projectSummary: "é¡¹ç›®æ‘˜è¦",
+    projectMetrics: "æŠ€æœ¯æ ‡ç­¾",
+    projectChallenge: "é—®é¢˜",
+    projectSolution: "æ–¹æ¡ˆ",
+    projectOutcome: "ç»“æœ",
+    articleSearch: "æœç´¢æ–‡ç« ",
+    articleSearchPlaceholder: "è¾“å…¥æ ‡é¢˜ã€æ‘˜è¦æˆ–æ ‡ç­¾",
+    allTags: "å…¨éƒ¨æ ‡ç­¾",
+    noArticleResults: "æ²¡æœ‰åŒ¹é…çš„æ–‡ç« ",
+    readingProgress: "é˜…è¯»è¿›åº¦",
+    copyLink: "å¤åˆ¶é“¾æ¥",
+    linkCopied: "é“¾æ¥å·²å¤åˆ¶",
     nowTitle: "Now",
-    nowBody: "ÕıÔÚ´òÄ¥¸öÈË²©¿Í¡¢ÕûÀí³¤ÆÚÄÚÈİÏµÍ³£¬²¢³ÖĞø×ö½çÃæÊµÑéÓëÏîÄ¿Ğ´×÷¡£",
-    nowStatusA: "Ğ´²©¿ÍºóÌ¨",
-    nowStatusB: "×öÏîÄ¿ÖØ¹¹",
-    nowStatusC: "ÕûÀíÄÚÈİ×Ê²ú",
-    socialEditorTitle: "Éç½»Æ½Ì¨Á´½Ó",
-    socialEditorBody: "ÕâÀï¿ÉÒÔĞŞ¸ÄÉç½»Æ½Ì¨Ãû³Æ¡¢Á´½ÓºÍÍ¼±ê£¬Ö§³ÖÉÏ´«×Ô¶¨ÒåÍ¼±ê¡£",
-    addSocialLink: "ĞÂÔöÉç½»Á´½Ó",
-    socialLabel: "Æ½Ì¨Ãû³Æ",
-    socialUrl: "Æ½Ì¨Á´½Ó",
-    socialIcon: "Í¼±êÀàĞÍ",
-    uploadSocialIcon: "ÉÏ´«Í¼±ê",
-    removeSocialLink: "É¾³ıÁ´½Ó",
-    customCardsTitle: "×Ô¶¨Òå¿¨Æ¬",
-    customCardsBody: "ĞÂÔöÊ×Ò³¿¨Æ¬£¬×Ô¶¨Òå±êÌâ¡¢ÕıÎÄºÍÌø×ªÁ´½Ó¡£",
-    addCustomCard: "ĞÂÔö¿¨Æ¬",
-    removeCustomCard: "É¾³ı¿¨Æ¬",
-    cardEyebrow: "¿¨Æ¬Ã¼±ê",
-    cardTitle: "¿¨Æ¬±êÌâ",
-    cardBody: "¿¨Æ¬ÕıÎÄ",
-    cardLinkLabel: "°´Å¥ÎÄ×Ö",
-    cardLinkUrl: "°´Å¥Á´½Ó",
+    nowBody: "æ­£åœ¨æ‰“ç£¨ä¸ªäººåšå®¢ã€æ•´ç†é•¿æœŸå†…å®¹ç³»ç»Ÿï¼Œå¹¶æŒç»­åšç•Œé¢å®éªŒä¸é¡¹ç›®å†™ä½œã€‚",
+    nowStatusA: "å†™åšå®¢åå°",
+    nowStatusB: "åšé¡¹ç›®é‡æ„",
+    nowStatusC: "æ•´ç†å†…å®¹èµ„äº§",
+    socialEditorTitle: "ç¤¾äº¤å¹³å°é“¾æ¥",
+    socialEditorBody: "è¿™é‡Œå¯ä»¥ä¿®æ”¹ç¤¾äº¤å¹³å°åç§°ã€é“¾æ¥å’Œå›¾æ ‡ï¼Œæ”¯æŒä¸Šä¼ è‡ªå®šä¹‰å›¾æ ‡ã€‚",
+    addSocialLink: "æ–°å¢ç¤¾äº¤é“¾æ¥",
+    socialLabel: "å¹³å°åç§°",
+    socialUrl: "å¹³å°é“¾æ¥",
+    socialIcon: "å›¾æ ‡ç±»å‹",
+    uploadSocialIcon: "ä¸Šä¼ å›¾æ ‡",
+    removeSocialLink: "åˆ é™¤é“¾æ¥",
+    customCardsTitle: "è‡ªå®šä¹‰å¡ç‰‡",
+    customCardsBody: "æ–°å¢é¦–é¡µå¡ç‰‡ï¼Œè‡ªå®šä¹‰æ ‡é¢˜ã€æ­£æ–‡å’Œè·³è½¬é“¾æ¥ã€‚",
+    addCustomCard: "æ–°å¢å¡ç‰‡",
+    removeCustomCard: "åˆ é™¤å¡ç‰‡",
+    cardEyebrow: "å¡ç‰‡çœ‰æ ‡",
+    cardTitle: "å¡ç‰‡æ ‡é¢˜",
+    cardBody: "å¡ç‰‡æ­£æ–‡",
+    cardLinkLabel: "æŒ‰é’®æ–‡å­—",
+    cardLinkUrl: "æŒ‰é’®é“¾æ¥",
   },
   en: {
     navStudio: "Developer Editor",
@@ -636,7 +636,7 @@ function ensureLocalizedList(value) {
 }
 
 function normalizeArticle(article, index) {
-  // Í³Ò»ÎÄÕÂ½á¹¹£¬È·±£ºóÌ¨¡¢Ç°Ì¨¡¢µ¼³öÂß¼­¶¼¶ÁÈ¡Í¬Ò»·İ×Ö¶Î¡£
+  // ç»Ÿä¸€æ–‡ç« ç»“æ„ï¼Œç¡®ä¿åå°ã€å‰å°ã€å¯¼å‡ºé€»è¾‘éƒ½è¯»å–åŒä¸€ä»½å­—æ®µã€‚
   const updatedAt = article.updatedAt ?? parseArticleDate(article.date).toISOString();
   const title = ensureLocalizedMap(article.title, `Untitled ${index + 1}`);
   const excerpt = ensureLocalizedMap(article.excerpt, "");
@@ -1230,7 +1230,7 @@ function useInteractionGuard() {
     let timerId;
 
     const showBlockedMessage = () => {
-      setMessage("è¢«ç¦æ­¢çš„æ“ä½œ");
+      setMessage("çšî‚¤î›¦å§ãˆ¢æ®‘é¿å¶„ç¶”");
       window.clearTimeout(timerId);
       timerId = window.setTimeout(() => setMessage(""), 1800);
     };
@@ -1535,7 +1535,7 @@ function buildDefaultSiteContent() {
       name: siteMeta.name,
       email: siteMeta.email,
       location: siteMeta.location,
-      avatarImage: templateAvatar,
+      avatarImage: winstonAvatar,
       browserTitle: ensureLocalizedMap(siteMeta.name, siteMeta.name),
       backgroundPreset: "none",
       backgroundImage: "",
@@ -1633,7 +1633,7 @@ function ExpandableSelector({ label, value, onChange, options }) {
       <button type="button" className="selector-trigger" onClick={() => setOpen((prev) => !prev)}>
         <span className="micro-label">{label}</span>
         <strong>{active?.label}</strong>
-        <span className="selector-caret">{open ? "?" : "+"}</span>
+        <span className="selector-caret">{open ? "âˆ’" : "+"}</span>
       </button>
       {open ? (
         <div className="selector-menu glass-card">
@@ -2224,6 +2224,7 @@ function Header({
   const navRef = useRef(null);
   const navItemsRef = useRef({});
   const [capsuleStyle, setCapsuleStyle] = useState(null);
+  const [capsuleMoving, setCapsuleMoving] = useState(false);
 
   const activeNavKey = useMemo(() => {
     if (location.pathname.startsWith("/studio")) {
@@ -2240,6 +2241,12 @@ function Header({
     }
     return "home";
   }, [location.hash, location.pathname]);
+
+  useEffect(() => {
+    setCapsuleMoving(true);
+    const timer = window.setTimeout(() => setCapsuleMoving(false), 360);
+    return () => window.clearTimeout(timer);
+  }, [activeNavKey]);
 
   const syncNavCapsule = useMemo(
     () => () => {
@@ -2292,7 +2299,11 @@ function Header({
 
       <div className="header-panel nav-panel">
         <nav ref={navRef} className={`site-nav ${capsuleStyle ? "site-nav--ready" : ""}`}>
-          <span className="site-nav__capsule" style={capsuleStyle || undefined} aria-hidden="true" />
+          <span
+            className={`site-nav__capsule ${capsuleMoving ? "is-moving" : ""}`}
+            style={capsuleStyle || undefined}
+            aria-hidden="true"
+          />
           <NavLink to="/" ref={(node) => (navItemsRef.current.home = node)}>
             <span className="nav-label">{text.navHome}</span>
           </NavLink>
@@ -2314,7 +2325,7 @@ function Header({
       <div className="header-panel tool-panel">
         <div className="tool-stack">
           <button type="button" className="selector-trigger selector-trigger--command" onClick={onOpenCommandPalette}>
-            <span className="micro-label">?K</span>
+            <span className="micro-label">âŒ˜K</span>
             <strong>{experience.commandOpen}</strong>
           </button>
           <ExpandableSelector label={text.backgroundPreset} value={backgroundPreset} onChange={setBackgroundPreset} options={THEME_PRESET_OPTIONS} />
@@ -2380,7 +2391,7 @@ function Shell({
   const transitionKey = `${location.pathname}|${backgroundPreset}`;
   const commandActions = useMemo(() => {
     const experience = getExperienceCopy(language);
-    // Ö÷Ìâ¡¢ÓïÑÔ¡¢²¼¾Ö¡¢×î½ü¹ì¼£Í³Ò»»ã×Üµ½ÃüÁîÃæ°åÀï£¬×÷ÎªÈ«Õ¾¿ØÖÆÖĞĞÄ¡£
+    // ä¸»é¢˜ã€è¯­è¨€ã€å¸ƒå±€ã€æœ€è¿‘è½¨è¿¹ç»Ÿä¸€æ±‡æ€»åˆ°å‘½ä»¤é¢æ¿é‡Œï¼Œä½œä¸ºå…¨ç«™æ§åˆ¶ä¸­å¿ƒã€‚
     const themeActions = THEME_PRESET_OPTIONS.map((item) => ({
       id: `theme-${item.code}`,
       group: experience.quickTheme,
@@ -2651,7 +2662,7 @@ function useSeo({ title, description, image }) {
   }, [description, image, title]);
 }
 
-// ¶ÁÈ¡×î½ü¹ì¼££ºÕ¾ÄÚ¿ØÖÆÖĞĞÄ»á¸´ÓÃÕâ×é¶ÁÈ¡/Ğ´ÈëÂß¼­¡£
+// è¯»å–æœ€è¿‘è½¨è¿¹ï¼šç«™å†…æ§åˆ¶ä¸­å¿ƒä¼šå¤ç”¨è¿™ç»„è¯»å–/å†™å…¥é€»è¾‘ã€‚
 function getStoredTrail(storageKey) {
   try {
     return JSON.parse(window.localStorage.getItem(storageKey) || "[]");
@@ -2679,7 +2690,7 @@ function getRecentEdits() {
 }
 
 function pushRecentAccess(entry) {
-  // È¥ÖØºóÖ»±£Áô×î½ü¼¸Ìõä¯ÀÀ¼ÇÂ¼£¬·½±ãÃüÁîÃæ°å×÷ÎªÕ¾ÄÚÖĞÊàÊ¹ÓÃ¡£
+  // å»é‡ååªä¿ç•™æœ€è¿‘å‡ æ¡æµè§ˆè®°å½•ï¼Œæ–¹ä¾¿å‘½ä»¤é¢æ¿ä½œä¸ºç«™å†…ä¸­æ¢ä½¿ç”¨ã€‚
   const current = getRecentAccesses().filter((item) => item.path !== entry.path);
   const next = [entry, ...current].slice(0, 8);
   window.localStorage.setItem(RECENT_ACCESS_STORAGE_KEY, JSON.stringify(next));
@@ -2702,7 +2713,7 @@ function getTimelineDate(item) {
 }
 
 function buildArchiveGroups(articles, projects) {
-  // °ÑÎÄÕÂºÍÏîÄ¿°´Ê±¼äºÏ²¢£¬Éú³ÉÍ³Ò»µÄµµ°¸Ê±¼äÏßÊı¾İ¡£
+  // æŠŠæ–‡ç« å’Œé¡¹ç›®æŒ‰æ—¶é—´åˆå¹¶ï¼Œç”Ÿæˆç»Ÿä¸€çš„æ¡£æ¡ˆæ—¶é—´çº¿æ•°æ®ã€‚
   const entries = [
     ...articles.map((article) => ({
       id: `article-${article.slug}`,
@@ -2734,7 +2745,7 @@ function buildArchiveGroups(articles, projects) {
   }, {});
 }
 
-// °ÑÊ±¼äµµ°¸ÕûÀí³É±âÆ½ÌõÄ¿£¬·½±ãÉ¸Ñ¡¡¢ËÑË÷ºÍÌø×ª¡£
+// æŠŠæ—¶é—´æ¡£æ¡ˆæ•´ç†æˆæ‰å¹³æ¡ç›®ï¼Œæ–¹ä¾¿ç­›é€‰ã€æœç´¢å’Œè·³è½¬ã€‚
 function buildArchiveEntries(articles, projects) {
   return Object.entries(buildArchiveGroups(articles, projects)).flatMap(([year, items]) =>
     items.map((item) => ({
@@ -2877,6 +2888,15 @@ function HomeArchiveFlow({ language, entries, experience }) {
     );
   };
 
+  const jumpToYear = (event, year) => {
+    event.preventDefault();
+    const node = yearSectionRefs.current[year];
+    if (!node) {
+      return;
+    }
+    node.scrollIntoView({ behavior: "smooth", block: "start" });
+  };
+
   return (
     <section className="section home-archive-flow">
       <aside className="home-archive-flow__rail glass-card">
@@ -2893,12 +2913,27 @@ function HomeArchiveFlow({ language, entries, experience }) {
             </button>
           ))}
         </div>
+        <div className="home-archive-flow__map">
+          <span className="micro-label">{experience.timelineMap || "Year map"}</span>
+          <div className="home-archive-flow__map-track">
+            {Object.keys(groups).map((year) => (
+              <button
+                key={`map-${year}`}
+                type="button"
+                className={`home-archive-flow__map-dot ${activeYear === year ? "active" : ""}`}
+                onClick={(event) => jumpToYear(event, year)}
+                aria-label={`Jump to ${year}`}
+              />
+            ))}
+          </div>
+        </div>
         <div className="home-archive-flow__years">
           {Object.keys(groups).map((year) => (
             <a
               key={year}
               href={`#home-archive-${year}`}
               className={`home-archive-flow__year ${activeYear === year ? "active" : ""}`}
+              onClick={(event) => jumpToYear(event, year)}
             >
               {year}
             </a>
@@ -2980,10 +3015,12 @@ function HomeCardBoard({ items }) {
   });
   const [draggingId, setDraggingId] = useState(null);
   const [resizingId, setResizingId] = useState(null);
+  const [editingId, setEditingId] = useState(null);
   const hiddenIds = cardMeta.hiddenIds || [];
   const lockedIds = cardMeta.lockedIds || [];
   const sizeMap = cardMeta.sizeMap || {};
   const pinnedIds = cardMeta.pinnedIds || [];
+  const editMap = cardMeta.editMap || {};
   const sizeOrder = ["normal", "wide", "tall"];
 
   useEffect(() => {
@@ -3008,6 +3045,9 @@ function HomeCardBoard({ items }) {
       hiddenIds: (current.hiddenIds || []).filter((id) => validIds.has(id)),
       lockedIds: (current.lockedIds || []).filter((id) => validIds.has(id)),
       pinnedIds: (current.pinnedIds || []).filter((id) => validIds.has(id)),
+      editMap: Object.fromEntries(
+        Object.entries(current.editMap || {}).filter(([id]) => validIds.has(id))
+      ),
       sizeMap: Object.fromEntries(
         Object.entries(current.sizeMap || {}).filter(([id]) => validIds.has(id))
       ),
@@ -3069,6 +3109,31 @@ function HomeCardBoard({ items }) {
     });
   };
 
+  const updateCardEdit = (id, field, value) => {
+    setCardMeta((current) => ({
+      ...current,
+      editMap: {
+        ...(current.editMap || {}),
+        [id]: {
+          ...(current.editMap || {})[id],
+          [field]: value,
+        },
+      },
+    }));
+  };
+
+  const clearCardEdit = (id) => {
+    setCardMeta((current) => {
+      const nextMap = { ...(current.editMap || {}) };
+      delete nextMap[id];
+      return {
+        ...current,
+        editMap: nextMap,
+      };
+    });
+    setEditingId(null);
+  };
+
   const handleResizeStart = (event, id, currentSize) => {
     event.preventDefault();
     event.stopPropagation();
@@ -3128,6 +3193,12 @@ function HomeCardBoard({ items }) {
         const isLocked = lockedIds.includes(item.id);
         const size = sizeMap[item.id] || "normal";
         const isPinned = pinnedIds.includes(item.id);
+        const edit = editMap[item.id] || {};
+        const title = edit.title || item.title;
+        const body = edit.body || item.body;
+        const href = edit.href || item.href;
+        const action = edit.action || item.action;
+        const isEditing = editingId === item.id;
         return (
           <Reveal key={item.id} delay={index * 40}>
             <article
@@ -3141,36 +3212,51 @@ function HomeCardBoard({ items }) {
               <div className="home-card-board__toolbar">
                 <span className="micro-label">{item.eyebrow}</span>
                 <div className="home-card-board__actions">
+                  <button type="button" onClick={() => setEditingId((current) => (current === item.id ? null : item.id))}>
+                    {isEditing ? "æ”¶èµ·ç¼–è¾‘" : "å¿«æ·ç¼–è¾‘"}
+                  </button>
                   <button type="button" onClick={() => cycleCardSize(item.id)}>
-                    {size === "wide" ? "¿í" : size === "tall" ? "¸ß" : size === "hero" ? "³¬´ó" : "±ê×¼"}
+                    {size === "wide" ? "å®½" : size === "tall" ? "é«˜" : size === "hero" ? "è¶…å¤§" : "æ ‡å‡†"}
                   </button>
                   <button type="button" onClick={() => toggleCardFlag("pinnedIds", item.id)}>
-                    {isPinned ? "È¡ÏûÖÃ¶¥" : "ÖÃ¶¥"}
+                    {isPinned ? "å–æ¶ˆç½®é¡¶" : "ç½®é¡¶"}
                   </button>
                   <button type="button" onClick={() => toggleCardFlag("lockedIds", item.id)}>
-                    {isLocked ? "½âËø" : "Ëø¶¨"}
+                    {isLocked ? "è§£é”" : "é”å®š"}
                   </button>
                   <button type="button" onClick={() => toggleCardFlag("hiddenIds", item.id)}>
-                    É¾³ı
+                    åˆ é™¤
                   </button>
                 </div>
               </div>
-              <h3>{item.title}</h3>
-              <p className="body-copy">{item.body}</p>
+              {isEditing ? (
+                <div className="home-card-board__editor">
+                  <input value={title} onChange={(event) => updateCardEdit(item.id, "title", event.target.value)} placeholder="æ ‡é¢˜" />
+                  <textarea value={body} onChange={(event) => updateCardEdit(item.id, "body", event.target.value)} placeholder="æ‘˜è¦" rows={3} />
+                  <input value={href} onChange={(event) => updateCardEdit(item.id, "href", event.target.value)} placeholder="é“¾æ¥" />
+                  <input value={action} onChange={(event) => updateCardEdit(item.id, "action", event.target.value)} placeholder="æŒ‰é’®æ–‡æ¡ˆ" />
+                  <div className="home-card-board__editor-actions">
+                    <button type="button" onClick={() => setEditingId(null)}>å®Œæˆ</button>
+                    <button type="button" onClick={() => clearCardEdit(item.id)}>æ¢å¤é»˜è®¤</button>
+                  </div>
+                </div>
+              ) : null}
+              <h3>{title}</h3>
+              <p className="body-copy">{body}</p>
               {item.external ? (
-                <a className="inline-link" href={item.href} target="_blank" rel="noreferrer">
-                  {item.action}
+                <a className="inline-link" href={href} target="_blank" rel="noreferrer">
+                  {action}
                 </a>
               ) : (
-                <Link className="inline-link" to={item.href}>
-                  {item.action}
+                <Link className="inline-link" to={href}>
+                  {action}
                 </Link>
               )}
               <button
                 type="button"
                 className="home-card-board__resize-handle"
                 onPointerDown={(event) => handleResizeStart(event, item.id, size)}
-                aria-label="µ÷Õû¿¨Æ¬³ß´ç"
+                aria-label="è°ƒæ•´å¡ç‰‡å°ºå¯¸"
               />
             </article>
           </Reveal>
@@ -3179,13 +3265,13 @@ function HomeCardBoard({ items }) {
       {hiddenItems.length ? (
         <div className="home-card-board__hidden glass-card">
           <div className="home-card-board__hidden-head">
-            <span className="micro-label">Òş²Ø¿¨Æ¬</span>
+            <span className="micro-label">éšè—å¡ç‰‡</span>
             <strong>{hiddenItems.length}</strong>
           </div>
           <div className="home-card-board__hidden-list">
             {hiddenItems.map((item) => (
               <button key={item.id} type="button" onClick={() => toggleCardFlag("hiddenIds", item.id)}>
-                »Ö¸´ {item.title}
+                æ¢å¤ {item.title}
               </button>
             ))}
           </div>
@@ -3195,7 +3281,7 @@ function HomeCardBoard({ items }) {
   );
 }
 
-// ¶ÁÈ¡µ¥ÆªÎÄÕÂµÄÔÄ¶ÁÊÒ×´Ì¬£¬¹©ÎÄÕÂÒ³ºÍ¿ª·¢Õß±à¼­Ö®¼äÍ¬²½Åú×¢¡£
+// è¯»å–å•ç¯‡æ–‡ç« çš„é˜…è¯»å®¤çŠ¶æ€ï¼Œä¾›æ–‡ç« é¡µå’Œå¼€å‘è€…ç¼–è¾‘ä¹‹é—´åŒæ­¥æ‰¹æ³¨ã€‚
 function getReadingRoomSnapshot(slug) {
   if (!slug) {
     return { highlights: {}, favorites: {}, notes: {}, scrollY: 0 };
@@ -3314,7 +3400,7 @@ function PinnedSpacesSection({ language, spaces, articles, projects, isXFlow }) 
 
 function ArchivePage({ language, articles, projects, meta }) {
   const experience = getExperienceCopy(language);
-  const siteAvatar = getSiteAvatar(meta, templateAvatar);
+  const siteAvatar = getSiteAvatar(meta, winstonAvatar);
   const entries = useMemo(() => buildArchiveEntries(articles, projects), [articles, projects]);
   const [yearFilter, setYearFilter] = useState("all");
   const [tagFilter, setTagFilter] = useState("all");
@@ -3325,7 +3411,7 @@ function ArchivePage({ language, articles, projects, meta }) {
     [entries, language]
   );
   const filteredEntries = useMemo(() => {
-    // µµ°¸Ò³Ö§³ÖÄê·İ¡¢±êÇ©Óë¹Ø¼ü´ÊÈıÖØ¹ıÂË£¬±ÜÃâÄÚÈİÔö¶àºóÄÑÒÔ¶¨Î»¡£
+    // æ¡£æ¡ˆé¡µæ”¯æŒå¹´ä»½ã€æ ‡ç­¾ä¸å…³é”®è¯ä¸‰é‡è¿‡æ»¤ï¼Œé¿å…å†…å®¹å¢å¤šåéš¾ä»¥å®šä½ã€‚
     const lowered = query.trim().toLowerCase();
     return entries.filter((item) => {
       const itemYear = item.year;
@@ -3454,7 +3540,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
     }
     return normalizeHomeLayout(window.localStorage.getItem(HOME_LAYOUT_STORAGE_KEY) || meta.homeLayout || "magazine");
   });
-  const siteAvatar = getSiteAvatar(meta, templateAvatar);
+  const siteAvatar = getSiteAvatar(meta, winstonAvatar);
   const pinnedSpaces = meta.pinnedSpaces || [];
   const archiveGroups = useMemo(() => buildArchiveGroups(articles, projects), [articles, projects]);
   const archiveEntries = useMemo(() => buildArchiveEntries(articles, projects), [articles, projects]);
@@ -3494,7 +3580,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
     setGuestbookForm({ name: "", message: "" });
   };
 
-  // Í³Ò»´¦ÀíÊ×Ò³²¼¾ÖÇĞ»»£¬±£Ö¤µã»÷°´Å¥ºó±¾Ò³¡¢ÃüÁîÃæ°åºÍ±¾µØ»º´æÍ¬²½¡£
+  // ç»Ÿä¸€å¤„ç†é¦–é¡µå¸ƒå±€åˆ‡æ¢ï¼Œä¿è¯ç‚¹å‡»æŒ‰é’®åæœ¬é¡µã€å‘½ä»¤é¢æ¿å’Œæœ¬åœ°ç¼“å­˜åŒæ­¥ã€‚
   const applyHomeLayout = (nextLayout) => {
     const normalized = normalizeHomeLayout(nextLayout);
     setHomeLayout(normalized);
@@ -3896,7 +3982,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
 function ArticlesPage({ language, text, copy, articles, meta, isXFlow }) {
   const [query, setQuery] = useState("");
   const [activeTag, setActiveTag] = useState("all");
-  const siteAvatar = getSiteAvatar(meta, templateAvatar);
+  const siteAvatar = getSiteAvatar(meta, winstonAvatar);
   useSeo({
     title: `${text.articleIndexTitle} / ${getBrowserTitle(meta, language)}`,
     description: text.articleIndexBody,
@@ -4068,7 +4154,7 @@ function ArticlesPage({ language, text, copy, articles, meta, isXFlow }) {
 
 function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
   const { slug } = useParams();
-  // Ã¿ÆªÎÄÕÂ¶¼ÓĞ¶ÀÁ¢ÔÄ¶ÁÊÒ×´Ì¬£¬¼ÇÂ¼¸ßÁÁ¡¢ÊÕ²Ø¡¢Åú×¢ºÍÔÄ¶ÁÎ»ÖÃ¡£
+  // æ¯ç¯‡æ–‡ç« éƒ½æœ‰ç‹¬ç«‹é˜…è¯»å®¤çŠ¶æ€ï¼Œè®°å½•é«˜äº®ã€æ”¶è—ã€æ‰¹æ³¨å’Œé˜…è¯»ä½ç½®ã€‚
   const articleStorageKey = `template-reading-room:${slug || "article"}`;
   const article = useMemo(
     () => articles.find((item) => item.slug === slug) ?? articles[0],
@@ -4091,7 +4177,7 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
   const [noteOpenId, setNoteOpenId] = useState(null);
   const ambientRef = useRef(null);
   const experience = getExperienceCopy(language);
-  const siteAvatar = getSiteAvatar(meta, templateAvatar);
+  const siteAvatar = getSiteAvatar(meta, winstonAvatar);
   const browserTitle = getBrowserTitle(meta, language);
   const seoTitle = article ? `${article.title[language]} / ${browserTitle}` : browserTitle;
   const seoDescription = article ? article.excerpt[language] || article.excerpt.en : "";
@@ -4160,7 +4246,7 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
   }, [paragraphState.scrollY, slug]);
 
   useEffect(() => {
-    // ½øÈëÎÄÕÂÊ±Ğ´Èë×î½üÔÄ¶Á£¬¹©ÃüÁîÃæ°å¿ìËÙ»Øµ½ÉÏ´ÎÔÄ¶ÁÎ»ÖÃ¡£
+    // è¿›å…¥æ–‡ç« æ—¶å†™å…¥æœ€è¿‘é˜…è¯»ï¼Œä¾›å‘½ä»¤é¢æ¿å¿«é€Ÿå›åˆ°ä¸Šæ¬¡é˜…è¯»ä½ç½®ã€‚
     if (!article) {
       return;
     }
@@ -4266,7 +4352,7 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
   };
 
   const exportNotes = () => {
-    // µ¼³öµ±Ç°ÎÄÕÂµÄ¸ßÁÁ/ÊÕ²Ø/Åú×¢£¬±ãÓÚÕûÀíÎªÍâ²¿±Ê¼Ç¡£
+    // å¯¼å‡ºå½“å‰æ–‡ç« çš„é«˜äº®/æ”¶è—/æ‰¹æ³¨ï¼Œä¾¿äºæ•´ç†ä¸ºå¤–éƒ¨ç¬”è®°ã€‚
     const content = rendered
       .filter((block) => block.type === "text" && (paragraphState.notes[block.id] || paragraphState.highlights[block.id] || paragraphState.favorites[block.id]))
       .map((block, index) => {
@@ -4665,7 +4751,7 @@ function ProjectDetailPage({ language, text, projects, meta, isXFlow }) {
     () => projects.find((item) => item.slug === slug) ?? projects[0],
     [projects, slug]
   );
-  const siteAvatar = getSiteAvatar(meta, templateAvatar);
+  const siteAvatar = getSiteAvatar(meta, winstonAvatar);
   useSeo({
     title: `${project.title} / ${getBrowserTitle(meta, language)}`,
     description: project.summary[language] || project.summary.en,
@@ -4838,7 +4924,7 @@ function StudioPage({
   }, [projects, selectedProjectSlug]);
 
   useEffect(() => {
-    // ÃüÁîÃæ°å¿ÉÒÔÍ¨¹ı query ²ÎÊıÖ±½Ó»½Æğ¡°ĞÂ½¨ / ±à¼­¡±×´Ì¬¡£
+    // å‘½ä»¤é¢æ¿å¯ä»¥é€šè¿‡ query å‚æ•°ç›´æ¥å”¤èµ·â€œæ–°å»º / ç¼–è¾‘â€çŠ¶æ€ã€‚
     const params = new URLSearchParams(location.search);
     const createTarget = params.get("create");
     const editArticle = params.get("editArticle");
