@@ -1,8 +1,8 @@
-# Personal Blog Template
+﻿# Personal Blog Template
 
-A visual-first personal blog template with a built-in editor, article/project management, multilingual UI, and a secure Node-backed studio.
+A visual-first personal blog template with a built-in editor, article and project management, multilingual UI, and a secure Node-backed studio.
 
-一个偏视觉表达的个人博客模板，内置内容编辑后台、文章与项目管理、多语言界面，以及基于 Node 的安全写作台。
+一个以视觉表达为核心的个人博客模板，内置内容编辑后台、文章与项目管理、多语言界面，以及基于 Node 的安全开发者编辑台。
 
 ![Template cover](./docs/cover.png)
 
@@ -17,67 +17,65 @@ Important:
 
 注意：
 - GitHub Pages 只提供静态前端预览。
-- 安全登录、内容保存和后台编辑能力只能在 Node 服务运行时启用。
+- 安全登录、内容保存和开发者编辑能力只有在 Node 服务运行时才可用。
 
 ## Why This Template
 
-This project is designed for people who want more than a plain markdown blog. It combines:
+This project is for people who want more than a plain markdown blog. It combines:
 
 - a portfolio-style homepage
 - article and project presentation
-- a visual theme system with multiple page modes
+- multiple visual modes on the same content layer
 - a built-in studio for editing content without touching code
-- a secure server-backed auth flow for the editor
+- a server-backed auth flow for the editor
 
-这份模板不是单纯的 markdown 博客壳，而是把：
+这不是一个单纯的 markdown 博客壳，而是把下面这些能力放进同一个站点：
 
 - 个人主页展示
-- 文章与项目内容
-- 多套视觉主题
-- 可视化后台编辑
-- 服务端鉴权与持久化
-
-合在同一个站点里。
+- 文章与项目内容呈现
+- 同一份内容下的多主题视觉模式
+- 无需改代码的内置编辑后台
+- 基于服务端的开发者编辑登录流程
 
 ## Features
 
 - Built-in studio for editing articles, projects, site copy, social links, custom cards, browser title, and background settings
 - Server-side studio auth with cookie session support
 - Article attachments with custom inline placement inside content
-- Cover image upload for articles
+- Cover image upload for articles and home cards
 - Music player with custom source input
 - Language switching, font switching, theme switching, and palette control
 - Multiple visual modes on the same content layer
 - Guestbook support
 - GitHub Pages workflow for static preview deployment
 
-- 内置后台，可编辑文章、项目、站点文案、社交链接、自定义卡片、标签页标题和背景设置
-- 写作台使用服务端鉴权与会话 Cookie
-- 支持图片、音频、视频和其他附件，并可插入文章正文指定位置
-- 支持文章封面上传
+- 内置开发者编辑，可修改文章、项目、站点文案、社交链接、自定义卡片、标签页标题和背景设置
+- 开发者编辑使用服务端鉴权与 Cookie 会话
+- 支持图片、音频、视频和其他附件，并可插入正文指定位置
+- 支持文章封面与首页卡片封面上传
 - 支持自定义音源的音乐播放器
-- 支持语言、字体、明暗模式和配色切换
-- 同一份内容可切换不同视觉主题
+- 支持语言、字体、主题和调色盘切换
+- 支持同一份内容切换不同视觉模式
 - 自带留言板
-- 自带 GitHub Pages 静态预览部署工作流
+- 自带 GitHub Pages 静态预览工作流
 
 ## Theme Modes
 
 The template currently ships with these page modes:
 
-- `Default`: the main liquid / atmospheric presentation
+- `Default`: the main liquid and atmospheric presentation
 - `X Flow`: a cleaner editorial-style mode with a different layout language
 - `Antigravity`: a more experimental visual mode
 
 当前模板包含这些主题模式：
 
 - `Default`：主站风格，偏液态与氛围感
-- `X Flow`：更克制、更像编辑设计的网站样式
+- `X Flow`：更克制、更像编辑设计站点的样式
 - `Antigravity`：更实验性的视觉模式
 
-The content stays the same while the visual presentation changes.
+The content stays the same while the presentation changes.
 
-文字内容保持一致，切换的是整页的视觉表达。
+文字内容保持一致，变化的是整页的视觉逻辑与排版方式。
 
 ## Tech Stack
 
@@ -124,8 +122,8 @@ This starts:
 
 - Vite 前端
 - Node 服务
-- 后台安全登录
-- 服务端内容保存
+- 开发者编辑安全登录
+- 服务端内容持久化
 
 ### 4. Production Build
 
@@ -194,7 +192,7 @@ If you want the secure studio to work in production, deploy it to a Node-capable
 - VPS + Nginx + PM2
 - any other standard Node host
 
-如果你希望正式环境里也能使用安全写作台，请部署到支持 Node 的平台，而不是只放在 GitHub Pages 上。
+如果你希望正式环境里也能使用安全开发者编辑，请部署到支持 Node 的平台，而不是只放在 GitHub Pages 上。
 
 ## Project Structure
 
@@ -235,7 +233,7 @@ Node 服务运行时，内容会写入：
 
 - `server/data/store.json`
 
-这个文件已经被 Git 忽略，用作运行时存储。
+这个文件已被 Git 忽略，用作运行时存储。
 
 ## Security Boundary
 
@@ -249,17 +247,17 @@ Current protection includes:
 - request origin checks
 - lockout for repeated failed login attempts
 
-这比“纯前端写死密码”的方式安全得多，但它仍然是模板，不是完整商用后台系统。
+这比“纯前端写死密码”的做法安全得多，但它仍然是模板，不是完整商用后台系统。
 
 ## Design Inspiration
 
-This template’s README structure was rewritten with the clarity patterns commonly seen in mature GitHub repositories such as:
+This README structure was rewritten with the clarity patterns commonly seen in mature GitHub repositories such as:
 
 - [microsoft/vscode](https://github.com/microsoft/vscode)
 - [vercel/next.js](https://github.com/vercel/next.js)
 - [facebook/react](https://github.com/facebook/react)
 
-参考的不是它们的内容，而是它们在 README 中对“价值说明、快速开始、文档入口、边界说明”的组织方式。
+参考的是这些高星仓库在 README 中对“项目价值、快速开始、文档入口、边界说明”的组织方式，而不是照搬它们的内容。
 
 ## License
 

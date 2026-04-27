@@ -26,7 +26,7 @@
   --cursor-glow-warm: color-mix(in srgb, var(--accent-warm) 18%, transparent);
 }
 
-/* 站内控制中心：命令面板、布局切换、档案筛选、阅读室扩展样式 */
+/* 绔欏唴鎺у埗涓績锛氬懡浠ら潰鏉裤€佸竷灞€鍒囨崲銆佹。妗堢瓫閫夈€侀槄璇诲鎵╁睍鏍峰紡 */
 
 .selector-trigger--command {
   min-width: 152px;
@@ -1798,6 +1798,10 @@ select {
 
 .site-nav .nav-label {
   display: inline-block;
+  white-space: nowrap;
+  word-break: keep-all;
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
   transition: color 180ms ease, background-position 280ms ease, filter 180ms ease;
 }
 
@@ -1852,10 +1856,21 @@ select {
 .site-nav a {
   position: relative;
   z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
   padding: 9px 13px;
   text-decoration: none;
   color: var(--muted);
   background: transparent;
+  white-space: nowrap;
+  word-break: keep-all;
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
+  white-space: nowrap;
+  word-break: keep-all;
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
   transition: transform 160ms ease, color 160ms ease, background 160ms ease, box-shadow 180ms ease;
 }
 
@@ -2168,6 +2183,10 @@ select {
   padding: 9px 12px;
   color: var(--text);
   background: color-mix(in srgb, var(--surface-strong) 90%, transparent);
+  white-space: nowrap;
+  word-break: keep-all;
+  writing-mode: horizontal-tb;
+  text-orientation: mixed;
   transition: transform 160ms ease, background 160ms ease;
 }
 
@@ -2181,6 +2200,7 @@ select {
 .selector-trigger {
   display: inline-flex;
   align-items: center;
+  justify-content: center;
   gap: 10px;
   min-height: 52px;
   padding: 0 16px;
@@ -3497,7 +3517,7 @@ body[data-background-preset="ice"] .article-card:first-child {
   }
 
   .selector-trigger--command::before {
-    content: "⌘";
+    content: "K";
     font-size: 0.9rem;
     line-height: 1;
   }
@@ -3508,7 +3528,7 @@ body[data-background-preset="ice"] .article-card:first-child {
   }
 
   .theme-toggle::before {
-    content: "◐";
+    content: "T";
     font-size: 0.9rem;
     line-height: 1;
   }
@@ -3520,10 +3540,28 @@ body[data-background-preset="ice"] .article-card:first-child {
   }
 
   .site-nav a {
+    min-width: 46px;
     padding: 8px 10px;
     font-size: 0.82rem;
     white-space: nowrap;
+    word-break: keep-all;
+    writing-mode: horizontal-tb;
+    text-orientation: mixed;
   }
+
+  .site-nav .nav-label,
+  .selector-trigger,
+  .selector-trigger .nav-label,
+  .theme-toggle,
+  .dock-button,
+  .control-pill,
+  .action-button {
+    white-space: nowrap;
+    word-break: keep-all;
+    writing-mode: horizontal-tb;
+    text-orientation: mixed;
+  }
+
 
   .selector-menu {
     left: 0;
