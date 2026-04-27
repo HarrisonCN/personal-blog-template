@@ -1545,6 +1545,7 @@ function buildDefaultSiteContent() {
       stats: { ...siteMeta.stats },
       socialLinks: siteMeta.socialLinks.map(normalizeSocialLink),
       customCards: Array.isArray(siteMeta.customCards) ? siteMeta.customCards.map(normalizeCustomCard) : [],
+      homeCardOverrides: {},
       pinnedSpaces: [],
     },
     text: textContent,
@@ -1581,6 +1582,10 @@ function normalizeSiteContent(content) {
       customCards: Array.isArray(content?.meta?.customCards)
         ? content.meta.customCards.map(normalizeCustomCard)
         : defaults.meta.customCards.map(normalizeCustomCard),
+      homeCardOverrides:
+        content?.meta?.homeCardOverrides && typeof content.meta.homeCardOverrides === "object"
+          ? content.meta.homeCardOverrides
+          : defaults.meta.homeCardOverrides,
       pinnedSpaces: Array.isArray(content?.meta?.pinnedSpaces)
         ? content.meta.pinnedSpaces.map(normalizePinnedSpace)
         : defaults.meta.pinnedSpaces.map(normalizePinnedSpace),
@@ -2298,12 +2303,8 @@ function Header({
       </div>
 
       <div className="header-panel nav-panel">
-        <nav ref={navRef} className={`site-nav ${capsuleStyle ? "site-nav--ready" : ""}`}>
-          <span
-            className={`site-nav__capsule ${capsuleMoving ? "is-moving" : ""}`}
-            style={capsuleStyle || undefined}
-            aria-hidden="true"
-          />
+        <nav ref={navRef} className={`site-nav ${capsuleStyle ? "site-nav--ready" : ""} ${capsuleMoving ? "is-moving" : ""}`}>
+          <span className={`site-nav__capsule ${capsuleMoving ? "is-moving" : ""}`} style={capsuleStyle || undefined} aria-hidden="true" />
           <NavLink to="/" ref={(node) => (navItemsRef.current.home = node)}>
             <span className="nav-label">{text.navHome}</span>
           </NavLink>
@@ -2765,7 +2766,21 @@ function moveArrayItem(list, fromIndex, toIndex) {
   return next;
 }
 
-function buildHomeCardItems({ language, projects, articles, customCards, text, copy }) {
+function buildHomeCardItems({ language, projects, articles, customCards, text, copy, overrides }) {
+  const applyOverride = (item) => {
+    const override = overrides?.[item.id];
+    if (!override) {
+      return item;
+    }
+    return {
+      ...item,
+      title: override.title || item.title,
+      body: override.body || item.body,
+      href: override.href || item.href,
+      action: override.action || item.action,
+    };
+  };
+
   const projectItems = projects.slice(0, 4).map((project) => ({
     id: `project-${project.slug}`,
     type: "project",
@@ -2797,12 +2812,19 @@ function buildHomeCardItems({ language, projects, articles, customCards, text, c
     external: Boolean(card.linkUrl),
   }));
 
-  return [...projectItems, ...articleItems, ...customItems];
+  return [...projectItems, ...articleItems, ...customItems].map(applyOverride);
 }
 
 function HomeArchiveFlow({ language, entries, experience }) {
+  const location = useLocation();
+  const navigate = useNavigate();
   const [activeType, setActiveType] = useState(() => {
     try {
+      const params = new URLSearchParams(window.location.search);
+      const queryType = params.get("archiveType");
+      if (queryType === "all" || queryType === "article" || queryType === "project") {
+        return queryType;
+      }
       const stored = JSON.parse(window.localStorage.getItem(HOME_ARCHIVE_STATE_STORAGE_KEY) || "{}");
       return stored.activeType || "all";
     } catch {
@@ -2853,6 +2875,41 @@ function HomeArchiveFlow({ language, entries, experience }) {
   }, [activeType, collapsedYears]);
 
   useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const currentType = params.get("archiveType");
+    const currentYear = params.get("archiveYear");
+    let changed = false;
+    if (activeType !== "all") {
+      if (currentType !== activeType) {
+        params.set("archiveType", activeType);
+        changed = true;
+      }
+    } else if (currentType) {
+      params.delete("archiveType");
+      changed = true;
+    }
+    if (activeYear) {
+      if (currentYear !== activeYear) {
+        params.set("archiveYear", activeYear);
+        changed = true;
+      }
+    } else if (currentYear) {
+      params.delete("archiveYear");
+      changed = true;
+    }
+    if (changed) {
+      navigate(
+        {
+          pathname: location.pathname,
+          search: params.toString() ? `?${params.toString()}` : "",
+          hash: location.hash,
+        },
+        { replace: true }
+      );
+    }
+  }, [activeType, activeYear, location.hash, location.pathname, location.search, navigate]);
+
+  useEffect(() => {
     const years = Object.keys(groups);
     if (!years.length) {
       setActiveYear("");
@@ -2881,6 +2938,22 @@ function HomeArchiveFlow({ language, entries, experience }) {
     });
     return () => observer.disconnect();
   }, [groups]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(location.search);
+    const queryYear = params.get("archiveYear");
+    if (!queryYear) {
+      return;
+    }
+    const node = yearSectionRefs.current[queryYear];
+    if (!node) {
+      return;
+    }
+    const timer = window.setTimeout(() => {
+      node.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [groups, location.search]);
 
   const toggleYear = (year) => {
     setCollapsedYears((current) =>
@@ -2991,7 +3064,7 @@ function HomeArchiveFlow({ language, entries, experience }) {
   );
 }
 
-function HomeCardBoard({ items }) {
+function HomeCardBoard({ items, onSaveCardOverride }) {
   const [orderedItems, setOrderedItems] = useState(() => {
     try {
       const stored = JSON.parse(window.localStorage.getItem(HOME_CARD_ORDER_STORAGE_KEY) || "[]");
@@ -3134,6 +3207,20 @@ function HomeCardBoard({ items }) {
     setEditingId(null);
   };
 
+  const saveCardEdit = async (item) => {
+    const edit = editMap[item.id] || {};
+    const nextPatch = {
+      title: edit.title || item.title,
+      body: edit.body || item.body,
+      href: edit.href || item.href,
+      action: edit.action || item.action,
+    };
+    if (onSaveCardOverride) {
+      await onSaveCardOverride(item.id, nextPatch);
+    }
+    setEditingId(null);
+  };
+
   const handleResizeStart = (event, id, currentSize) => {
     event.preventDefault();
     event.stopPropagation();
@@ -3236,7 +3323,7 @@ function HomeCardBoard({ items }) {
                   <input value={href} onChange={(event) => updateCardEdit(item.id, "href", event.target.value)} placeholder="链接" />
                   <input value={action} onChange={(event) => updateCardEdit(item.id, "action", event.target.value)} placeholder="按钮文案" />
                   <div className="home-card-board__editor-actions">
-                    <button type="button" onClick={() => setEditingId(null)}>完成</button>
+                    <button type="button" onClick={() => saveCardEdit(item)}>完成并同步</button>
                     <button type="button" onClick={() => clearCardEdit(item.id)}>恢复默认</button>
                   </div>
                 </div>
@@ -3532,7 +3619,7 @@ function ArchivePage({ language, articles, projects, meta }) {
   );
 }
 
-function HomePage({ language, text, copy, articles, meta, projects, guestbookEntries, addGuestbookEntry, isXFlow }) {
+function HomePage({ language, text, copy, articles, meta, projects, guestbookEntries, addGuestbookEntry, isXFlow, onSaveCardOverride }) {
   const [guestbookForm, setGuestbookForm] = useState({ name: "", message: "" });
   const [homeLayout, setHomeLayout] = useState(() => {
     if (typeof window === "undefined") {
@@ -3564,8 +3651,9 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
         customCards: meta.customCards || [],
         text,
         copy,
+        overrides: meta.homeCardOverrides || {},
       }),
-    [articles, copy, language, meta.customCards, projects, text, topArticles]
+    [articles, copy, language, meta.customCards, meta.homeCardOverrides, projects, text, topArticles]
   );
 
   const submitGuestbook = async (event) => {
@@ -3670,7 +3758,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
           <HomeArchiveFlow language={language} entries={archiveEntries} experience={getExperienceCopy(language)} />
         ) : null}
 
-        {homeLayout === "cards" ? <HomeCardBoard items={homeCardItems} /> : null}
+        {homeLayout === "cards" ? <HomeCardBoard items={homeCardItems} onSaveCardOverride={onSaveCardOverride} /> : null}
 
         {homeLayout === "magazine" ? <section className="xflow-shelf">
           <Reveal className="xflow-lead-card glass-card">
@@ -3814,7 +3902,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
         <HomeArchiveFlow language={language} entries={archiveEntries} experience={getExperienceCopy(language)} />
       ) : null}
 
-      {homeLayout === "cards" ? <HomeCardBoard items={homeCardItems} /> : null}
+      {homeLayout === "cards" ? <HomeCardBoard items={homeCardItems} onSaveCardOverride={onSaveCardOverride} /> : null}
 
       {homeLayout === "magazine" && meta.customCards?.length ? (
         <section className="section">
@@ -5288,6 +5376,20 @@ function StudioPage({
     }));
   };
 
+  const handleRemoveHomeCardOverride = (cardId) => {
+    setSiteDraft((current) => {
+      const nextOverrides = { ...(current.meta.homeCardOverrides || {}) };
+      delete nextOverrides[cardId];
+      return {
+        ...current,
+        meta: {
+          ...current.meta,
+          homeCardOverrides: nextOverrides,
+        },
+      };
+    });
+  };
+
   const handlePinnedSpaceLocalizedField = (index, key, value) => {
     setSiteDraft((current) => ({
       ...current,
@@ -6258,6 +6360,50 @@ function StudioPage({
                 </div>
               </div>
             ))}
+            {Object.keys(siteDraft.meta.homeCardOverrides || {}).length ? (
+              <div className="studio-block">
+                <div className="studio-editor__head">
+                  <div>
+                    <p className="micro-label">OVERRIDES</p>
+                    <h3>首页卡片快捷编辑覆盖</h3>
+                    <p className="body-copy">这里显示卡片流里直接改过的标题、摘要、链接和按钮文案。</p>
+                  </div>
+                </div>
+                <div className="studio-list">
+                  {Object.entries(siteDraft.meta.homeCardOverrides || {}).map(([cardId, override]) => (
+                    <div key={cardId} className="studio-block">
+                      <div className="studio-form__row">
+                        <label className="studio-field">
+                          <span>Card ID</span>
+                          <input type="text" value={cardId} readOnly />
+                        </label>
+                        <label className="studio-field">
+                          <span>标题</span>
+                          <input type="text" value={override.title || ""} readOnly />
+                        </label>
+                      </div>
+                      <label className="studio-field">
+                        <span>摘要</span>
+                        <textarea rows="3" value={override.body || ""} readOnly />
+                      </label>
+                      <div className="studio-form__row">
+                        <label className="studio-field">
+                          <span>链接</span>
+                          <input type="text" value={override.href || ""} readOnly />
+                        </label>
+                        <label className="studio-field">
+                          <span>按钮文案</span>
+                          <input type="text" value={override.action || ""} readOnly />
+                        </label>
+                      </div>
+                      <button type="button" className="action-button action-button--secondary" onClick={() => handleRemoveHomeCardOverride(cardId)}>
+                        清除覆盖
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : null}
           </div>
         </section>
         <section id="studio-projects" className="studio-editor glass-card glass-card--static studio-section-card">
@@ -6437,6 +6583,7 @@ export default function App() {
     homeLayout: siteContent.meta?.homeLayout || "magazine",
     socialLinks: Array.isArray(siteContent.meta?.socialLinks) ? siteContent.meta.socialLinks.map(normalizeSocialLink) : siteMeta.socialLinks.map(normalizeSocialLink),
     customCards: Array.isArray(siteContent.meta?.customCards) ? siteContent.meta.customCards.map(normalizeCustomCard) : [],
+    homeCardOverrides: siteContent.meta?.homeCardOverrides || {},
     pinnedSpaces: Array.isArray(siteContent.meta?.pinnedSpaces) ? siteContent.meta.pinnedSpaces.map(normalizePinnedSpace) : [],
   };
   const activeBackground = previewBackground ?? {
@@ -6457,6 +6604,20 @@ export default function App() {
       delete document.body.dataset.backgroundPreset;
     };
   }, [activeBackground.backgroundPreset]);
+
+  const handleSaveCardOverride = async (cardId, patch) => {
+    const nextContent = normalizeSiteContent({
+      ...siteContent,
+      meta: {
+        ...(siteContent.meta || {}),
+        homeCardOverrides: {
+          ...(siteContent.meta?.homeCardOverrides || {}),
+          [cardId]: patch,
+        },
+      },
+    });
+    await saveContent(nextContent);
+  };
 
   return (
     <>
@@ -6492,6 +6653,7 @@ export default function App() {
               guestbookEntries={entries}
               addGuestbookEntry={addEntry}
               isXFlow={isXFlow}
+              onSaveCardOverride={handleSaveCardOverride}
             />
           }
         />
