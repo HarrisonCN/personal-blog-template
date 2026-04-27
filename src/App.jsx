@@ -2490,6 +2490,27 @@ function Shell({
       run: () => navigate(`/projects/${project.slug}`),
     }));
 
+    const archiveEntries = buildArchiveEntries(articles, projects);
+    const archiveYears = Array.from(new Set(archiveEntries.map((item) => item.year)));
+    const archiveTypeActions = [
+      { code: "all", label: experience.timelineAll || "All" },
+      { code: "article", label: experience.timelineArticles },
+      { code: "project", label: experience.timelineProjects },
+    ].map((item) => ({
+      id: `archive-type-${item.code}`,
+      group: experience.archiveTitle,
+      label: `${experience.archiveTitle}: ${item.label}`,
+      keywords: `archive ${item.code} filter`,
+      run: () => navigate(item.code === "all" ? "/archive" : `/archive?archiveType=${item.code}`),
+    }));
+    const archiveYearActions = archiveYears.map((year) => ({
+      id: `archive-year-${year}`,
+      group: experience.archiveTitle,
+      label: `${experience.archiveTitle}: ${year}`,
+      keywords: `archive year ${year}`,
+      run: () => navigate(`/archive?archiveYear=${year}`),
+    }));
+
     return [
       ...recentActions,
       ...recentReadingActions,
@@ -2499,6 +2520,8 @@ function Shell({
       ...layoutActions,
       ...themeActions,
       ...languageActions,
+      ...archiveTypeActions,
+      ...archiveYearActions,
       ...articleActions,
       ...projectActions,
     ];
@@ -2781,15 +2804,16 @@ function buildHomeCardItems({ language, projects, articles, customCards, text, c
     };
   };
 
-  const projectItems = projects.slice(0, 4).map((project) => ({
-    id: `project-${project.slug}`,
-    type: "project",
-    eyebrow: project.category[language] || project.category.en,
-    title: project.title,
-    body: project.summary[language] || project.summary.en,
-    href: `/projects/${project.slug}`,
-    action: text.heroSecondary,
-  }));
+      const projectItems = projects.slice(0, 4).map((project) => ({
+        id: `project-${project.slug}`,
+        type: "project",
+        eyebrow: project.category[language] || project.category.en,
+        title: project.title,
+        body: project.summary[language] || project.summary.en,
+        href: `/projects/${project.slug}`,
+        action: text.heroSecondary,
+        coverImage: project.coverImage || "",
+      }));
 
   const articleItems = articles.slice(0, 4).map((article) => ({
     id: `article-${article.slug}`,
@@ -2799,6 +2823,7 @@ function buildHomeCardItems({ language, projects, articles, customCards, text, c
     body: article.excerpt[language] || article.excerpt.en,
     href: `/articles/${article.slug}`,
     action: copy.openArticle,
+    coverImage: article.coverImage || "",
   }));
 
   const customItems = (customCards || []).map((card) => ({
@@ -2810,6 +2835,7 @@ function buildHomeCardItems({ language, projects, articles, customCards, text, c
     href: card.linkUrl,
     action: card.linkLabel[language] || card.linkLabel.en || "Open",
     external: Boolean(card.linkUrl),
+    coverImage: card.coverImage || "",
   }));
 
   return [...projectItems, ...articleItems, ...customItems].map(applyOverride);
@@ -3064,7 +3090,7 @@ function HomeArchiveFlow({ language, entries, experience }) {
   );
 }
 
-function HomeCardBoard({ items, onSaveCardOverride }) {
+function HomeCardBoard({ items, onSaveCardOverride, canEditContent }) {
   const [orderedItems, setOrderedItems] = useState(() => {
     try {
       const stored = JSON.parse(window.localStorage.getItem(HOME_CARD_ORDER_STORAGE_KEY) || "[]");
@@ -3214,11 +3240,22 @@ function HomeCardBoard({ items, onSaveCardOverride }) {
       body: edit.body || item.body,
       href: edit.href || item.href,
       action: edit.action || item.action,
+      coverImage: edit.coverImage || item.coverImage || "",
     };
     if (onSaveCardOverride) {
       await onSaveCardOverride(item.id, nextPatch);
     }
     setEditingId(null);
+  };
+
+  const handleCoverUpload = async (itemId, event) => {
+    const [file] = Array.from(event.target.files ?? []);
+    if (!file) {
+      return;
+    }
+    const [attachment] = await Promise.all([fileToAttachment(file)]);
+    updateCardEdit(itemId, "coverImage", attachment.dataUrl);
+    event.target.value = "";
   };
 
   const handleResizeStart = (event, id, currentSize) => {
@@ -3285,6 +3322,7 @@ function HomeCardBoard({ items, onSaveCardOverride }) {
         const body = edit.body || item.body;
         const href = edit.href || item.href;
         const action = edit.action || item.action;
+        const coverImage = edit.coverImage || item.coverImage || "";
         const isEditing = editingId === item.id;
         return (
           <Reveal key={item.id} delay={index * 40}>
@@ -3299,9 +3337,11 @@ function HomeCardBoard({ items, onSaveCardOverride }) {
               <div className="home-card-board__toolbar">
                 <span className="micro-label">{item.eyebrow}</span>
                 <div className="home-card-board__actions">
-                  <button type="button" onClick={() => setEditingId((current) => (current === item.id ? null : item.id))}>
-                    {isEditing ? "收起编辑" : "快捷编辑"}
-                  </button>
+                  {canEditContent ? (
+                    <button type="button" onClick={() => setEditingId((current) => (current === item.id ? null : item.id))}>
+                      {isEditing ? "收起编辑" : "快捷编辑"}
+                    </button>
+                  ) : null}
                   <button type="button" onClick={() => cycleCardSize(item.id)}>
                     {size === "wide" ? "宽" : size === "tall" ? "高" : size === "hero" ? "超大" : "标准"}
                   </button>
@@ -3316,18 +3356,31 @@ function HomeCardBoard({ items, onSaveCardOverride }) {
                   </button>
                 </div>
               </div>
-              {isEditing ? (
+              {isEditing && canEditContent ? (
                 <div className="home-card-board__editor">
                   <input value={title} onChange={(event) => updateCardEdit(item.id, "title", event.target.value)} placeholder="标题" />
                   <textarea value={body} onChange={(event) => updateCardEdit(item.id, "body", event.target.value)} placeholder="摘要" rows={3} />
                   <input value={href} onChange={(event) => updateCardEdit(item.id, "href", event.target.value)} placeholder="链接" />
                   <input value={action} onChange={(event) => updateCardEdit(item.id, "action", event.target.value)} placeholder="按钮文案" />
+                  <div className="home-card-board__editor-cover">
+                    <label className="home-card-board__cover-upload">
+                      <span>上传封面</span>
+                      <input type="file" accept="image/*" onChange={(event) => handleCoverUpload(item.id, event)} />
+                    </label>
+                    {coverImage ? (
+                      <>
+                        <img src={coverImage} alt={`${title} cover`} className="home-card-board__cover-preview" />
+                        <button type="button" onClick={() => updateCardEdit(item.id, "coverImage", "")}>移除封面</button>
+                      </>
+                    ) : null}
+                  </div>
                   <div className="home-card-board__editor-actions">
                     <button type="button" onClick={() => saveCardEdit(item)}>完成并同步</button>
                     <button type="button" onClick={() => clearCardEdit(item.id)}>恢复默认</button>
                   </div>
                 </div>
               ) : null}
+              {coverImage ? <img src={coverImage} alt={`${title} cover`} className="home-card-board__cover" /> : null}
               <h3>{title}</h3>
               <p className="body-copy">{body}</p>
               {item.external ? (
@@ -3619,7 +3672,7 @@ function ArchivePage({ language, articles, projects, meta }) {
   );
 }
 
-function HomePage({ language, text, copy, articles, meta, projects, guestbookEntries, addGuestbookEntry, isXFlow, onSaveCardOverride }) {
+function HomePage({ language, text, copy, articles, meta, projects, guestbookEntries, addGuestbookEntry, isXFlow, onSaveCardOverride, canEditCardContent }) {
   const [guestbookForm, setGuestbookForm] = useState({ name: "", message: "" });
   const [homeLayout, setHomeLayout] = useState(() => {
     if (typeof window === "undefined") {
@@ -3758,7 +3811,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
           <HomeArchiveFlow language={language} entries={archiveEntries} experience={getExperienceCopy(language)} />
         ) : null}
 
-        {homeLayout === "cards" ? <HomeCardBoard items={homeCardItems} onSaveCardOverride={onSaveCardOverride} /> : null}
+        {homeLayout === "cards" ? <HomeCardBoard items={homeCardItems} onSaveCardOverride={onSaveCardOverride} canEditContent={canEditCardContent} /> : null}
 
         {homeLayout === "magazine" ? <section className="xflow-shelf">
           <Reveal className="xflow-lead-card glass-card">
@@ -3902,7 +3955,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
         <HomeArchiveFlow language={language} entries={archiveEntries} experience={getExperienceCopy(language)} />
       ) : null}
 
-      {homeLayout === "cards" ? <HomeCardBoard items={homeCardItems} onSaveCardOverride={onSaveCardOverride} /> : null}
+      {homeLayout === "cards" ? <HomeCardBoard items={homeCardItems} onSaveCardOverride={onSaveCardOverride} canEditContent={canEditCardContent} /> : null}
 
       {homeLayout === "magazine" && meta.customCards?.length ? (
         <section className="section">
@@ -6654,6 +6707,7 @@ export default function App() {
               addGuestbookEntry={addEntry}
               isXFlow={isXFlow}
               onSaveCardOverride={handleSaveCardOverride}
+              canEditCardContent={isAuthenticated}
             />
           }
         />
