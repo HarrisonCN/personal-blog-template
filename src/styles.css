@@ -36,9 +36,15 @@
   --focus-ring:
     0 0 0 1px color-mix(in srgb, var(--accent) 38%, transparent),
     0 0 0 6px color-mix(in srgb, var(--accent) 12%, transparent);
+  --motion-nav-fast: 180ms;
+  --motion-nav-base: 320ms;
+  --motion-menu-base: 220ms;
+  --motion-dock-base: 240ms;
+  --motion-page-enter: 760ms;
+  --motion-page-leave: 320ms;
 }
 
-/* 统一全站交互节奏，让导航、卡片、菜单、播放器和阅读层使用同一套动效语言。 */
+/* 将动效分为导航、菜单、播放器和页面切换四层，避免泛化到整站后拖慢性能。 */
 
 html {
   scroll-behavior: smooth;
@@ -56,37 +62,6 @@ button {
     box-shadow var(--motion-base) ease,
     opacity var(--motion-fast) ease,
     filter var(--motion-fast) ease;
-}
-
-:is(
-  .selector-trigger,
-  .selector-option,
-  .theme-toggle,
-  .dock-button,
-  .action-button,
-  .control-pill,
-  .layout-switcher__button,
-  .command-palette__item,
-  .music-dock__toggle,
-  .inline-link,
-  .archive-link,
-  .social-pill
-):hover {
-  transform: translateY(var(--lift-distance));
-}
-
-:is(
-  .selector-trigger,
-  .selector-option,
-  .theme-toggle,
-  .dock-button,
-  .action-button,
-  .control-pill,
-  .layout-switcher__button,
-  .command-palette__item,
-  .music-dock__toggle
-):active {
-  transform: translateY(0) scale(var(--press-scale));
 }
 
 :is(input, textarea, select, .command-palette__input):focus-visible {
@@ -217,7 +192,7 @@ button {
   border: 0;
   background: rgba(7, 11, 18, 0.34);
   backdrop-filter: blur(8px);
-  animation: overlay-fade var(--motion-base) var(--ease-soft) both;
+  animation: overlay-fade var(--motion-menu-base) ease both;
 }
 
 .command-palette__panel {
@@ -229,7 +204,7 @@ button {
   padding: 16px;
   border-radius: 28px;
   transform-origin: top center;
-  animation: surface-enter 340ms var(--ease-soft) both;
+  animation: surface-enter var(--motion-menu-base) var(--ease-soft) both;
 }
 
 .command-palette__input {
@@ -285,8 +260,16 @@ button {
     transform var(--motion-fast) var(--ease-standard),
     border-color var(--motion-fast) ease,
     background var(--motion-fast) ease,
-    box-shadow var(--motion-base) ease,
+    box-shadow var(--motion-menu-base) ease,
     color var(--motion-fast) ease;
+}
+
+.command-palette__item:hover {
+  transform: translateY(-2px);
+}
+
+.command-palette__item:active {
+  transform: translateY(0) scale(0.988);
 }
 
 .command-palette__item:hover {
@@ -1850,11 +1833,11 @@ select {
   background: color-mix(in srgb, var(--accent) 16%, var(--surface-strong));
   box-shadow: 0 14px 28px color-mix(in srgb, var(--accent) 15%, transparent);
   transition:
-    transform 340ms var(--ease-spring),
-    width 340ms var(--ease-spring),
-    height 340ms var(--ease-spring),
-    opacity var(--motion-fast) ease,
-    filter var(--motion-base) ease;
+    transform var(--motion-nav-base) var(--ease-spring),
+    width var(--motion-nav-base) var(--ease-spring),
+    height var(--motion-nav-base) var(--ease-spring),
+    opacity var(--motion-nav-fast) ease,
+    filter var(--motion-nav-fast) ease;
   pointer-events: none;
   z-index: 0;
   opacity: 0;
@@ -1867,7 +1850,7 @@ select {
   border-radius: inherit;
   background: linear-gradient(90deg, color-mix(in srgb, #ffffff 46%, transparent), transparent 68%);
   opacity: 0;
-  transition: opacity var(--motion-fast) ease, transform var(--motion-base) var(--ease-standard);
+  transition: opacity var(--motion-nav-fast) ease;
 }
 
 .site-nav__capsule.is-moving {
@@ -1879,7 +1862,7 @@ select {
 }
 
 .site-nav.site-nav--ready:not(.is-moving) .site-nav__capsule {
-  animation: nav-capsule-settle 240ms cubic-bezier(0.2, 0.9, 0.22, 1) both;
+  animation: nav-capsule-settle 220ms cubic-bezier(0.2, 0.9, 0.22, 1) both;
 }
 
 .site-nav .nav-label {
@@ -1889,10 +1872,9 @@ select {
   writing-mode: horizontal-tb;
   text-orientation: mixed;
   transition:
-    color var(--motion-fast) ease,
-    background-position var(--motion-base) ease,
-    filter var(--motion-fast) ease,
-    letter-spacing var(--motion-fast) ease;
+    color var(--motion-nav-fast) ease,
+    background-position var(--motion-nav-base) ease,
+    filter var(--motion-nav-fast) ease;
 }
 
 .site-nav.is-moving a.active .nav-label {
@@ -1962,11 +1944,10 @@ select {
   writing-mode: horizontal-tb;
   text-orientation: mixed;
   transition:
-    transform var(--motion-fast) var(--ease-standard),
-    color var(--motion-fast) ease,
-    background var(--motion-fast) ease,
-    box-shadow var(--motion-base) ease,
-    filter var(--motion-fast) ease;
+    color var(--motion-nav-fast) ease,
+    background var(--motion-nav-fast) ease,
+    box-shadow var(--motion-nav-fast) ease,
+    filter var(--motion-nav-fast) ease;
 }
 
 .site-nav a:hover,
@@ -1985,7 +1966,7 @@ select {
   background: linear-gradient(90deg, var(--accent), var(--accent-warm));
   opacity: 0;
   transform: scaleX(0.4);
-  transition: opacity var(--motion-fast) ease, transform var(--motion-base) var(--ease-standard);
+  transition: opacity var(--motion-nav-fast) ease, transform var(--motion-nav-base) var(--ease-standard);
 }
 
 .site-nav a.active,
@@ -3003,7 +2984,6 @@ body[data-background-preset="ice"] .article-card:first-child {
   padding: 10px;
   border-radius: 30px;
   transform-origin: bottom right;
-  will-change: transform;
   overflow: hidden;
   backdrop-filter: blur(24px) saturate(150%);
   background:
@@ -3014,8 +2994,8 @@ body[data-background-preset="ice"] .article-card:first-child {
     inset 0 1px 0 rgba(255, 255, 255, 0.34),
     inset 0 -1px 0 rgba(255, 255, 255, 0.05);
   transition:
-    transform var(--motion-base) var(--ease-standard),
-    box-shadow var(--motion-base) ease,
+    transform var(--motion-dock-base) var(--ease-standard),
+    box-shadow var(--motion-dock-base) ease,
     background var(--motion-fast) ease,
     border-color var(--motion-fast) ease;
 }
@@ -3031,7 +3011,7 @@ body[data-background-preset="ice"] .article-card:first-child {
   color: inherit;
   text-align: left;
   transition:
-    transform var(--motion-fast) var(--ease-standard),
+    transform var(--motion-dock-base) var(--ease-standard),
     opacity var(--motion-fast) ease,
     filter var(--motion-fast) ease;
 }
@@ -3101,8 +3081,7 @@ body[data-background-preset="ice"] .article-card:first-child {
   display: grid;
   gap: 0;
   transform-origin: top center;
-  will-change: transform, opacity;
-  transition: opacity var(--motion-base) ease, transform var(--motion-base) var(--ease-standard);
+  transition: opacity var(--motion-dock-base) ease, transform var(--motion-dock-base) var(--ease-standard);
 }
 
 .music-dock.collapsed .music-dock__body {
@@ -3110,11 +3089,11 @@ body[data-background-preset="ice"] .article-card:first-child {
 }
 
 .music-dock.expanded {
-  animation: dock-pop 280ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: dock-pop var(--motion-dock-base) cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .music-dock.expanded .music-dock__body {
-  animation: dock-expand 240ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  animation: dock-expand var(--motion-dock-base) cubic-bezier(0.16, 1, 0.3, 1) both;
 }
 
 .music-dock.expanded .music-dock__caret {
@@ -3378,11 +3357,11 @@ body[data-background-preset="ice"] .article-card:first-child {
 }
 
 .page-transition--enter {
-  animation: page-transition-enter 1080ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: page-transition-enter var(--motion-page-enter) cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .page-transition--leave {
-  animation: page-transition-leave 520ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  animation: page-transition-leave var(--motion-page-leave) cubic-bezier(0.16, 1, 0.3, 1) forwards;
 }
 
 .reveal {
@@ -3491,16 +3470,11 @@ body[data-background-preset="ice"] .article-card:first-child {
 .palette-menu,
 .music-source-panel {
   transform-origin: top center;
-  animation: surface-enter 280ms var(--ease-soft) both;
-}
-
-.command-palette__panel,
-.music-dock {
-  will-change: transform, opacity;
+  animation: surface-enter var(--motion-menu-base) var(--ease-soft) both;
 }
 
 .command-palette__status-item {
-  animation: surface-enter 360ms var(--ease-soft) both;
+  animation: surface-enter 300ms var(--ease-soft) both;
 }
 
 .command-palette__status-item:nth-child(1) {
@@ -3530,7 +3504,7 @@ body[data-background-preset="ice"] .article-card:first-child {
     background var(--motion-fast) ease,
     color var(--motion-fast) ease,
     border-color var(--motion-fast) ease,
-    box-shadow var(--motion-base) ease,
+    box-shadow var(--motion-menu-base) ease,
     opacity var(--motion-fast) ease,
     filter var(--motion-fast) ease;
 }
@@ -3544,7 +3518,18 @@ body[data-background-preset="ice"] .article-card:first-child {
 .inline-link:hover,
 .archive-link:hover,
 .social-pill:hover {
-  filter: saturate(1.05);
+  transform: translateY(-2px);
+  filter: saturate(1.03);
+}
+
+.selector-option:active,
+.selector-trigger:active,
+.theme-toggle:active,
+.dock-button:active,
+.action-button:active,
+.layout-switcher__button:active,
+.social-pill:active {
+  transform: translateY(0) scale(0.988);
 }
 
 .reading-room__ambient button,

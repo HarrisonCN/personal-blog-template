@@ -2345,8 +2345,8 @@ function PageTransitionOverlay({ transitionKey }) {
 
   useEffect(() => {
     setPhase("enter");
-    const fadeTimer = window.setTimeout(() => setPhase("leave"), 560);
-    const removeTimer = window.setTimeout(() => setPhase("idle"), 1080);
+    const fadeTimer = window.setTimeout(() => setPhase("leave"), 420);
+    const removeTimer = window.setTimeout(() => setPhase("idle"), 760);
     return () => {
       window.clearTimeout(fadeTimer);
       window.clearTimeout(removeTimer);
