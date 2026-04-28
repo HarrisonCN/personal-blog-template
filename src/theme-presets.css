@@ -1235,13 +1235,100 @@ body[data-background-preset="xflow"] .xflow-project-card--challenge .body-copy {
     position: static;
   }
 
+  body[data-background-preset="xflow"] .reading-progress,
+  body[data-background-preset="xflow"] .toc-card,
+  body[data-background-preset="xflow"] .xflow-reading-progress,
+  body[data-background-preset="xflow"] .xflow-side-card {
+    position: static;
+    top: auto;
+  }
+
   body[data-background-preset="xflow"] .xflow-hero__copy h1 {
     font-size: clamp(2.5rem, 10vw, 4rem);
     max-width: 100%;
   }
 
   body[data-background-preset="xflow"] .site-header {
-    grid-template-columns: none;
+    grid-template-columns: 42px minmax(88px, auto) 1fr auto;
+  }
+}
+
+@media (max-width: 640px) {
+  body[data-background-preset="xflow"] .site-header {
+    grid-template-columns: 42px minmax(84px, auto) 1fr auto;
+    gap: 8px;
+    padding-top: 12px;
+  }
+
+  body[data-background-preset="xflow"] .brand-panel,
+  body[data-background-preset="xflow"] .nav-panel,
+  body[data-background-preset="xflow"] .toolbar-panel,
+  body[data-background-preset="xflow"] .theme-panel {
+    border-radius: 14px;
+  }
+
+  body[data-background-preset="xflow"] .site-nav {
+    gap: 4px;
+    overflow: visible;
+  }
+
+  body[data-background-preset="xflow"] .site-nav a,
+  body[data-background-preset="xflow"] .selector-trigger,
+  body[data-background-preset="xflow"] .theme-toggle {
+    min-height: 42px;
+    padding-inline: 10px;
+  }
+
+  body[data-background-preset="xflow"] .xflow-home,
+  body[data-background-preset="xflow"] .xflow-articles-page,
+  body[data-background-preset="xflow"] .xflow-article-detail-page,
+  body[data-background-preset="xflow"] .xflow-project-detail-page {
+    gap: 16px;
+  }
+
+  body[data-background-preset="xflow"] .xflow-hero,
+  body[data-background-preset="xflow"] .xflow-page-banner,
+  body[data-background-preset="xflow"] .xflow-article-hero,
+  body[data-background-preset="xflow"] .xflow-project-hero {
+    padding: 16px;
+    gap: 14px;
+    border-radius: 18px;
+  }
+
+  body[data-background-preset="xflow"] .xflow-hero__copy,
+  body[data-background-preset="xflow"] .xflow-hero__profile,
+  body[data-background-preset="xflow"] .xflow-page-banner__copy,
+  body[data-background-preset="xflow"] .xflow-article-hero__meta,
+  body[data-background-preset="xflow"] .xflow-article-hero__lead,
+  body[data-background-preset="xflow"] .xflow-project-card,
+  body[data-background-preset="xflow"] .xflow-side-card,
+  body[data-background-preset="xflow"] .xflow-article-main {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  body[data-background-preset="xflow"] .xflow-hero__copy h1,
+  body[data-background-preset="xflow"] .xflow-article-hero h1,
+  body[data-background-preset="xflow"] .xflow-project-hero h1 {
+    font-size: clamp(1.9rem, 10vw, 3rem);
+    line-height: 0.98;
+    max-width: 100%;
+  }
+
+  body[data-background-preset="xflow"] .xflow-article-summary-card,
+  body[data-background-preset="xflow"] .xflow-reading-progress {
+    padding: 14px;
+    border-radius: 16px;
+  }
+
+  body[data-background-preset="xflow"] .xflow-reading-progress {
+    position: static;
+    top: auto;
+  }
+
+  body[data-background-preset="xflow"] .xflow-profile-card .intro-avatar {
+    width: 92px;
+    height: 92px;
   }
 }
 
