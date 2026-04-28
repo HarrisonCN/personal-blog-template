@@ -3907,11 +3907,87 @@ body[data-background-preset="ice"] .article-card:first-child {
   .dock-button--play {
     min-width: 56px;
   }
+
+  .page-transition__core {
+    width: 24vmin;
+    height: 24vmin;
+  }
+
+  .page-transition__bar {
+    width: min(280px, 56vw);
+  }
+
+  .page-transition__mesh {
+    width: min(360px, 62vw);
+    height: min(360px, 62vw);
+    background-size: 22px 22px;
+  }
 }
 
 @media (hover: none), (pointer: coarse) {
+  :root {
+    --motion-menu-base: 180ms;
+    --motion-dock-base: 200ms;
+    --motion-page-enter: 520ms;
+    --motion-page-leave: 220ms;
+  }
+
   .cursor-dot {
     display: none;
+  }
+
+  .site-nav a,
+  .selector-trigger,
+  .theme-toggle,
+  .selector-option,
+  .dock-button,
+  .action-button,
+  .layout-switcher__button,
+  .command-palette__item,
+  .music-dock__toggle {
+    touch-action: manipulation;
+  }
+
+  .selector-option:hover,
+  .selector-trigger:hover,
+  .theme-toggle:hover,
+  .dock-button:hover,
+  .action-button:hover,
+  .layout-switcher__button:hover,
+  .inline-link:hover,
+  .archive-link:hover,
+  .social-pill:hover,
+  .command-palette__item:hover {
+    transform: none;
+    filter: none;
+  }
+
+  .site-nav a,
+  .selector-trigger,
+  .theme-toggle,
+  .dock-button,
+  .action-button,
+  .command-palette__item {
+    min-height: 44px;
+  }
+
+  .command-palette__panel {
+    width: min(calc(100vw - 16px), 680px);
+    margin-top: 7vh;
+    padding: 14px;
+  }
+
+  .command-palette__list,
+  .selector-menu,
+  .palette-menu {
+    max-height: min(58vh, 460px);
+    overflow: auto;
+  }
+
+  .music-dock__toggle,
+  .music-dock__input input,
+  .music-dock__action-group .dock-button {
+    min-height: 42px;
   }
 }
 

@@ -2344,9 +2344,12 @@ function PageTransitionOverlay({ transitionKey }) {
   const [phase, setPhase] = useState("enter");
 
   useEffect(() => {
+    const isCoarsePointer = typeof window !== "undefined" && window.matchMedia("(hover: none), (pointer: coarse)").matches;
+    const fadeDelay = isCoarsePointer ? 260 : 420;
+    const removeDelay = isCoarsePointer ? 520 : 760;
     setPhase("enter");
-    const fadeTimer = window.setTimeout(() => setPhase("leave"), 420);
-    const removeTimer = window.setTimeout(() => setPhase("idle"), 760);
+    const fadeTimer = window.setTimeout(() => setPhase("leave"), fadeDelay);
+    const removeTimer = window.setTimeout(() => setPhase("idle"), removeDelay);
     return () => {
       window.clearTimeout(fadeTimer);
       window.clearTimeout(removeTimer);
