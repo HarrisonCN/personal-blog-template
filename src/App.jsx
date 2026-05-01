@@ -316,6 +316,19 @@ function parseStoredPalette(value) {
   return DEFAULT_PALETTE;
 }
 
+// 安全读取 JSON：浏览器本地缓存一旦被旧版本或手动修改写坏，不能让整页直接崩掉。
+function readStoredJson(rawValue, fallback) {
+  if (!rawValue) {
+    return fallback;
+  }
+
+  try {
+    return JSON.parse(rawValue);
+  } catch {
+    return fallback;
+  }
+}
+
 const fallbackCopy = {
   zh: {
     navStudio: "开发者编辑",
@@ -2735,11 +2748,7 @@ function useSeo({ title, description, image }) {
 
 // 读取最近轨迹：站内控制中心会复用这组读取/写入逻辑。
 function getStoredTrail(storageKey) {
-  try {
-    return JSON.parse(window.localStorage.getItem(storageKey) || "[]");
-  } catch {
-    return [];
-  }
+  return readStoredJson(window.localStorage.getItem(storageKey), []);
 }
 
 function pushStoredTrail(storageKey, entry, limit = 8) {
@@ -2898,19 +2907,15 @@ function HomeArchiveFlow({ language, entries, experience }) {
       if (queryType === "all" || queryType === "article" || queryType === "project") {
         return queryType;
       }
-      const stored = JSON.parse(window.localStorage.getItem(HOME_ARCHIVE_STATE_STORAGE_KEY) || "{}");
+      const stored = readStoredJson(window.localStorage.getItem(HOME_ARCHIVE_STATE_STORAGE_KEY), {});
       return stored.activeType || "all";
     } catch {
       return "all";
     }
   });
   const [collapsedYears, setCollapsedYears] = useState(() => {
-    try {
-      const stored = JSON.parse(window.localStorage.getItem(HOME_ARCHIVE_STATE_STORAGE_KEY) || "{}");
-      return stored.collapsedYears || [];
-    } catch {
-      return [];
-    }
+    const stored = readStoredJson(window.localStorage.getItem(HOME_ARCHIVE_STATE_STORAGE_KEY), {});
+    return stored.collapsedYears || [];
   });
   const [activeYear, setActiveYear] = useState("");
   const yearSectionRefs = useRef({});
@@ -3139,25 +3144,17 @@ function HomeArchiveFlow({ language, entries, experience }) {
 
 function HomeCardBoard({ items, onSaveCardOverride, canEditContent }) {
   const [orderedItems, setOrderedItems] = useState(() => {
-    try {
-      const stored = JSON.parse(window.localStorage.getItem(HOME_CARD_ORDER_STORAGE_KEY) || "[]");
-      if (!stored.length) {
-        return items;
-      }
-      const map = new Map(items.map((item) => [item.id, item]));
-      const ordered = stored.map((id) => map.get(id)).filter(Boolean);
-      const missing = items.filter((item) => !stored.includes(item.id));
-      return [...ordered, ...missing];
-    } catch {
+    const stored = readStoredJson(window.localStorage.getItem(HOME_CARD_ORDER_STORAGE_KEY), []);
+    if (!stored.length) {
       return items;
     }
+    const map = new Map(items.map((item) => [item.id, item]));
+    const ordered = stored.map((id) => map.get(id)).filter(Boolean);
+    const missing = items.filter((item) => !stored.includes(item.id));
+    return [...ordered, ...missing];
   });
   const [cardMeta, setCardMeta] = useState(() => {
-    try {
-      return JSON.parse(window.localStorage.getItem(HOME_CARD_META_STORAGE_KEY) || "{}");
-    } catch {
-      return {};
-    }
+    return readStoredJson(window.localStorage.getItem(HOME_CARD_META_STORAGE_KEY), {});
   });
   const [draggingId, setDraggingId] = useState(null);
   const [resizingId, setResizingId] = useState(null);
@@ -3502,17 +3499,13 @@ function getReadingRoomSnapshot(slug) {
   if (!slug) {
     return { highlights: {}, favorites: {}, notes: {}, scrollY: 0 };
   }
-  try {
-    const stored = JSON.parse(window.localStorage.getItem(`template-reading-room:${slug}`) || "{}");
-    return {
-      highlights: stored.highlights || {},
-      favorites: stored.favorites || {},
-      notes: stored.notes || {},
-      scrollY: Number(stored.scrollY) || 0,
-    };
-  } catch {
-    return { highlights: {}, favorites: {}, notes: {}, scrollY: 0 };
-  }
+  const stored = readStoredJson(window.localStorage.getItem(`template-reading-room:${slug}`), {});
+  return {
+    highlights: stored.highlights || {},
+    favorites: stored.favorites || {},
+    notes: stored.notes || {},
+    scrollY: Number(stored.scrollY) || 0,
+  };
 }
 
 function resolvePinnedSpaces(spaces, articles, projects, language) {
@@ -4415,17 +4408,13 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
   const footnotes = article.footnotes?.[language]?.length ? article.footnotes[language] : article.footnotes?.en || [];
 
   useEffect(() => {
-    try {
-      const stored = JSON.parse(window.localStorage.getItem(articleStorageKey) || "{}");
-      setParagraphState({
-        highlights: stored.highlights || {},
-        favorites: stored.favorites || {},
-        notes: stored.notes || {},
-        scrollY: Number(stored.scrollY) || 0,
-      });
-    } catch {
-      setParagraphState({ highlights: {}, favorites: {}, notes: {}, scrollY: 0 });
-    }
+    const stored = readStoredJson(window.localStorage.getItem(articleStorageKey), {});
+    setParagraphState({
+      highlights: stored.highlights || {},
+      favorites: stored.favorites || {},
+      notes: stored.notes || {},
+      scrollY: Number(stored.scrollY) || 0,
+    });
   }, [articleStorageKey]);
 
   useEffect(() => {

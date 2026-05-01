@@ -213,9 +213,34 @@ function ensureRuntimeStore() {
   }
 }
 
+function normalizeStore(store) {
+  const defaults = buildDefaultStore();
+
+  return {
+    articles: Array.isArray(store?.articles) ? store.articles : defaults.articles,
+    projects: Array.isArray(store?.projects) ? store.projects : defaults.projects,
+    siteContent: normalizeSiteContent(store?.siteContent ?? defaults.siteContent),
+    guestbook: Array.isArray(store?.guestbook) ? store.guestbook : defaults.guestbook,
+  };
+}
+
 function readStore() {
   ensureRuntimeStore();
-  return JSON.parse(fs.readFileSync(storeFile, "utf8"));
+  try {
+    return normalizeStore(JSON.parse(fs.readFileSync(storeFile, "utf8")));
+  } catch {
+    const fallback = buildDefaultStore();
+    const backupFile = path.join(runtimeDir, `store.corrupt.${Date.now()}.json`);
+
+    try {
+      if (fs.existsSync(storeFile)) {
+        fs.copyFileSync(storeFile, backupFile);
+      }
+    } catch {}
+
+    fs.writeFileSync(storeFile, JSON.stringify(fallback, null, 2));
+    return fallback;
+  }
 }
 
 function writeStore(nextStore) {
@@ -234,7 +259,11 @@ function parseCookies(request) {
         const separator = chunk.indexOf("=");
         const key = separator >= 0 ? chunk.slice(0, separator) : chunk;
         const value = separator >= 0 ? chunk.slice(separator + 1) : "";
-        return [key, decodeURIComponent(value)];
+        try {
+          return [key, decodeURIComponent(value)];
+        } catch {
+          return [key, value];
+        }
       })
   );
 }
