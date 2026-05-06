@@ -8,8 +8,9 @@
     "server": "node server.js",
     "dev:full": "concurrently \"npm run server\" \"npm run dev\"",
     "build": "vite build --base ./",
-    "preview": "vite preview",
-    "start": "node server.js"
+    "preview": "npm run build && wrangler dev",
+    "start": "node server.js",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "express": "^4.21.2",
@@ -20,8 +21,10 @@
     "three": "^0.184.0"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.36.0",
     "@vitejs/plugin-react": "^4.7.0",
     "concurrently": "^9.1.2",
-    "vite": "^7.1.7"
+    "vite": "^7.1.7",
+    "wrangler": "^4.88.0"
   }
 }
