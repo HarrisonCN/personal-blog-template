@@ -1549,11 +1549,27 @@ select {
 }
 
 .site-background__scene-canvas,
-.site-background__antigravity-canvas canvas {
+.site-background__antigravity-canvas canvas,
+.site-background__ambient-three,
+.site-background__ambient-three canvas {
   position: absolute;
   inset: 0;
   width: 100%;
   height: 100%;
+}
+
+.site-background__ambient-three {
+  opacity: 0.78;
+  mix-blend-mode: screen;
+}
+
+.site-background__ambient-three--xflow {
+  opacity: 0.72;
+}
+
+html[data-theme="light"] .site-background__ambient-three {
+  opacity: 0.5;
+  mix-blend-mode: multiply;
 }
 
 .site-background__float--image-a {

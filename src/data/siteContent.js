@@ -244,20 +244,20 @@ export const playlist = [
 ];
 
 export const siteMeta = {
-  name: "Winston",
-  email: "yokarsleep@gmail.com",
-  location: "Shanghai / Remote",
+  name: "Your Name",
+  email: "hello@example.com",
+  location: "Your City / Remote",
   role: {
-    zh: "创意前端开发者 / 视觉系统设计师",
-    en: "Creative Frontend Developer / Visual Systems Designer",
-    ja: "クリエイティブフロントエンド開発者 / ビジュアルシステムデザイナー",
-    ko: "크리에이티브 프론트엔드 개발자 / 비주얼 시스템 디자이너",
+    zh: "创意前端模板 / 视觉系统",
+    en: "Creative Frontend Template / Visual System",
+    ja: "クリエイティブフロントエンドテンプレート / ビジュアルシステム",
+    ko: "크리에이티브 프론트엔드 템플릿 / 비주얼 시스템",
   },
   intro: {
-    zh: "我把技术、视觉和表达放到同一个标准线处理，做的是既能运行、也能形成个人风格的网页体验。",
-    en: "I treat technology, visual design, and expression with the same standard, building web experiences that work and still carry a personal signature.",
-    ja: "技術、ビジュアル、表現を同じ基準で扱い、機能するだけでなく個人のスタイルが伝わるウェブ体験をつくります。",
-    ko: "기술, 시각 언어, 표현을 같은 기준으로 다루며, 작동할 뿐 아니라 개인의 스타일이 남는 웹 경험을 만듭니다.",
+    zh: "一个适合个人博客、作品集、工作室笔记和前端动效实验的干净起点。",
+    en: "A clean starting point for a personal blog, portfolio, studio notes, and experimental front-end motion.",
+    ja: "個人ブログ、ポートフォリオ、スタジオノート、フロントエンドモーション実験に使えるクリーンな出発点です。",
+    ko: "개인 블로그, 포트폴리오, 스튜디오 노트, 프론트엔드 모션 실험을 위한 깔끔한 시작점입니다.",
   },
   stats: {
     projects: "12",
@@ -265,10 +265,10 @@ export const siteMeta = {
     labs: "06",
   },
   socialLinks: [
-    { label: "TikTok", url: "https://www.tiktok.com/@mostlinkfor?_r=1&_t=ZP-95l96SVDjck", icon: "tiktok" },
-    { label: "X", url: "https://x.com/QuikyH95907", icon: "x" },
-    { label: "YouTube", url: "https://youtube.com/@yokar-ei6er?si=kDFgZk2pn-hAGF7P", icon: "youtube" },
-    { label: "GitHub", url: "https://github.com/HarrisonCN", icon: "github" },
+    { label: "TikTok", url: "https://www.tiktok.com/@your-name", icon: "tiktok" },
+    { label: "X", url: "https://x.com/your-name", icon: "x" },
+    { label: "YouTube", url: "https://youtube.com/@your-name", icon: "youtube" },
+    { label: "GitHub", url: "https://github.com/your-name", icon: "github" },
   ],
 };
 

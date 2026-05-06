@@ -20,6 +20,7 @@ import {
 } from "./data/siteContent";
 
 const AntigravityBackground = lazy(() => import("./components/AntigravityBackground"));
+const AmbientThreeLayer = lazy(() => import("./components/AmbientThreeLayer"));
 const ThemePresetScene = lazy(() => import("./components/ThemePresetScene"));
 
 
@@ -803,10 +804,30 @@ function getBrowserTitle(meta, language) {
   return meta?.browserTitle?.[language] || meta?.browserTitle?.en || meta?.name || "Site";
 }
 
+function useIsCoarsePointer() {
+  const [isCoarse, setIsCoarse] = useState(false);
+
+  useEffect(() => {
+    const query = window.matchMedia("(hover: none), (pointer: coarse), (max-width: 760px)");
+    const sync = () => setIsCoarse(query.matches);
+    sync();
+    query.addEventListener?.("change", sync);
+    return () => query.removeEventListener?.("change", sync);
+  }, []);
+
+  return isCoarse;
+}
+
 function SiteBackground({ presetCode, imageSrc }) {
+  const isCoarse = useIsCoarsePointer();
+  const renderAmbientLayer = (mode) => (
+    !isCoarse ? <Suspense fallback={null}><AmbientThreeLayer mode={mode} /></Suspense> : null
+  );
+
   if (imageSrc) {
     return (
       <div className="site-background site-background--image" aria-hidden="true">
+        {renderAmbientLayer("image")}
         <div className="site-background__image" style={{ backgroundImage: `url("${String(imageSrc).replace(/"/g, '\\"')}")` }} />
         <span className="site-background__image-glow site-background__image-glow--a" />
         <span className="site-background__image-glow site-background__image-glow--b" />
@@ -817,6 +838,10 @@ function SiteBackground({ presetCode, imageSrc }) {
   }
 
   if (presetCode === "antigravity") {
+    if (isCoarse) {
+      return <div className="site-background site-background--antigravity site-background--antigravity-static" aria-hidden="true" />;
+    }
+
     return (
       <div className="site-background site-background--antigravity" aria-hidden="true">
         <Suspense fallback={null}><AntigravityBackground /></Suspense>
@@ -828,13 +853,15 @@ function SiteBackground({ presetCode, imageSrc }) {
     return (
       <div className="site-background site-background--xflow" aria-hidden="true">
         <Suspense fallback={null}><ThemePresetScene mode="xflow" /></Suspense>
+        {renderAmbientLayer("xflow")}
       </div>
     );
   }
 
   return (
     <div className="site-background site-background--none" aria-hidden="true">
-      <InteractiveSceneBackground mode="none" />
+      {!isCoarse && <InteractiveSceneBackground mode="none" />}
+      {renderAmbientLayer("none")}
     </div>
   );
 }

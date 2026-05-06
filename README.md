@@ -8,8 +8,8 @@ A visual-first personal blog template with a built-in editor, article and projec
 
 ## Preview
 
-- Repository: [HarrisonCN/personal-blog-template](https://github.com/HarrisonCN/personal-blog-template)
-- GitHub Pages: [harrisoncn.github.io/personal-blog-template](https://harrisoncn.github.io/personal-blog-template/)
+- Repository: `https://github.com/your-name/personal-blog-template`
+- GitHub Pages: `https://your-name.github.io/personal-blog-template/`
 
 Important:
 - GitHub Pages is a static preview only.
