@@ -32,6 +32,10 @@ jobs:
 
       - name: Build
         run: npm run build
+        env:
+          # Absolute base URL for rss.xml / sitemap.xml. Override with a repository
+          # variable named SITE_URL when you use a custom domain.
+          SITE_URL: ${{ vars.SITE_URL || format('https://{0}.github.io/{1}/', github.repository_owner, github.event.repository.name) }}
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
