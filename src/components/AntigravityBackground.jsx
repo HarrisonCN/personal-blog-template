@@ -327,11 +327,24 @@ export default function AntigravityBackground() {
     };
 
     window.addEventListener("pointermove", handlePointerMove);
-    window.addEventListener("resize", resize);
+
+    // Respect the OS "reduce motion" setting: draw a single static frame instead of looping.
+    const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+
+    const handleResize = () => {
+      resize();
+      if (reducedMotion) {
+        renderer.render(scene, camera);
+      }
+    };
+
+    window.addEventListener("resize", handleResize);
     mount.addEventListener("pointerleave", handlePointerLeave);
 
     const tick = () => {
-      animationFrame = window.requestAnimationFrame(tick);
+      if (!reducedMotion) {
+        animationFrame = window.requestAnimationFrame(tick);
+      }
       const elapsed = clock.getElapsedTime();
       const pulse = (Math.sin(elapsed * 1.2) + 1) * 0.5;
 
@@ -362,7 +375,7 @@ export default function AntigravityBackground() {
     return () => {
       window.cancelAnimationFrame(animationFrame);
       window.removeEventListener("pointermove", handlePointerMove);
-      window.removeEventListener("resize", resize);
+      window.removeEventListener("resize", handleResize);
       mount.removeEventListener("pointerleave", handlePointerLeave);
       if (renderer.domElement.parentNode === mount) {
         mount.removeChild(renderer.domElement);

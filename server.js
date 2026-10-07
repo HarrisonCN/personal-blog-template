@@ -7,13 +7,44 @@ import { articles as seedArticles, featuredProjects, siteMeta, uiText } from "./
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+
+// Load .env (documented in README / .env.example) without an extra dependency.
+// Real environment variables always win over values in the file.
+const envFile = path.join(__dirname, ".env");
+if (fs.existsSync(envFile) && typeof process.loadEnvFile === "function") {
+  try {
+    process.loadEnvFile(envFile);
+  } catch (error) {
+    console.warn(`[studio] Could not read .env: ${error.message}`);
+  }
+}
+
 const app = express();
 app.disable("x-powered-by");
+
+// Only trust X-Forwarded-* from proxies you control. Default "loopback" covers a
+// reverse proxy on the same machine (Nginx/PM2). Set TRUST_PROXY=1 behind one
+// hosted proxy (Render, Railway, Fly), or "false" when exposed directly.
+function parseTrustProxy(value) {
+  if (value === undefined || value === "") {
+    return "loopback";
+  }
+  if (value === "true") {
+    return true;
+  }
+  if (value === "false") {
+    return false;
+  }
+  return /^\d+$/.test(value) ? Number(value) : value;
+}
+app.set("trust proxy", parseTrustProxy(process.env.TRUST_PROXY));
 
 const PORT = Number(process.env.PORT || 8787);
 const SESSION_MS = 45 * 60 * 1000;
 const LOCK_MS = 15 * 60 * 1000;
 const MAX_ATTEMPTS = 5;
+const GUESTBOOK_WINDOW_MS = 60 * 1000;
+const GUESTBOOK_MAX_POSTS = 5;
 const SESSION_COOKIE = "studio_session";
 const DEFAULT_USERNAME = process.env.STUDIO_USERNAME || "ADMIN";
 const DEFAULT_PASSWORD = process.env.STUDIO_PASSWORD || "CHANGE_ME_123";
@@ -26,8 +57,21 @@ const distDir = path.join(__dirname, "dist");
 
 const sessions = new Map();
 const loginGuards = new Map();
+const guestbookGuards = new Map();
 
-app.use(express.json({ limit: "25mb" }));
+if (process.env.NODE_ENV === "production") {
+  if (!process.env.STUDIO_PASSWORD && !DEFAULT_PASSWORD_HASH) {
+    console.warn("[studio] WARNING: using the default studio password. Set STUDIO_PASSWORD or STUDIO_PASSWORD_HASH.");
+  }
+  if (!process.env.SESSION_SECRET) {
+    console.warn("[studio] WARNING: using the default SESSION_SECRET. Set a long random value.");
+  }
+}
+
+// Large bodies (base64 attachments, covers) are only accepted on authenticated
+// studio routes; public endpoints such as the guestbook get a small limit.
+app.use("/api/studio", express.json({ limit: "25mb" }));
+app.use(express.json({ limit: "100kb" }));
 
 app.use((request, response, next) => {
   response.setHeader("X-Frame-Options", "DENY");
@@ -245,7 +289,10 @@ function readStore() {
 
 function writeStore(nextStore) {
   ensureRuntimeStore();
-  fs.writeFileSync(storeFile, JSON.stringify(nextStore, null, 2));
+  // Write to a temp file and rename so a crash mid-write cannot corrupt store.json.
+  const tempFile = `${storeFile}.${process.pid}.tmp`;
+  fs.writeFileSync(tempFile, JSON.stringify(nextStore, null, 2));
+  fs.renameSync(tempFile, storeFile);
 }
 
 function parseCookies(request) {
@@ -292,7 +339,9 @@ function verifySignedSession(value) {
 }
 
 function getRequestIp(request) {
-  return request.headers["x-forwarded-for"]?.toString().split(",")[0]?.trim() || request.ip || "unknown";
+  // request.ip honours the "trust proxy" setting, so a client cannot spoof
+  // X-Forwarded-For to dodge the login lockout or guestbook rate limit.
+  return request.ip || request.socket?.remoteAddress || "unknown";
 }
 
 function getGuardKey(username, request) {
@@ -311,10 +360,29 @@ function cleanupExpiredSessions() {
 function cleanupExpiredLoginGuards() {
   const now = Date.now();
   for (const [key, value] of loginGuards.entries()) {
-    if (!value.lockUntil || value.lockUntil <= now) {
+    // Keep failed-attempt counters for the whole window; previously every guard
+    // without an active lock was dropped on each request, so attempts never
+    // accumulated and the lockout could not trigger.
+    const lockExpired = !value.lockUntil || value.lockUntil <= now;
+    const windowExpired = !value.lastAttemptAt || value.lastAttemptAt + LOCK_MS <= now;
+    if (lockExpired && windowExpired) {
       loginGuards.delete(key);
     }
   }
+}
+
+function allowGuestbookPost(request) {
+  const now = Date.now();
+  for (const [key, value] of guestbookGuards.entries()) {
+    if (value.windowStart + GUESTBOOK_WINDOW_MS <= now) {
+      guestbookGuards.delete(key);
+    }
+  }
+  const key = getRequestIp(request);
+  const guard = guestbookGuards.get(key) || { windowStart: now, count: 0 };
+  guard.count += 1;
+  guestbookGuards.set(key, guard);
+  return guard.count <= GUESTBOOK_MAX_POSTS;
 }
 
 function sha256Hex(value) {
@@ -450,7 +518,7 @@ app.get("/api/studio/session", (request, response) => {
   response.json({ authenticated: true, lockUntil: 0 });
 });
 
-app.post("/api/studio/login", (request, response) => {
+app.post("/api/studio/login", requireTrustedOrigin, (request, response) => {
   cleanupExpiredLoginGuards();
   const username = String(request.body?.username || "");
   const password = String(request.body?.password || "");
@@ -467,10 +535,13 @@ app.post("/api/studio/login", (request, response) => {
   const validPassword = verifyPassword(password);
 
   if (!validUsername || !validPassword) {
-    const attempts = currentGuard.attempts + 1;
+    // A finished lock starts a fresh count.
+    const previousAttempts = currentGuard.lockUntil && currentGuard.lockUntil <= now ? 0 : currentGuard.attempts;
+    const attempts = previousAttempts + 1;
     const nextGuard = {
       attempts,
       lockUntil: attempts >= MAX_ATTEMPTS ? now + LOCK_MS : 0,
+      lastAttemptAt: now,
     };
     loginGuards.set(guardKey, nextGuard);
     response.status(nextGuard.lockUntil ? 429 : 401).json({
@@ -481,7 +552,7 @@ app.post("/api/studio/login", (request, response) => {
     return;
   }
 
-  loginGuards.set(guardKey, { attempts: 0, lockUntil: 0 });
+  loginGuards.delete(guardKey);
   const sessionId = crypto.randomBytes(32).toString("hex");
   sessions.set(sessionId, {
     username,
@@ -509,13 +580,15 @@ app.post("/api/studio/articles", requireTrustedOrigin, requireStudioAuth, (reque
   }
 
   const store = readStore();
+  const currentSlug = previousSlug || article.slug;
+  const existingIndex = store.articles.findIndex((item) => item.slug === currentSlug);
+  const existing = existingIndex >= 0 ? store.articles[existingIndex] : null;
   const stamped = {
     ...article,
-    date: formatArticleDate(new Date()),
+    // Editing an article keeps its original publish date; only updatedAt moves.
+    date: existing?.date || formatArticleDate(new Date()),
     updatedAt: new Date().toISOString(),
   };
-  const currentSlug = previousSlug || stamped.slug;
-  const existingIndex = store.articles.findIndex((item) => item.slug === currentSlug);
   if (existingIndex >= 0) {
     store.articles[existingIndex] = stamped;
   } else {
@@ -579,6 +652,11 @@ app.post("/api/guestbook", requireTrustedOrigin, (request, response) => {
     return;
   }
 
+  if (!allowGuestbookPost(request)) {
+    response.status(429).json({ error: "rate_limited" });
+    return;
+  }
+
   const store = readStore();
   store.guestbook.unshift({
     id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
@@ -591,7 +669,13 @@ app.post("/api/guestbook", requireTrustedOrigin, (request, response) => {
   response.json({ ok: true, guestbook: store.guestbook });
 });
 
+app.use("/api", (_request, response) => {
+  response.status(404).json({ error: "not_found" });
+});
+
 if (fs.existsSync(distDir)) {
+  // Vite emits content-hashed files under /assets, so they can be cached for a long time.
+  app.use("/assets", express.static(path.join(distDir, "assets"), { immutable: true, maxAge: "1y" }));
   app.use(express.static(distDir));
   app.get("*", (request, response, next) => {
     if (request.path.startsWith("/api/")) {
@@ -601,6 +685,19 @@ if (fs.existsSync(distDir)) {
     response.sendFile(path.join(distDir, "index.html"));
   });
 }
+
+// Return JSON for body-parser errors (bad JSON, payload too large) instead of an HTML stack trace.
+app.use((error, _request, response, next) => {
+  if (response.headersSent) {
+    next(error);
+    return;
+  }
+  const status = Number(error?.status || error?.statusCode) || 500;
+  if (status >= 500) {
+    console.error(error);
+  }
+  response.status(status).json({ error: status === 413 ? "payload_too_large" : status >= 500 ? "server_error" : "bad_request" });
+});
 
 app.listen(PORT, () => {
   ensureRuntimeStore();

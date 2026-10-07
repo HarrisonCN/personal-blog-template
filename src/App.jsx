@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
-import { Link, NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
 import { useLayoutEffect } from "react";
 
 import InteractiveSceneBackground from "./components/InteractiveSceneBackground";
@@ -23,6 +23,39 @@ const AntigravityBackground = lazy(() => import("./components/AntigravityBackgro
 const AmbientThreeLayer = lazy(() => import("./components/AmbientThreeLayer"));
 const ThemePresetScene = lazy(() => import("./components/ThemePresetScene"));
 
+
+const SAFE_LINK_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
+
+// Only allow well-known protocols for user-editable links so a value such as
+// "javascript:..." saved through the studio can never execute in a visitor's browser.
+function safeExternalHref(value) {
+  const raw = String(value ?? "").trim();
+  if (!raw) {
+    return undefined;
+  }
+  try {
+    const parsed = new URL(raw, window.location.href);
+    return SAFE_LINK_PROTOCOLS.has(parsed.protocol) ? raw : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+// The app uses HashRouter, so a plain href="#id" would be read as a route change
+// ("/id") and render an empty page. Scroll to the in-page target instead.
+function scrollToInPageAnchor(event, id) {
+  event.preventDefault();
+  document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
+}
+
+function readStoredArray(key) {
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(key) || "[]");
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
 
 const PALETTE_STORAGE_KEY = "template-palette";
 const GUESTBOOK_STORAGE_KEY = "template-guestbook";
@@ -1336,18 +1369,7 @@ function useBackendContent() {
   const [articles, setArticles] = useState(() => sortArticles(seedArticles.map(normalizeArticle)));
   const [projects, setProjects] = useState(() => featuredProjects.map(normalizeProject));
   const [siteContent, setSiteContent] = useState(() => normalizeSiteContent(buildDefaultSiteContent()));
-  const [entries, setEntries] = useState(() => {
-    const stored = window.localStorage.getItem(GUESTBOOK_STORAGE_KEY);
-    if (!stored) {
-      return [];
-    }
-
-    try {
-      return JSON.parse(stored);
-    } catch {
-      return [];
-    }
-  });
+  const [entries, setEntries] = useState(() => readStoredArray(GUESTBOOK_STORAGE_KEY));
   const [studioAvailable, setStudioAvailable] = useState(false);
   const [contentReady, setContentReady] = useState(false);
 
@@ -1471,12 +1493,16 @@ function useBackendContent() {
       return { ok: true };
     }
 
-    const payload = await apiRequest("/api/guestbook", {
-      method: "POST",
-      body: JSON.stringify(entry),
-    });
-    setEntries(Array.isArray(payload.guestbook) ? payload.guestbook : []);
-    return { ok: true };
+    try {
+      const payload = await apiRequest("/api/guestbook", {
+        method: "POST",
+        body: JSON.stringify(entry),
+      });
+      setEntries(Array.isArray(payload.guestbook) ? payload.guestbook : []);
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, reason: error.status === 429 ? "rate_limited" : "request_failed" };
+    }
   };
 
   return { articles, projects, siteContent, entries, saveArticle, saveProject, deleteProject, saveContent, addEntry, studioAvailable, contentReady };
@@ -2355,9 +2381,9 @@ function Header({
           <NavLink to={`/projects/${projects[0]?.slug ?? ""}`} ref={(node) => (navItemsRef.current.projects = node)}>
             <span className="nav-label">{text.navProjects}</span>
           </NavLink>
-          <a href="#about" ref={(node) => (navItemsRef.current.about = node)}>
+          <Link to={{ pathname: "/", hash: "#about" }} ref={(node) => (navItemsRef.current.about = node)}>
             <span className="nav-label">{text.navAbout}</span>
-          </a>
+          </Link>
           <NavLink to="/studio" ref={(node) => (navItemsRef.current.studio = node)}>
             <span className="nav-label">{copy.navStudio}</span>
           </NavLink>
@@ -3484,7 +3510,7 @@ function HomeCardBoard({ items, onSaveCardOverride, canEditContent }) {
               <h3>{title}</h3>
               <p className="body-copy">{body}</p>
               {item.external ? (
-                <a className="inline-link" href={href} target="_blank" rel="noreferrer">
+                <a className="inline-link" href={safeExternalHref(href)} target="_blank" rel="noreferrer">
                   {action}
                 </a>
               ) : (
@@ -3618,7 +3644,7 @@ function PinnedSpacesSection({ language, spaces, articles, projects, isXFlow }) 
               <h3>{space.title}</h3>
               <p className="body-copy">{space.body}</p>
               {space.external ? (
-                <a className="inline-link" href={space.href} target="_blank" rel="noreferrer">
+                <a className="inline-link" href={safeExternalHref(space.href)} target="_blank" rel="noreferrer">
                   Open
                 </a>
               ) : (
@@ -3728,7 +3754,12 @@ function ArchivePage({ language, articles, projects, meta }) {
           </div>
           <div className="archive-filter-card__jump">
             {Object.keys(groups).map((year) => (
-              <a key={year} className="tag-chip" href={`#archive-year-${year}`}>
+              <a
+                key={year}
+                className="tag-chip"
+                href={`#archive-year-${year}`}
+                onClick={(event) => scrollToInPageAnchor(event, `archive-year-${year}`)}
+              >
                 {year}
               </a>
             ))}
@@ -3777,6 +3808,19 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
     return normalizeHomeLayout(window.localStorage.getItem(HOME_LAYOUT_STORAGE_KEY) || meta.homeLayout || "magazine");
   });
   const siteAvatar = getSiteAvatar(meta, templateAvatar);
+  const location = useLocation();
+
+  // Support in-page anchors such as "#/#about" (the About nav item) under HashRouter.
+  useEffect(() => {
+    const targetId = location.hash.replace(/^#/, "");
+    if (!targetId) {
+      return undefined;
+    }
+    const timer = window.setTimeout(() => {
+      document.getElementById(targetId)?.scrollIntoView({ behavior: "smooth", block: "start" });
+    }, 80);
+    return () => window.clearTimeout(timer);
+  }, [location.hash, homeLayout]);
   const pinnedSpaces = meta.pinnedSpaces || [];
   const archiveGroups = useMemo(() => buildArchiveGroups(articles, projects), [articles, projects]);
   const archiveEntries = useMemo(() => buildArchiveEntries(articles, projects), [articles, projects]);
@@ -3810,11 +3854,13 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
     if (!guestbookForm.name.trim() || !guestbookForm.message.trim()) {
       return;
     }
-    await addGuestbookEntry({
+    const result = await addGuestbookEntry({
       name: guestbookForm.name.trim(),
       message: guestbookForm.message.trim(),
     });
-    setGuestbookForm({ name: "", message: "" });
+    if (result?.ok !== false) {
+      setGuestbookForm({ name: "", message: "" });
+    }
   };
 
   // 统一处理首页布局切换，保证点击按钮后本页、命令面板和本地缓存同步。
@@ -3968,7 +4014,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
             <p className="body-copy">{text.aboutBody}</p>
             <div className="tag-row">
               {meta.socialLinks.map((item) => (
-                <a key={item.label} className="social-pill" href={item.url} target="_blank" rel="noreferrer">
+                <a key={item.label} className="social-pill" href={safeExternalHref(item.url)} target="_blank" rel="noreferrer">
                   <SocialIcon type={item.iconDataUrl ? item : item.icon} />
                   <span>{item.label}</span>
                 </a>
@@ -4038,7 +4084,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
 
       <section className="social-strip glass-card">
         {meta.socialLinks.map((item) => (
-          <a key={item.label} className="social-pill" href={item.url} target="_blank" rel="noreferrer" aria-label={item.label}>
+          <a key={item.label} className="social-pill" href={safeExternalHref(item.url)} target="_blank" rel="noreferrer" aria-label={item.label}>
             <SocialIcon type={item.iconDataUrl ? item : item.icon} />
             <span>{item.label}</span>
           </a>
@@ -4063,7 +4109,7 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
                   <h3>{card.title[language] || card.title.en}</h3>
                   <p className="body-copy">{card.body[language] || card.body.en}</p>
                   {card.linkUrl ? (
-                    <a className="inline-link" href={card.linkUrl} target="_blank" rel="noreferrer">
+                    <a className="inline-link" href={safeExternalHref(card.linkUrl)} target="_blank" rel="noreferrer">
                       {card.linkLabel[language] || card.linkLabel.en || "Open"}
                     </a>
                   ) : null}
@@ -4784,7 +4830,12 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
                 <p className="micro-label">{copy.tocTitle}</p>
                 <div className="toc-list">
                   {sections.map((section) => (
-                    <a key={section.id} className={`toc-link level-${section.level}`} href={`#${section.id}`}>
+                    <a
+                      key={section.id}
+                      className={`toc-link level-${section.level}`}
+                      href={`#${section.id}`}
+                      onClick={(event) => scrollToInPageAnchor(event, section.id)}
+                    >
                       {section.title}
                     </a>
                   ))}
@@ -4901,7 +4952,12 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
               <p className="micro-label">{copy.tocTitle}</p>
               <div className="toc-list">
                 {sections.map((section) => (
-                  <a key={section.id} className={`toc-link level-${section.level}`} href={`#${section.id}`}>
+                  <a
+                      key={section.id}
+                      className={`toc-link level-${section.level}`}
+                      href={`#${section.id}`}
+                      onClick={(event) => scrollToInPageAnchor(event, section.id)}
+                    >
                     {section.title}
                   </a>
                 ))}
@@ -6832,6 +6888,7 @@ export default function App() {
             />
           }
         />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
       </Shell>
     </>

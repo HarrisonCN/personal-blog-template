@@ -1,0 +1,15 @@
+// Cloudflare Workers static-assets deployment (front end only, like GitHub Pages).
+// The Node studio backend (server.js) is NOT deployed here; use a Node host for that.
+// Deploy with: npm run deploy:cloudflare
+{
+  "$schema": "https://unpkg.com/wrangler/config-schema.json",
+  "name": "personal-blog-template",
+  "compatibility_date": "2026-05-06",
+  "assets": {
+    "directory": "./dist",
+    "not_found_handling": "single-page-application"
+  },
+  "observability": {
+    "enabled": true
+  }
+}

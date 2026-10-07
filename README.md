@@ -89,6 +89,10 @@ The content stays the same while the presentation changes.
 
 ## Quick Start
 
+Requirements: Node.js 20.19 or newer (required by Vite 7).
+
+环境要求：Node.js 20.19 或更高版本。
+
 ### 1. Install
 
 ```bash
@@ -134,7 +138,13 @@ npm run start
 
 ## Environment Variables
 
-See [.env.example](./.env.example).
+Copy [.env.example](./.env.example) to `.env` and edit it. `server.js` loads `.env` automatically on startup; variables already set in the real environment take priority.
+
+复制 `.env.example` 为 `.env` 并修改。`server.js` 启动时会自动读取 `.env`，系统环境变量优先。
+
+```bash
+cp .env.example .env
+```
 
 ```bash
 STUDIO_USERNAME=ADMIN
@@ -145,10 +155,27 @@ SESSION_SECRET=replace-with-a-long-random-secret
 PORT=8787
 ```
 
+Optional:
+
+```bash
+NODE_ENV=production   # adds the Secure flag to the session cookie
+TRUST_PROXY=loopback  # which proxies may set X-Forwarded-For (1 on Render/Railway/Fly, false if exposed directly)
+```
+
+Generate a password hash and a session secret:
+
+```bash
+node -e "console.log(require('crypto').createHash('sha256').update(process.argv[1]).digest('hex'))" "your-password"
+node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"
+```
+
 Recommended:
 - change the default credentials immediately
 - use `STUDIO_PASSWORD_HASH` in real deployments
 - use a strong `SESSION_SECRET`
+- set `TRUST_PROXY` to match your hosting so login lockout and guestbook rate limits see the real client IP
+
+The server prints a warning at startup when `NODE_ENV=production` is set but the default password or secret is still in use.
 
 建议：
 - 立刻修改默认账号密码
@@ -182,6 +209,14 @@ When you push to `main`:
 - the static site is built automatically
 - GitHub Pages is updated automatically
 - the Node backend is not deployed there
+
+### Cloudflare Workers (static)
+
+[`wrangler.jsonc`](./wrangler.jsonc) serves the built `dist/` folder as static assets with SPA fallback. Like GitHub Pages, this is front end only.
+
+```bash
+npm run deploy:cloudflare
+```
 
 ### Node Hosting
 
@@ -245,7 +280,9 @@ Current protection includes:
 - session cookie auth
 - basic security headers
 - request origin checks
-- lockout for repeated failed login attempts
+- lockout for repeated failed login attempts (5 failures per username + IP locks for 15 minutes)
+- guestbook rate limit (5 posts per minute per IP) and a 100 KB body limit on public endpoints
+- external links in editable content are limited to `http(s)`, `mailto:` and `tel:`
 
 这比“纯前端写死密码”的做法安全得多，但它仍然是模板，不是完整商用后台系统。
 
