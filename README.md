@@ -154,8 +154,8 @@ npm run start
 
 ```bash
 npm run lint    # ESLint (flat config in eslint.config.js)
-npm test        # node:test suite in test/ (server routes, hashing, sessions, feeds, search)
-npm run check   # lint + test + build, same as CI
+npm test        # node:test suite in test/ (API routes, guestbook limits, store recovery, hashing, sessions, feeds, search, client helpers)
+npm run check   # lint + test + build (CI also runs a build with SITE_URL set to check the static feeds)
 ```
 
 ## Environment Variables
