@@ -4,15 +4,25 @@ on:
   pull_request:
   push:
     branches: ["main"]
+  workflow_dispatch:
 
 permissions:
   contents: read
 
+# A new push to the same branch or PR cancels the run that is still going.
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   check:
+    name: lint, test, build (Node ${{ matrix.node-version }})
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
+      fail-fast: false
       matrix:
+        # 20.19 is the minimum Vite 7 supports (see package.json "engines").
         node-version: ["20.19", "22"]
     steps:
       - name: Checkout
@@ -35,3 +45,15 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Build static feeds (SITE_URL set)
+        env:
+          SITE_URL: https://example.github.io/personal-blog-template/
+        run: |
+          npm run build
+          for file in rss.xml sitemap.xml robots.txt; do
+            test -s "dist/$file" || { echo "::error::dist/$file was not generated"; exit 1; }
+          done
+          grep -q '<rss version="2.0"' dist/rss.xml
+          grep -q 'https://example.github.io/personal-blog-template/#/articles/' dist/sitemap.xml
+          grep -q 'application/rss+xml' dist/index.html
