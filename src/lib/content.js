@@ -146,7 +146,8 @@ export function normalizeArticle(article, index) {
     content,
     date: article.date || formatArticleDate(parseArticleDate(updatedAt)),
     updatedAt,
-    readTime: article.readTime || "5 min",
+    // Empty means "estimate from the body" (see src/lib/readingTime.js).
+    readTime: typeof article.readTime === "string" ? article.readTime : "",
     attachments: Array.isArray(article.attachments) ? article.attachments : [],
     coverImage: article.coverImage ?? "",
     pinned: Boolean(article.pinned),
@@ -299,7 +300,7 @@ export function createBlankArticle() {
     content: { zh: "", en: "", ja: "", ko: "" },
     date: formatArticleDate(now),
     updatedAt: now.toISOString(),
-    readTime: "4 min",
+    readTime: "",
     attachments: [],
     coverImage: "",
     pinned: false,

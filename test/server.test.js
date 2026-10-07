@@ -206,8 +206,20 @@ test("article share URLs get per-article SEO meta", async () => {
     assert.ok(page.body.includes('<meta property="og:type" content="article" />'));
     assert.ok(page.body.includes('<link rel="canonical" href="https://blog.example.com/articles/why-personal-sites-need-direction" />'));
     assert.ok(page.body.includes('"@type":"BlogPosting"'));
+    assert.ok(page.body.includes('"timeRequired":"PT6M"'), "manual readTime of the seed article becomes timeRequired");
     assert.ok(page.body.includes('src="/assets/index.js"'), "asset paths are absolute on nested routes");
     assert.equal((page.body.match(/name="description"/g) || []).length, 1);
+
+    // An article without a manual readTime gets an estimate from its body.
+    const fresh = await startServer({ dataDir, distDir, env: { SITE_URL: "https://blog.example.com/", SITE_LANGUAGE: "en" } });
+    try {
+      await login(fresh);
+      const body = Array.from({ length: 660 }, (_, i) => `w${i}`).join(" ");
+      await fresh.request("/api/studio/articles", { method: "POST", body: { article: { slug: "auto-time", title: { en: "Auto" }, content: { en: body } } } });
+      assert.ok((await fresh.request("/articles/auto-time")).body.includes('"timeRequired":"PT3M"'));
+    } finally {
+      await fresh.close();
+    }
 
     assert.equal((await server.request("/articles/does-not-exist")).status, 404);
     const home = await server.request("/");

@@ -53,6 +53,7 @@ This project is for people who want more than a plain markdown blog. It combines
 - Unique article/project slugs enforced on the server (`my-post`, `my-post-2`, ...)
 - RSS feed (`/rss.xml`), `sitemap.xml` and `robots.txt`, plus per-article SEO meta (Open Graph, Twitter, canonical, JSON-LD) on share URLs
 - Article search across every language and the article body, with tag filters that live in the URL (`#/articles?q=glass&tag=BUILD`)
+- Automatic, CJK-aware reading time for every article, localised per language, with an optional manual override in the studio
 - Fonts loaded on demand (only the active preset, `font-display: swap`) and the studio editor split into its own lazy chunk
 - ESLint config and a `node:test` suite that covers the server routes
 
@@ -70,6 +71,7 @@ This project is for people who want more than a plain markdown blog. It combines
 - 服务端保证文章 / 项目 slug 唯一（重复时自动追加 `-2`、`-3`）
 - 提供 RSS（`/rss.xml`）、`sitemap.xml`、`robots.txt`，分享链接带有每篇文章的 SEO 元信息
 - 文章搜索覆盖所有语言与正文，标签筛选同步到 URL
+- 自动估算阅读时长（中日文按字数、英文/韩文按词数），按界面语言显示，也可在编辑台手动指定
 - 字体按需加载，编辑台代码拆分为独立的懒加载模块
 - 内置 ESLint 配置与覆盖服务端路由的 `node:test` 测试
 
@@ -246,6 +248,19 @@ RSS、站点地图与 SEO：Node 服务提供 `/rss.xml`、`/sitemap.xml`、`/ro
 ## Article Search
 
 The article index searches titles, excerpts, body text and footnotes in every language, plus tags, slugs and dates. Several words must all match. Compound tags such as `ESSAY / DIRECTION` become separate filter chips with counts, and tags on an article page link to the filtered list. The query and tag are kept in the URL (`#/articles?q=glass&tag=BUILD`), so filtered views can be shared and bookmarked. Press `Esc` in the search box to clear it.
+
+## Reading Time
+
+Article lists and article pages show an estimated reading time in the reader's current language. It is computed in `src/lib/readingTime.js` from the article body (falling back to another language, then the excerpt) plus footnotes:
+
+- space-separated scripts (English, Korean, ...) count words at 220 words per minute
+- Chinese characters and Japanese kana count one by one at 400 characters per minute
+- attachment tokens, URLs and markdown markers are ignored; the result is rounded and never below 1 minute
+- labels are localised: `3 min`, `3 分钟`, `3 分`, `3분`
+
+Leave the studio's **Read Time** field empty (or type `auto`) to use the estimate; the field's placeholder shows the current estimate for the language being edited. Anything else you type, such as `6 min`, is shown as-is in every language. The seed articles in `src/data/siteContent.js` ship with manual values; delete their `readTime` to switch them to the estimate. Share pages served by the Node server also add `timeRequired` (for example `PT6M`) to the article's JSON-LD.
+
+阅读时长：文章列表与详情页会按当前语言自动估算阅读时长（中文/日文 400 字每分钟，英文/韩文 220 词每分钟，至少 1 分钟）。编辑台的“阅读时长”留空或填 `auto` 即使用自动估算，填写其他内容则原样显示。
 
 ## Windows Scripts
 
