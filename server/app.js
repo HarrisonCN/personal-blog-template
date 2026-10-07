@@ -152,6 +152,21 @@ export function createApp(options = {}) {
     fs.renameSync(tempFile, storeFile);
   }
 
+  const deletedArticlesFile = path.join(dataDir, "deleted-articles.json");
+  const DELETED_ARTICLES_KEPT = 20;
+
+  function archiveDeletedArticle(article) {
+    let entries = [];
+    try {
+      const parsed = JSON.parse(fs.readFileSync(deletedArticlesFile, "utf8"));
+      entries = Array.isArray(parsed?.articles) ? parsed.articles : [];
+    } catch {}
+    const next = [{ deletedAt: new Date().toISOString(), article }, ...entries].slice(0, DELETED_ARTICLES_KEPT);
+    const tempFile = `${deletedArticlesFile}.${process.pid}.tmp`;
+    fs.writeFileSync(tempFile, JSON.stringify({ version: 1, articles: next }, null, 2));
+    fs.renameSync(tempFile, deletedArticlesFile);
+  }
+
   // ------------------------------------------------------------- sessions
 
   function signSession(sessionId) {
@@ -440,6 +455,29 @@ export function createApp(options = {}) {
     }
     writeStore(store);
     response.json({ ok: true, slug, slugChanged: slug !== project.slug, projects: store.projects });
+  });
+
+  // Deleting an article is permanent in store.json, so the removed article is
+  // also appended to deleted-articles.json (newest first, last 20 kept) to make
+  // a mistaken delete recoverable by hand.
+  app.post("/api/studio/articles/delete", requireTrustedOrigin, requireStudioAuth, (request, response) => {
+    const slug = String(request.body?.slug || "");
+    if (!slug) {
+      response.status(400).json({ error: "invalid_slug" });
+      return;
+    }
+
+    const store = readStore();
+    const removed = store.articles.find((article) => article.slug === slug);
+    if (!removed) {
+      response.status(404).json({ error: "not_found" });
+      return;
+    }
+
+    archiveDeletedArticle(removed);
+    store.articles = store.articles.filter((article) => article.slug !== slug);
+    writeStore(store);
+    response.json({ ok: true, slug, articles: store.articles });
   });
 
   app.post("/api/studio/projects/delete", requireTrustedOrigin, requireStudioAuth, (request, response) => {
