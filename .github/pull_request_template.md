@@ -5,6 +5,8 @@
 
 ## Validation
 
+- [ ] `npm run lint`
+- [ ] `npm test`
 - [ ] `npm run build`
 - [ ] manually tested relevant UI or workflow
 - [ ] docs updated if needed

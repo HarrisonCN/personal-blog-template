@@ -39,6 +39,12 @@ Full local stack:
 npm run dev:full
 ```
 
+Before opening a pull request, run the same checks as CI:
+
+```bash
+npm run check   # eslint + node:test suite + production build
+```
+
 Production build check:
 
 ```bash

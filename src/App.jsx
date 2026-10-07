@@ -1,5 +1,5 @@
 import { Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
-import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Link, Navigate, NavLink, Route, Routes, useLocation, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { useLayoutEffect } from "react";
 
 import InteractiveSceneBackground from "./components/InteractiveSceneBackground";
@@ -18,10 +18,20 @@ import {
   siteMeta,
   uiText,
 } from "./data/siteContent";
+import { buildDefaultSiteContent, ensureLocalizedMap, extractArticleSections, fileToAttachment, formatArticleDate, formatRelativeTime, normalizeArticle, normalizeBackgroundPreset, normalizeCustomCard, normalizePinnedSpace, normalizeProject, normalizeSiteContent, normalizeSocialLink, parseArticleDate, sortArticles } from "./lib/content";
+import { clamp, hsvToHex, parseStoredPalette } from "./lib/color";
+import { getRecentAccesses, getRecentEdits, getRecentReadings, pushRecentAccess, pushRecentReading, readStoredArray, readStoredJson } from "./lib/storage";
+import { getExperienceCopy } from "./lib/experienceCopy";
+import { apiRequest } from "./lib/api";
+import { loadFont } from "./lib/fonts";
+import { buildSearchIndex, collectTags, filterArticles, splitTags } from "./lib/articleSearch";
+import { AttachmentBlock, renderArticleContent } from "./components/ArticleContent";
+import { useReadingProgress } from "./hooks/studio";
 
 const AntigravityBackground = lazy(() => import("./components/AntigravityBackground"));
 const AmbientThreeLayer = lazy(() => import("./components/AmbientThreeLayer"));
 const ThemePresetScene = lazy(() => import("./components/ThemePresetScene"));
+const StudioPage = lazy(() => import("./pages/StudioPage"));
 
 
 const SAFE_LINK_PROTOCOLS = new Set(["http:", "https:", "mailto:", "tel:"]);
@@ -48,15 +58,6 @@ function scrollToInPageAnchor(event, id) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function readStoredArray(key) {
-  try {
-    const parsed = JSON.parse(window.localStorage.getItem(key) || "[]");
-    return Array.isArray(parsed) ? parsed : [];
-  } catch {
-    return [];
-  }
-}
-
 const PALETTE_STORAGE_KEY = "template-palette";
 const GUESTBOOK_STORAGE_KEY = "template-guestbook";
 const HOME_LAYOUT_STORAGE_KEY = "template-home-layout";
@@ -64,305 +65,22 @@ const HOME_CARD_META_STORAGE_KEY = "template-home-card-meta";
 const HOME_ARCHIVE_STATE_STORAGE_KEY = "template-home-archive-state";
 const STUDIO_MAX_ATTEMPTS = 5;
 const STUDIO_LOCK_MS = 15 * 60 * 1000;
-const EDITABLE_TEXT_KEYS = [
-  "navHome",
-  "navArticles",
-  "navProjects",
-  "navAbout",
-  "heroEyebrow",
-  "heroTitle",
-  "heroBody",
-  "heroPrimary",
-  "heroSecondary",
-  "aboutTitle",
-  "aboutBody",
-  "featuredTitle",
-  "articlesTitle",
-  "allArticles",
-  "articleIndexTitle",
-  "articleIndexBody",
-  "footer",
-];
-const LEGACY_PALETTES = {
-  ocean: { h: 198, s: 49, v: 100 },
-  mint: { h: 154, s: 56, v: 91 },
-  rose: { h: 336, s: 46, v: 100 },
-  mono: { h: 217, s: 15, v: 85 },
-};
-const DEFAULT_PALETTE = { h: 198, s: 30, v: 100 };
-const VALID_BACKGROUND_PRESETS = new Set(["none", "antigravity", "xflow"]);
 const THEME_PRESET_OPTIONS = [
   { code: "none", label: "Default" },
   { code: "xflow", label: "X Flow" },
   { code: "antigravity", label: "Antigravity" },
 ];
-const BACKGROUND_PRESETS = [
-  {
-    code: "xflow",
-    label: { zh: "X Flow", en: "X Flow", ja: "X Flow", ko: "X Flow" },
-    eyebrow: { zh: "Hybrid UI", en: "Hybrid UI", ja: "Hybrid UI", ko: "Hybrid UI" },
-  },
-  {
-    code: "none",
-    label: { zh: "默认", en: "Default", ja: "Default", ko: "Default" },
-    eyebrow: { zh: "Blueprint", en: "Blueprint", ja: "Blueprint", ko: "Blueprint" },
-  },
-  {
-    code: "antigravity",
-    label: { zh: "反重力", en: "Antigravity", ja: "Antigravity", ko: "Antigravity" },
-    eyebrow: { zh: "Google-like", en: "Google-like", ja: "Google-like", ko: "Google-like" },
-  },
-];
-
-const STUDIO_BACKGROUND_PRESETS = BACKGROUND_PRESETS.filter((preset) => VALID_BACKGROUND_PRESETS.has(preset.code));
 const HOME_LAYOUT_OPTIONS = [
   { code: "magazine", icon: "M" },
   { code: "archive", icon: "A" },
   { code: "cards", icon: "C" },
 ];
-// 本地缓存键：用于记录用户在站内的访问、阅读和编辑轨迹。
-const RECENT_ACCESS_STORAGE_KEY = "template-recent-access";
-const RECENT_READING_STORAGE_KEY = "template-recent-reading";
-const RECENT_EDITING_STORAGE_KEY = "template-recent-editing";
 const HOME_CARD_ORDER_STORAGE_KEY = "template-home-card-order";
 const AMBIENT_TRACKS = [
   { code: "rain", title: { zh: "雨幕", en: "Rain Room" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3" },
   { code: "harbor", title: { zh: "港湾", en: "Harbor Hush" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3" },
   { code: "night", title: { zh: "夜读", en: "Night Air" }, src: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3" },
 ];
-const EXPERIENCE_COPY = {
-  zh: {
-    commandOpen: "命令面板",
-    commandPlaceholder: "搜索文章、项目、主题、背景或后台入口",
-    commandEmpty: "没有匹配结果",
-    archiveTitle: "时间档案",
-    archiveBody: "把文章、项目和持续实验放进同一条时间轴里。",
-    archiveOpen: "打开档案",
-    pinnedTitle: "Pinned Spaces",
-    pinnedBody: "把最想先被看到的内容固定在首页入口。",
-    layoutTitle: "首页布局",
-    layoutMagazine: "杂志流",
-    layoutArchive: "档案流",
-    layoutCards: "卡片流",
-    readingRoom: "阅读室",
-    focusMode: "专注",
-    nightMode: "夜读",
-    ambientMode: "环境音",
-    readAloud: "朗读",
-    stopReading: "停止朗读",
-    footnotes: "脚注",
-    timelineArticles: "文章",
-    timelineProjects: "项目",
-    pinnedEditorTitle: "固定空间",
-    pinnedEditorBody: "把文章、项目、链接或音频固定到首页。",
-    addPinnedSpace: "新增固定项",
-    removePinnedSpace: "删除固定项",
-    pinnedKind: "内容类型",
-    pinnedArticle: "文章",
-    pinnedProject: "项目",
-    pinnedLink: "链接",
-    pinnedAudio: "音频",
-    pinnedLabel: "标题",
-    pinnedBodyLabel: "说明",
-    pinnedUrl: "链接地址",
-    pinnedAudioTitle: "音频标题",
-    pinnedAudioArtist: "音频作者",
-    pinnedAudioSrc: "音频地址",
-    pinnedTarget: "关联内容",
-    footnotesEditor: "脚注",
-    openCommand: "打开命令面板",
-    recentAccess: "最近访问",
-    quickActions: "快捷操作",
-    createArticleQuick: "新建文章",
-    createProjectQuick: "新建项目",
-    highlightAction: "高亮此段",
-    noteOnParagraph: "添加批注",
-    saveNote: "保存批注",
-    removeNote: "删除批注",
-    notePlaceholder: "写下这一段的理解、待改点或延展想法",
-    highlightedParagraphs: "高亮段落",
-    favoriteParagraphs: "收藏段落",
-    readingResume: "继续阅读",
-    recentReading: "最近阅读",
-    recentEditing: "最近编辑",
-    quickTheme: "快速切主题",
-    quickLanguage: "快速切语言",
-    exportNotes: "导出批注",
-    importNotesDraft: "批注已导入草稿",
-    readingStats: "阅读统计",
-    statsWords: "字数",
-    statsParagraphs: "段落",
-    statsNotes: "批注",
-    statsFavorites: "收藏",
-    archiveFilter: "筛选",
-    archiveSearch: "搜索档案内容",
-    archiveAllYears: "全部年份",
-    archiveAllTags: "全部标签",
-  },
-  en: {
-    commandOpen: "Command Palette",
-    commandPlaceholder: "Search articles, projects, themes, backgrounds, or studio routes",
-    commandEmpty: "No results found",
-    archiveTitle: "Timeline Archive",
-    archiveBody: "Place articles, projects, and ongoing experiments on one shared timeline.",
-    archiveOpen: "Open Archive",
-    pinnedTitle: "Pinned Spaces",
-    pinnedBody: "Pin the content that should be discovered first on the homepage.",
-    layoutTitle: "Home Layout",
-    layoutMagazine: "Magazine",
-    layoutArchive: "Archive",
-    layoutCards: "Cards",
-    readingRoom: "Reading Room",
-    focusMode: "Focus",
-    nightMode: "Night",
-    ambientMode: "Ambient",
-    readAloud: "Read Aloud",
-    stopReading: "Stop Reading",
-    footnotes: "Footnotes",
-    timelineArticles: "Articles",
-    timelineProjects: "Projects",
-    pinnedEditorTitle: "Pinned Spaces",
-    pinnedEditorBody: "Pin articles, projects, links, or audio modules to the homepage.",
-    addPinnedSpace: "Add Pinned Space",
-    removePinnedSpace: "Remove Item",
-    pinnedKind: "Type",
-    pinnedArticle: "Article",
-    pinnedProject: "Project",
-    pinnedLink: "Link",
-    pinnedAudio: "Audio",
-    pinnedLabel: "Title",
-    pinnedBodyLabel: "Description",
-    pinnedUrl: "Link URL",
-    pinnedAudioTitle: "Audio Title",
-    pinnedAudioArtist: "Audio Artist",
-    pinnedAudioSrc: "Audio URL",
-    pinnedTarget: "Target",
-    footnotesEditor: "Footnotes",
-    openCommand: "Open Command Palette",
-    recentAccess: "Recent",
-    quickActions: "Quick Actions",
-    createArticleQuick: "New Article",
-    createProjectQuick: "New Project",
-    highlightAction: "Highlight",
-    noteOnParagraph: "Annotate",
-    saveNote: "Save Note",
-    removeNote: "Remove Note",
-    notePlaceholder: "Capture a thought, revision note, or follow-up idea for this paragraph",
-    highlightedParagraphs: "Highlights",
-    favoriteParagraphs: "Favorites",
-    readingResume: "Resume Reading",
-    recentReading: "Recent Reading",
-    recentEditing: "Recent Editing",
-    quickTheme: "Quick Theme",
-    quickLanguage: "Quick Language",
-    exportNotes: "Export Notes",
-    importNotesDraft: "Notes imported into draft",
-    readingStats: "Reading Stats",
-    statsWords: "Words",
-    statsParagraphs: "Paragraphs",
-    statsNotes: "Notes",
-    statsFavorites: "Favorites",
-    archiveFilter: "Filters",
-    archiveSearch: "Search archive content",
-    archiveAllYears: "All Years",
-    archiveAllTags: "All Tags",
-  },
-};
-
-function normalizeBackgroundPreset(value) {
-  return VALID_BACKGROUND_PRESETS.has(value) ? value : "none";
-}
-
-function getExperienceCopy(language) {
-  return EXPERIENCE_COPY[language] ? { ...EXPERIENCE_COPY.en, ...EXPERIENCE_COPY[language] } : EXPERIENCE_COPY.en;
-}
-
-function clamp(value, min, max) {
-  return Math.min(Math.max(value, min), max);
-}
-
-function hsvToRgb(h, s, v) {
-  const hue = ((h % 360) + 360) % 360;
-  const sat = clamp(s, 0, 100) / 100;
-  const val = clamp(v, 0, 100) / 100;
-  const c = val * sat;
-  const x = c * (1 - Math.abs(((hue / 60) % 2) - 1));
-  const m = val - c;
-  let r = 0;
-  let g = 0;
-  let b = 0;
-
-  if (hue < 60) {
-    r = c;
-    g = x;
-  } else if (hue < 120) {
-    r = x;
-    g = c;
-  } else if (hue < 180) {
-    g = c;
-    b = x;
-  } else if (hue < 240) {
-    g = x;
-    b = c;
-  } else if (hue < 300) {
-    r = x;
-    b = c;
-  } else {
-    r = c;
-    b = x;
-  }
-
-  return {
-    r: Math.round((r + m) * 255),
-    g: Math.round((g + m) * 255),
-    b: Math.round((b + m) * 255),
-  };
-}
-
-function rgbToHex({ r, g, b }) {
-  return `#${[r, g, b].map((value) => value.toString(16).padStart(2, "0")).join("")}`;
-}
-
-function hsvToHex(h, s, v) {
-  return rgbToHex(hsvToRgb(h, s, v));
-}
-
-function parseStoredPalette(value) {
-  if (!value) {
-    return DEFAULT_PALETTE;
-  }
-
-  if (LEGACY_PALETTES[value]) {
-    return LEGACY_PALETTES[value];
-  }
-
-  try {
-    const parsed = JSON.parse(value);
-    if (typeof parsed?.h === "number" && typeof parsed?.s === "number" && typeof parsed?.v === "number") {
-      return {
-        h: clamp(parsed.h, 0, 360),
-        s: clamp(parsed.s, 0, 100),
-        v: clamp(parsed.v, 0, 100),
-      };
-    }
-  } catch {}
-
-  return DEFAULT_PALETTE;
-}
-
-// 安全读取 JSON：浏览器本地缓存一旦被旧版本或手动修改写坏，不能让整页直接崩掉。
-function readStoredJson(rawValue, fallback) {
-  if (!rawValue) {
-    return fallback;
-  }
-
-  try {
-    return JSON.parse(rawValue);
-  } catch {
-    return fallback;
-  }
-}
-
 const fallbackCopy = {
   zh: {
     navStudio: "开发者编辑",
@@ -440,7 +158,7 @@ const fallbackCopy = {
     projectSolution: "方案",
     projectOutcome: "结果",
     articleSearch: "搜索文章",
-    articleSearchPlaceholder: "输入标题、摘要或标签",
+    articleSearchPlaceholder: "搜索标题、摘要、正文或标签",
     allTags: "全部标签",
     noArticleResults: "没有匹配的文章",
     readingProgress: "阅读进度",
@@ -547,7 +265,7 @@ const fallbackCopy = {
     projectSolution: "Solution",
     projectOutcome: "Outcome",
     articleSearch: "Search Articles",
-    articleSearchPlaceholder: "Search title, excerpt, or tag",
+    articleSearchPlaceholder: "Search titles, excerpts, body text, or tags",
     allTags: "All Tags",
     noArticleResults: "No matching articles",
     readingProgress: "Reading Progress",
@@ -598,235 +316,6 @@ function getCopy(language) {
   }
 
   return fallbackCopy.en;
-}
-
-function slugify(value) {
-  return value
-    .toLowerCase()
-    .trim()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 64);
-}
-
-function parseArticleDate(value) {
-  if (!value) {
-    return new Date();
-  }
-
-  if (typeof value === "string" && /^\d{4}\.\d{2}\.\d{2}$/.test(value)) {
-    return new Date(`${value.replace(/\./g, "-")}T12:00:00`);
-  }
-
-  const parsed = new Date(value);
-  if (Number.isNaN(parsed.getTime())) {
-    return new Date();
-  }
-
-  return parsed;
-}
-
-function formatArticleDate(date) {
-  const year = date.getFullYear();
-  const month = `${date.getMonth() + 1}`.padStart(2, "0");
-  const day = `${date.getDate()}`.padStart(2, "0");
-  return `${year}.${month}.${day}`;
-}
-
-function ensureLocalizedMap(value, fallback = "") {
-  if (value && typeof value === "object") {
-    return {
-      zh: value.zh ?? fallback,
-      en: value.en ?? value.zh ?? fallback,
-      ja: value.ja ?? value.en ?? value.zh ?? fallback,
-      ko: value.ko ?? value.en ?? value.zh ?? fallback,
-    };
-  }
-
-  return {
-    zh: fallback,
-    en: fallback,
-    ja: fallback,
-    ko: fallback,
-  };
-}
-
-function ensureLocalizedList(value) {
-  if (Array.isArray(value)) {
-    return {
-      zh: value.filter(Boolean),
-      en: value.filter(Boolean),
-      ja: value.filter(Boolean),
-      ko: value.filter(Boolean),
-    };
-  }
-
-  if (value && typeof value === "object") {
-    const normalize = (entry) =>
-      Array.isArray(entry)
-        ? entry.map((item) => String(item).trim()).filter(Boolean)
-        : String(entry || "")
-            .split("\n")
-            .map((item) => item.trim())
-            .filter(Boolean);
-
-    return {
-      zh: normalize(value.zh),
-      en: normalize(value.en ?? value.zh),
-      ja: normalize(value.ja ?? value.en ?? value.zh),
-      ko: normalize(value.ko ?? value.en ?? value.zh),
-    };
-  }
-
-  const empty = [];
-  return { zh: empty, en: empty, ja: empty, ko: empty };
-}
-
-function normalizeArticle(article, index) {
-  // 统一文章结构，确保后台、前台、导出逻辑都读取同一份字段。
-  const updatedAt = article.updatedAt ?? parseArticleDate(article.date).toISOString();
-  const title = ensureLocalizedMap(article.title, `Untitled ${index + 1}`);
-  const excerpt = ensureLocalizedMap(article.excerpt, "");
-  const content = ensureLocalizedMap(
-    article.content,
-    excerpt.en || excerpt.zh || excerpt.ja || excerpt.ko || ""
-  );
-
-  return {
-    slug: article.slug || `article-${index + 1}`,
-    tag: article.tag || "NOTE",
-    title,
-    excerpt,
-    content,
-    date: article.date || formatArticleDate(parseArticleDate(updatedAt)),
-    updatedAt,
-    readTime: article.readTime || "5 min",
-    attachments: Array.isArray(article.attachments) ? article.attachments : [],
-    coverImage: article.coverImage ?? "",
-    pinned: Boolean(article.pinned),
-    footnotes: ensureLocalizedList(article.footnotes),
-  };
-}
-
-function sortArticles(list) {
-  return [...list].sort(
-    (left, right) => parseArticleDate(right.updatedAt).getTime() - parseArticleDate(left.updatedAt).getTime()
-  );
-}
-
-function cloneArticle(article) {
-  return {
-    ...article,
-    title: { ...article.title },
-    excerpt: { ...article.excerpt },
-    content: { ...article.content },
-    attachments: [...article.attachments],
-    coverImage: article.coverImage || "",
-    pinned: Boolean(article.pinned),
-    footnotes: {
-      zh: [...(article.footnotes?.zh || [])],
-      en: [...(article.footnotes?.en || [])],
-      ja: [...(article.footnotes?.ja || [])],
-      ko: [...(article.footnotes?.ko || [])],
-    },
-  };
-}
-
-function normalizeProject(project, index) {
-  return {
-    slug: project.slug || `project-${index + 1}`,
-    category: ensureLocalizedMap(project.category, ""),
-    title: project.title || `Project ${index + 1}`,
-    summary: ensureLocalizedMap(project.summary, ""),
-    metrics: Array.isArray(project.metrics) ? project.metrics : [],
-    challenge: ensureLocalizedMap(project.challenge, ""),
-    solution: ensureLocalizedMap(project.solution, ""),
-    outcome: ensureLocalizedMap(project.outcome, ""),
-    updatedAt: project.updatedAt || new Date().toISOString(),
-  };
-}
-
-function cloneProject(project) {
-  return {
-    ...project,
-    category: { ...project.category },
-    summary: { ...project.summary },
-    metrics: [...project.metrics],
-    challenge: { ...project.challenge },
-    solution: { ...project.solution },
-    outcome: { ...project.outcome },
-    updatedAt: project.updatedAt,
-  };
-}
-
-function normalizeSocialLink(link, index = 0) {
-  return {
-    label: String(link?.label || `Link ${index + 1}`),
-    url: String(link?.url || ""),
-    icon: String(link?.icon || "link"),
-    iconDataUrl: typeof link?.iconDataUrl === "string" ? link.iconDataUrl : "",
-  };
-}
-
-function createBlankSocialLink() {
-  return {
-    label: "",
-    url: "",
-    icon: "link",
-    iconDataUrl: "",
-  };
-}
-
-function normalizeCustomCard(card, index = 0) {
-  return {
-    id: String(card?.id || `card-${index + 1}`),
-    eyebrow: ensureLocalizedMap(card?.eyebrow, ""),
-    title: ensureLocalizedMap(card?.title, `Card ${index + 1}`),
-    body: ensureLocalizedMap(card?.body, ""),
-    linkLabel: ensureLocalizedMap(card?.linkLabel, ""),
-    linkUrl: String(card?.linkUrl || ""),
-  };
-}
-
-function createBlankCustomCard() {
-  return {
-    id: `card-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    eyebrow: { zh: "", en: "", ja: "", ko: "" },
-    title: { zh: "", en: "", ja: "", ko: "" },
-    body: { zh: "", en: "", ja: "", ko: "" },
-    linkLabel: { zh: "", en: "", ja: "", ko: "" },
-    linkUrl: "",
-  };
-}
-
-function normalizePinnedSpace(item, index = 0) {
-  return {
-    id: String(item?.id || `space-${index + 1}`),
-    kind: ["article", "project", "link", "audio"].includes(item?.kind) ? item.kind : "article",
-    articleSlug: String(item?.articleSlug || ""),
-    projectSlug: String(item?.projectSlug || ""),
-    title: ensureLocalizedMap(item?.title, ""),
-    body: ensureLocalizedMap(item?.body, ""),
-    url: String(item?.url || ""),
-    audioTitle: ensureLocalizedMap(item?.audioTitle, ""),
-    audioArtist: ensureLocalizedMap(item?.audioArtist, ""),
-    audioSrc: String(item?.audioSrc || ""),
-  };
-}
-
-function createBlankPinnedSpace() {
-  return {
-    id: `space-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
-    kind: "article",
-    articleSlug: "",
-    projectSlug: "",
-    title: ensureLocalizedMap(""),
-    body: ensureLocalizedMap(""),
-    url: "",
-    audioTitle: ensureLocalizedMap(""),
-    audioArtist: ensureLocalizedMap(""),
-    audioSrc: "",
-  };
 }
 
 function getSiteAvatar(meta, fallbackImage) {
@@ -899,188 +388,6 @@ function SiteBackground({ presetCode, imageSrc }) {
   );
 }
 
-function createBlankProject() {
-  return {
-    slug: "",
-    category: { zh: "", en: "", ja: "", ko: "" },
-    title: "",
-    summary: { zh: "", en: "", ja: "", ko: "" },
-    metrics: [],
-    challenge: { zh: "", en: "", ja: "", ko: "" },
-    solution: { zh: "", en: "", ja: "", ko: "" },
-    outcome: { zh: "", en: "", ja: "", ko: "" },
-    updatedAt: new Date().toISOString(),
-  };
-}
-
-function createBlankArticle() {
-  const now = new Date();
-  return {
-    slug: "",
-    tag: "NOTE / NEW",
-    title: { zh: "", en: "", ja: "", ko: "" },
-    excerpt: { zh: "", en: "", ja: "", ko: "" },
-    content: { zh: "", en: "", ja: "", ko: "" },
-    date: formatArticleDate(now),
-    updatedAt: now.toISOString(),
-    readTime: "4 min",
-    attachments: [],
-    coverImage: "",
-    pinned: false,
-    footnotes: { zh: [], en: [], ja: [], ko: [] },
-  };
-}
-
-function slugifyHeading(value) {
-  return slugify(value).slice(0, 48);
-}
-
-function extractArticleSections(content = "") {
-  return content
-    .split("\n")
-    .map((line) => line.trim())
-    .filter((line) => /^(##|###)\s+/.test(line))
-    .map((line, index) => {
-      const level = line.startsWith("###") ? 3 : 2;
-      const title = line.replace(/^(##|###)\s+/, "").trim();
-      return {
-        id: slugifyHeading(`${title}-${index}`),
-        title,
-        level,
-      };
-    });
-}
-
-function formatRelativeTime(value, language) {
-  const localeMap = {
-    zh: "zh-CN",
-    en: "en-US",
-    ja: "ja-JP",
-    ko: "ko-KR",
-  };
-
-  const formatter = new Intl.RelativeTimeFormat(localeMap[language] || "en-US", { numeric: "auto" });
-  const diff = parseArticleDate(value).getTime() - Date.now();
-  const minute = 60 * 1000;
-  const hour = 60 * minute;
-  const day = 24 * hour;
-  const week = 7 * day;
-
-  if (Math.abs(diff) < hour) {
-    return formatter.format(Math.round(diff / minute), "minute");
-  }
-
-  if (Math.abs(diff) < day) {
-    return formatter.format(Math.round(diff / hour), "hour");
-  }
-
-  if (Math.abs(diff) < week) {
-    return formatter.format(Math.round(diff / day), "day");
-  }
-
-  return formatter.format(Math.round(diff / week), "week");
-}
-
-function fileToAttachment(file) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      const kind = file.type.startsWith("image/")
-        ? "image"
-        : file.type.startsWith("audio/")
-          ? "audio"
-          : file.type.startsWith("video/")
-            ? "video"
-            : "file";
-
-      resolve({
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        name: file.name,
-        mimeType: file.type || "application/octet-stream",
-        size: file.size,
-        kind,
-        dataUrl: reader.result,
-      });
-    };
-
-    reader.onerror = () => reject(reader.error);
-    reader.readAsDataURL(file);
-  });
-}
-
-function getAttachmentToken(id) {
-  return `[[attachment:${id}]]`;
-}
-
-function contentHasAttachment(content = "", attachmentId) {
-  return content.includes(getAttachmentToken(attachmentId));
-}
-
-function insertAttachmentIntoContent(content = "", attachmentId) {
-  const token = getAttachmentToken(attachmentId);
-  if (contentHasAttachment(content, attachmentId)) {
-    return content;
-  }
-
-  if (!content.trim()) {
-    return token;
-  }
-
-  return `${content}\n\n${token}`;
-}
-
-function renderArticleContent(content = "", attachments, copy) {
-  const rendered = [];
-  const lines = content.split("\n");
-
-  lines.forEach((rawLine, index) => {
-    const line = rawLine.trim();
-    if (!line) {
-      return;
-    }
-
-    const attachmentToken = line.match(/^\[\[attachment:([a-zA-Z0-9-]+)\]\]$/);
-    if (attachmentToken) {
-      const attachment = attachments.find((item) => item.id === attachmentToken[1]);
-      if (attachment) {
-        rendered.push({
-          type: "attachment",
-          key: `attachment-${attachment.id}-${index}`,
-          value: attachment,
-        });
-      }
-      return;
-    }
-
-    if (/^###\s+/.test(line) || /^##\s+/.test(line)) {
-      const level = line.startsWith("###") ? 3 : 2;
-      const title = line.replace(/^(##|###)\s+/, "").trim();
-      rendered.push({
-        type: "heading",
-        key: `heading-${index}`,
-        value: title,
-        level,
-        id: slugifyHeading(`${title}-${index}`),
-      });
-      return;
-    }
-
-    rendered.push({
-      type: "text",
-      key: `text-${index}`,
-      value: line,
-      id: `paragraph-${index}`,
-    });
-  });
-
-  const remainingAttachments = attachments.filter(
-    (attachment) => !contentHasAttachment(content, attachment.id)
-  );
-
-  return { rendered, remainingAttachments };
-}
-
 function usePreferences() {
   const [theme, setTheme] = useState(() => {
     const storedTheme = window.localStorage.getItem("template-theme");
@@ -1104,6 +411,7 @@ function usePreferences() {
   }, [language]);
 
   useEffect(() => {
+    loadFont(font);
     document.documentElement.dataset.font = font;
     window.localStorage.setItem("template-font", font);
   }, [font]);
@@ -1342,29 +650,6 @@ function useInteractionGuard() {
   return message;
 }
 
-async function apiRequest(path, options = {}) {
-  const response = await fetch(path, {
-    credentials: "include",
-    headers: {
-      "Content-Type": "application/json",
-      ...(options.headers ?? {}),
-    },
-    ...options,
-  });
-
-  const isJson = response.headers.get("content-type")?.includes("application/json");
-  const payload = isJson ? await response.json() : null;
-
-  if (!response.ok) {
-    const error = new Error(payload?.error || "request_failed");
-    error.status = response.status;
-    error.payload = payload;
-    throw error;
-  }
-
-  return payload;
-}
-
 function useBackendContent() {
   const [articles, setArticles] = useState(() => sortArticles(seedArticles.map(normalizeArticle)));
   const [projects, setProjects] = useState(() => featuredProjects.map(normalizeProject));
@@ -1422,7 +707,8 @@ function useBackendContent() {
         body: JSON.stringify({ article: incoming, previousSlug }),
       });
       setArticles(sortArticles((payload.articles ?? []).map(normalizeArticle)));
-      return { ok: true };
+      // The server is the source of truth for slugs (it de-duplicates them).
+      return { ok: true, slug: payload.slug || incoming.slug };
     } catch (error) {
       return { ok: false, reason: error.status === 401 ? "unauthorized" : "request_failed" };
     }
@@ -1439,7 +725,7 @@ function useBackendContent() {
         body: JSON.stringify({ project: incoming, previousSlug }),
       });
       setProjects((payload.projects ?? []).map(normalizeProject));
-      return { ok: true };
+      return { ok: true, slug: payload.slug || incoming.slug };
     } catch (error) {
       return { ok: false, reason: error.status === 401 ? "unauthorized" : "request_failed" };
     }
@@ -1586,86 +872,6 @@ function useStudioAuth(studioAvailable) {
   };
 
   return { isAuthenticated, login, logout, sessionExpired, lockUntil, studioAvailable, authReady };
-}
-
-function buildDefaultSiteContent() {
-  const textContent = Object.fromEntries(
-    Object.entries(uiText).map(([lang, value]) => [
-      lang,
-      Object.fromEntries(EDITABLE_TEXT_KEYS.map((key) => [key, value[key] ?? ""])),
-    ])
-  );
-
-  return {
-    meta: {
-      name: siteMeta.name,
-      email: siteMeta.email,
-      location: siteMeta.location,
-      avatarImage: templateAvatar,
-      browserTitle: ensureLocalizedMap(siteMeta.name, siteMeta.name),
-      backgroundPreset: "none",
-      backgroundImage: "",
-      role: ensureLocalizedMap(siteMeta.role, ""),
-      intro: ensureLocalizedMap(siteMeta.intro, ""),
-      homeLayout: "magazine",
-      stats: { ...siteMeta.stats },
-      socialLinks: siteMeta.socialLinks.map(normalizeSocialLink),
-      customCards: Array.isArray(siteMeta.customCards) ? siteMeta.customCards.map(normalizeCustomCard) : [],
-      homeCardOverrides: {},
-      pinnedSpaces: [],
-    },
-    text: textContent,
-  };
-}
-
-function normalizeSiteContent(content) {
-  const defaults = buildDefaultSiteContent();
-  return {
-    meta: {
-      ...defaults.meta,
-      ...(content?.meta ?? {}),
-      avatarImage:
-        typeof content?.meta?.avatarImage === "string" && content.meta.avatarImage
-          ? content.meta.avatarImage
-          : defaults.meta.avatarImage,
-      browserTitle: ensureLocalizedMap(content?.meta?.browserTitle ?? defaults.meta.browserTitle, defaults.meta.name),
-      backgroundPreset:
-        typeof content?.meta?.backgroundPreset === "string"
-          ? normalizeBackgroundPreset(content.meta.backgroundPreset)
-          : defaults.meta.backgroundPreset,
-      backgroundImage:
-        typeof content?.meta?.backgroundImage === "string" ? content.meta.backgroundImage : defaults.meta.backgroundImage,
-      role: ensureLocalizedMap(content?.meta?.role ?? defaults.meta.role, ""),
-      intro: ensureLocalizedMap(content?.meta?.intro ?? defaults.meta.intro, ""),
-      homeLayout: ["magazine", "archive", "cards"].includes(content?.meta?.homeLayout) ? content.meta.homeLayout : defaults.meta.homeLayout,
-      stats: {
-        ...defaults.meta.stats,
-        ...(content?.meta?.stats ?? {}),
-      },
-      socialLinks: Array.isArray(content?.meta?.socialLinks)
-        ? content.meta.socialLinks.map(normalizeSocialLink)
-        : defaults.meta.socialLinks.map(normalizeSocialLink),
-      customCards: Array.isArray(content?.meta?.customCards)
-        ? content.meta.customCards.map(normalizeCustomCard)
-        : defaults.meta.customCards.map(normalizeCustomCard),
-      homeCardOverrides:
-        content?.meta?.homeCardOverrides && typeof content.meta.homeCardOverrides === "object"
-          ? content.meta.homeCardOverrides
-          : defaults.meta.homeCardOverrides,
-      pinnedSpaces: Array.isArray(content?.meta?.pinnedSpaces)
-        ? content.meta.pinnedSpaces.map(normalizePinnedSpace)
-        : defaults.meta.pinnedSpaces.map(normalizePinnedSpace),
-    },
-    text: Object.fromEntries(
-      Object.keys(defaults.text).map((lang) => [
-        lang,
-        {
-          ...defaults.text[lang],
-          ...(content?.text?.[lang] ?? {}),
-        },
-      ])
-    ),
-  };
 }
 
 function ThemeToggle({ theme, setTheme, text }) {
@@ -1988,53 +1194,6 @@ function parseSource(input) {
   return { type: "unsupported", raw: value };
 }
 
-function AttachmentBlock({
-  attachment,
-  copy,
-  compact = false,
-  onRemove = null,
-  onInsert = null,
-  inserted = false,
-}) {
-  return (
-    <div className={`attachment-card ${compact ? "compact" : ""}`}>
-      <div className="attachment-card__preview">
-        {attachment.kind === "image" ? (
-          <img src={attachment.dataUrl} alt={attachment.name} />
-        ) : attachment.kind === "audio" ? (
-          <audio controls src={attachment.dataUrl} preload="metadata" />
-        ) : attachment.kind === "video" ? (
-          <video controls src={attachment.dataUrl} />
-        ) : (
-          <div className="attachment-card__file">
-            <span>{copy.mediaFile}</span>
-            <strong>{attachment.name}</strong>
-          </div>
-        )}
-      </div>
-      <div className="attachment-card__meta">
-        <strong>{attachment.name}</strong>
-        <span>{copy[`media${attachment.kind[0].toUpperCase()}${attachment.kind.slice(1)}`] || copy.mediaFile}</span>
-      </div>
-      <div className="attachment-card__actions">
-        <a className="dock-button" href={attachment.dataUrl} download={attachment.name}>
-          {copy.preview}
-        </a>
-        {onInsert ? (
-          <button type="button" className="dock-button" onClick={() => onInsert(attachment.id)}>
-            {inserted ? copy.insertedAttachment : copy.insertAttachment}
-          </button>
-        ) : null}
-        {onRemove ? (
-          <button type="button" className="dock-button" onClick={() => onRemove(attachment.id)}>
-            {copy.remove}
-          </button>
-        ) : null}
-      </div>
-    </div>
-  );
-}
-
 function MusicDock({ text }) {
   const audioRef = useRef(null);
   const [trackIndex, setTrackIndex] = useState(0);
@@ -2146,7 +1305,7 @@ function MusicDock({ text }) {
     setIsPlaying(false);
   };
 
-  const usePlaylistTrack = (direction) => {
+  const stepPlaylistTrack = (direction) => {
     if (customSource) {
       setCustomSource(null);
       setInput("");
@@ -2233,7 +1392,7 @@ function MusicDock({ text }) {
                     <button
                       type="button"
                       className="dock-button dock-button--icon"
-                      onClick={() => usePlaylistTrack(-1)}
+                      onClick={() => stepPlaylistTrack(-1)}
                       aria-label={text.previousTrack}
                     >
                       Prev
@@ -2249,7 +1408,7 @@ function MusicDock({ text }) {
                     <button
                       type="button"
                       className="dock-button dock-button--icon"
-                      onClick={() => usePlaylistTrack(1)}
+                      onClick={() => stepPlaylistTrack(1)}
                       aria-label={text.nextTrack}
                     >
                       Next
@@ -2715,21 +1874,6 @@ function Shell({
   );
 }
 
-function useStudioBackgroundPreview(siteDraft, setPreviewBackground) {
-  useEffect(() => {
-    if (!setPreviewBackground) {
-      return undefined;
-    }
-
-    setPreviewBackground({
-      backgroundPreset: normalizeBackgroundPreset(siteDraft?.meta?.backgroundPreset || "none"),
-      backgroundImage: siteDraft?.meta?.backgroundImage || "",
-    });
-
-    return () => setPreviewBackground(null);
-  }, [setPreviewBackground, siteDraft?.meta?.backgroundImage, siteDraft?.meta?.backgroundPreset]);
-}
-
 function ArticleMeta({ article, copy, language }) {
   return (
     <div className="card-meta">
@@ -2742,42 +1886,7 @@ function ArticleMeta({ article, copy, language }) {
   );
 }
 
-function useReadingProgress() {
-  const [progress, setProgress] = useState(0);
-
-  useEffect(() => {
-    let frameId = 0;
-
-    const update = () => {
-      frameId = 0;
-      const scrollTop = window.scrollY;
-      const total = document.documentElement.scrollHeight - window.innerHeight;
-      const next = total > 0 ? Math.min(1, Math.max(0, scrollTop / total)) : 0;
-      setProgress((current) => (Math.abs(current - next) < 0.004 ? current : next));
-    };
-
-    const scheduleUpdate = () => {
-      if (!frameId) {
-        frameId = window.requestAnimationFrame(update);
-      }
-    };
-
-    update();
-    window.addEventListener("scroll", scheduleUpdate, { passive: true });
-    window.addEventListener("resize", scheduleUpdate, { passive: true });
-    return () => {
-      if (frameId) {
-        window.cancelAnimationFrame(frameId);
-      }
-      window.removeEventListener("scroll", scheduleUpdate);
-      window.removeEventListener("resize", scheduleUpdate);
-    };
-  }, []);
-
-  return progress;
-}
-
-function useSeo({ title, description, image }) {
+function useSeo({ title, description, image, type = "website", publishedTime = "", modifiedTime = "" }) {
   useEffect(() => {
     document.title = title;
 
@@ -2791,50 +1900,24 @@ function useSeo({ title, description, image }) {
       }
       return node;
     };
+    const setOrRemove = (attr, key, value) => {
+      if (value) {
+        ensureMeta(attr, key).setAttribute("content", value);
+      } else {
+        document.head.querySelector(`meta[${attr}="${key}"]`)?.remove();
+      }
+    };
 
     ensureMeta("name", "description").setAttribute("content", description);
     ensureMeta("property", "og:title").setAttribute("content", title);
     ensureMeta("property", "og:description").setAttribute("content", description);
     ensureMeta("property", "og:image").setAttribute("content", image);
-  }, [description, image, title]);
-}
-
-// 读取最近轨迹：站内控制中心会复用这组读取/写入逻辑。
-function getStoredTrail(storageKey) {
-  return readStoredJson(window.localStorage.getItem(storageKey), []);
-}
-
-function pushStoredTrail(storageKey, entry, limit = 8) {
-  const current = getStoredTrail(storageKey).filter((item) => item.path !== entry.path);
-  const next = [entry, ...current].slice(0, limit);
-  window.localStorage.setItem(storageKey, JSON.stringify(next));
-}
-
-function getRecentAccesses() {
-  return getStoredTrail(RECENT_ACCESS_STORAGE_KEY);
-}
-
-function getRecentReadings() {
-  return getStoredTrail(RECENT_READING_STORAGE_KEY);
-}
-
-function getRecentEdits() {
-  return getStoredTrail(RECENT_EDITING_STORAGE_KEY);
-}
-
-function pushRecentAccess(entry) {
-  // 去重后只保留最近几条浏览记录，方便命令面板作为站内中枢使用。
-  const current = getRecentAccesses().filter((item) => item.path !== entry.path);
-  const next = [entry, ...current].slice(0, 8);
-  window.localStorage.setItem(RECENT_ACCESS_STORAGE_KEY, JSON.stringify(next));
-}
-
-function pushRecentReading(entry) {
-  pushStoredTrail(RECENT_READING_STORAGE_KEY, entry, 10);
-}
-
-function pushRecentEdit(entry) {
-  pushStoredTrail(RECENT_EDITING_STORAGE_KEY, entry, 10);
+    ensureMeta("property", "og:type").setAttribute("content", type);
+    ensureMeta("name", "twitter:title").setAttribute("content", title);
+    ensureMeta("name", "twitter:description").setAttribute("content", description);
+    setOrRemove("property", "article:published_time", type === "article" ? publishedTime : "");
+    setOrRemove("property", "article:modified_time", type === "article" ? modifiedTime : "");
+  }, [description, image, modifiedTime, publishedTime, title, type]);
 }
 
 function normalizeHomeLayout(value) {
@@ -3547,20 +2630,6 @@ function HomeCardBoard({ items, onSaveCardOverride, canEditContent }) {
   );
 }
 
-// 读取单篇文章的阅读室状态，供文章页和开发者编辑之间同步批注。
-function getReadingRoomSnapshot(slug) {
-  if (!slug) {
-    return { highlights: {}, favorites: {}, notes: {}, scrollY: 0 };
-  }
-  const stored = readStoredJson(window.localStorage.getItem(`template-reading-room:${slug}`), {});
-  return {
-    highlights: stored.highlights || {},
-    favorites: stored.favorites || {},
-    notes: stored.notes || {},
-    scrollY: Number(stored.scrollY) || 0,
-  };
-}
-
 function resolvePinnedSpaces(spaces, articles, projects, language) {
   return spaces
     .map((space) => {
@@ -4263,8 +3332,11 @@ function HomePage({ language, text, copy, articles, meta, projects, guestbookEnt
 }
 
 function ArticlesPage({ language, text, copy, articles, meta, isXFlow }) {
-  const [query, setQuery] = useState("");
-  const [activeTag, setActiveTag] = useState("all");
+  // Search and tag state live in the URL (#/articles?q=...&tag=...) so filtered
+  // views can be bookmarked, shared, and restored with the back button.
+  const [searchParams, setSearchParams] = useSearchParams();
+  const query = searchParams.get("q") ?? "";
+  const activeTag = searchParams.get("tag") || "all";
   const siteAvatar = getSiteAvatar(meta, templateAvatar);
   useSeo({
     title: `${text.articleIndexTitle} / ${getBrowserTitle(meta, language)}`,
@@ -4272,37 +3344,34 @@ function ArticlesPage({ language, text, copy, articles, meta, isXFlow }) {
     image: siteAvatar,
   });
 
-  const tags = useMemo(
-    () => ["all", ...Array.from(new Set(articles.map((article) => article.tag)))],
-    [articles]
+  const updateParam = (key, value) => {
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        if (value && value !== "all") {
+          next.set(key, value);
+        } else {
+          next.delete(key);
+        }
+        return next;
+      },
+      { replace: true }
+    );
+  };
+  const setQuery = (value) => updateParam("q", value);
+  const setActiveTag = (value) => updateParam("tag", value);
+
+  const searchIndex = useMemo(() => buildSearchIndex(articles), [articles]);
+  const tagCounts = useMemo(() => collectTags(searchIndex), [searchIndex]);
+  const tags = useMemo(() => ["all", ...tagCounts.map((item) => item.tag)], [tagCounts]);
+  const tagCountMap = useMemo(() => new Map(tagCounts.map((item) => [item.tag, item.count])), [tagCounts]);
+
+  const filteredArticles = useMemo(
+    () => filterArticles(searchIndex, { query, tag: activeTag }),
+    [activeTag, query, searchIndex]
   );
-
-  const filteredArticles = useMemo(() => {
-    const lowered = query.trim().toLowerCase();
-    return articles.filter((article) => {
-      const matchTag = activeTag === "all" || article.tag === activeTag;
-      if (!matchTag) {
-        return false;
-      }
-
-      if (!lowered) {
-        return true;
-      }
-
-      const haystack = [
-        article.tag,
-        article.title[language],
-        article.title.en,
-        article.excerpt[language],
-        article.excerpt.en,
-      ]
-        .filter(Boolean)
-        .join(" ")
-        .toLowerCase();
-
-      return haystack.includes(lowered);
-    });
-  }, [activeTag, articles, language, query]);
+  const isFiltering = Boolean(query.trim()) || activeTag !== "all";
+  const resultSummary = `${filteredArticles.length} / ${articles.length}`;
 
   if (isXFlow) {
     const leadArticle = filteredArticles[0];
@@ -4320,10 +3389,16 @@ function ArticlesPage({ language, text, copy, articles, meta, isXFlow }) {
             <label className="studio-field">
               <span>{copy.articleSearch}</span>
               <input
-                type="text"
+                type="search"
                 value={query}
                 onChange={(event) => setQuery(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === "Escape") {
+                    setQuery("");
+                  }
+                }}
                 placeholder={copy.articleSearchPlaceholder}
+                aria-describedby="article-search-summary"
               />
             </label>
             <div className="tag-row">
@@ -4332,12 +3407,21 @@ function ArticlesPage({ language, text, copy, articles, meta, isXFlow }) {
                   key={tag}
                   type="button"
                   className={`tag-chip tag-chip--button ${activeTag === tag ? "active" : ""}`}
+                  aria-pressed={activeTag === tag}
                   onClick={() => setActiveTag(tag)}
                 >
-                  {tag === "all" ? copy.allTags : tag}
+                  {tag === "all" ? copy.allTags : `${tag} · ${tagCountMap.get(tag)}`}
                 </button>
               ))}
             </div>
+            <p id="article-search-summary" className="article-tools__summary" aria-live="polite">
+              {resultSummary}
+              {isFiltering ? (
+                <button type="button" className="tag-chip tag-chip--button" onClick={() => setSearchParams({}, { replace: true })} aria-label="Clear search and tag filter">
+                  ×
+                </button>
+              ) : null}
+            </p>
           </section>
         </section>
 
@@ -4386,10 +3470,16 @@ function ArticlesPage({ language, text, copy, articles, meta, isXFlow }) {
         <label className="studio-field">
           <span>{copy.articleSearch}</span>
           <input
-            type="text"
+            type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
+            onKeyDown={(event) => {
+              if (event.key === "Escape") {
+                setQuery("");
+              }
+            }}
             placeholder={copy.articleSearchPlaceholder}
+            aria-describedby="article-search-summary"
           />
         </label>
         <div className="tag-row">
@@ -4398,12 +3488,21 @@ function ArticlesPage({ language, text, copy, articles, meta, isXFlow }) {
               key={tag}
               type="button"
               className={`tag-chip tag-chip--button ${activeTag === tag ? "active" : ""}`}
+              aria-pressed={activeTag === tag}
               onClick={() => setActiveTag(tag)}
             >
-              {tag === "all" ? copy.allTags : tag}
+              {tag === "all" ? copy.allTags : `${tag} · ${tagCountMap.get(tag)}`}
             </button>
           ))}
         </div>
+        <p id="article-search-summary" className="article-tools__summary" aria-live="polite">
+          {resultSummary}
+          {isFiltering ? (
+            <button type="button" className="tag-chip tag-chip--button" onClick={() => setSearchParams({}, { replace: true })} aria-label="Clear search and tag filter">
+              ×
+            </button>
+          ) : null}
+        </p>
       </section>
 
       <section className="section article-list">
@@ -4435,14 +3534,43 @@ function ArticlesPage({ language, text, copy, articles, meta, isXFlow }) {
   );
 }
 
-function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
+// Each part of a compound tag ("ESSAY / DIRECTION") links to the filtered article index.
+function ArticleTagLinks({ tag }) {
+  const parts = splitTags(tag);
+  if (!parts.length) {
+    return null;
+  }
+  return parts.map((part, index) => (
+    <span key={part}>
+      {index > 0 ? " / " : null}
+      <Link className="article-tag-link" to={`/articles?tag=${encodeURIComponent(part)}`}>
+        {part}
+      </Link>
+    </span>
+  ));
+}
+
+function ArticleDetailPage(props) {
   const { slug } = useParams();
-  // 每篇文章都有独立阅读室状态，记录高亮、收藏、批注和阅读位置。
-  const articleStorageKey = `template-reading-room:${slug || "article"}`;
+  const { articles } = props;
   const article = useMemo(
     () => articles.find((item) => item.slug === slug) ?? articles[0],
     [articles, slug]
   );
+
+  // Resolve the article before rendering the reading room so its hooks always
+  // run in the same order (previously an early return sat between hooks).
+  if (!article) {
+    return null;
+  }
+
+  return <ArticleDetailContent {...props} article={article} />;
+}
+
+function ArticleDetailContent({ language, copy, articles, meta, isXFlow, article }) {
+  const { slug } = useParams();
+  // 每篇文章都有独立阅读室状态，记录高亮、收藏、批注和阅读位置。
+  const articleStorageKey = `template-reading-room:${slug || "article"}`;
   const progress = useReadingProgress();
   const [copied, setCopied] = useState(false);
   const [readingRoom, setReadingRoom] = useState(false);
@@ -4469,11 +3597,10 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
     title: seoTitle,
     description: seoDescription,
     image: seoImage,
+    type: "article",
+    publishedTime: article ? parseArticleDate(article.date).toISOString() : "",
+    modifiedTime: article?.updatedAt || "",
   });
-
-  if (!article) {
-    return null;
-  }
 
   const localizedContent = article.content[language] || "";
   const { rendered, remainingAttachments } = renderArticleContent(localizedContent, article.attachments, copy);
@@ -4768,7 +3895,7 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
       <main className={`page xflow-article-detail-page ${readingRoom ? "reading-room reading-room--on" : ""} ${focusMode ? "reading-room--focus" : ""} ${nightMode ? "reading-room--night" : ""}`}>
         <section className="xflow-article-hero glass-card">
           <div className="xflow-article-hero__meta">
-            <p className="micro-label">{article.tag}</p>
+            <p className="micro-label"><ArticleTagLinks tag={article.tag} /></p>
             <h1>{article.title[language]}</h1>
             <p className="body-copy">{article.excerpt[language]}</p>
             <ArticleMeta article={article} copy={copy} language={language} />
@@ -4938,7 +4065,7 @@ function ArticleDetailPage({ language, copy, articles, meta, isXFlow }) {
         </div>
       </section>
       <section className="page-banner glass-card">
-        <p className="micro-label">{article.tag}</p>
+        <p className="micro-label"><ArticleTagLinks tag={article.tag} /></p>
         {article.coverImage ? <img className="page-banner__cover" src={article.coverImage} alt={article.title[language]} /> : null}
         <h1>{article.title[language]}</h1>
         <p className="body-copy">{article.excerpt[language]}</p>
@@ -5134,1633 +4261,6 @@ function ProjectDetailPage({ language, text, projects, meta, isXFlow }) {
   );
 }
 
-function StudioPage({
-  language,
-  copy,
-  articles,
-  saveArticle,
-  projects,
-  saveProject,
-  deleteProject,
-  isAuthenticated,
-  login,
-  logout,
-  sessionExpired,
-  lockUntil,
-  studioAvailable,
-  authReady,
-  siteContent,
-  saveSiteContent,
-  setPreviewBackground,
-}) {
-  const location = useLocation();
-  const [selectedSlug, setSelectedSlug] = useState(articles[0]?.slug ?? "__new__");
-  const [selectedProjectSlug, setSelectedProjectSlug] = useState(projects[0]?.slug ?? "__new_project__");
-  const [editorLanguage, setEditorLanguage] = useState(language);
-  const [draft, setDraft] = useState(() => cloneArticle(articles[0] ?? createBlankArticle()));
-  const [projectDraft, setProjectDraft] = useState(() => cloneProject(projects[0] ?? createBlankProject()));
-  const [siteDraft, setSiteDraft] = useState(() => normalizeSiteContent(siteContent));
-  const [loginForm, setLoginForm] = useState({ username: "", password: "" });
-  const [loginError, setLoginError] = useState("");
-  const [flash, setFlash] = useState("");
-  const [siteFlash, setSiteFlash] = useState("");
-  const [authFocusField, setAuthFocusField] = useState("idle");
-  const [authPointer, setAuthPointer] = useState({ x: 0, y: 0 });
-  const experience = getExperienceCopy(language);
-  const readingRoomSnapshot = useMemo(() => getReadingRoomSnapshot(selectedSlug === "__new__" ? draft.slug : selectedSlug), [draft.slug, selectedSlug]);
-  const readingRoomBlocks = useMemo(() => {
-    const localized = draft.content[editorLanguage] || "";
-    const rendered = renderArticleContent(localized, draft.attachments, copy).rendered;
-    return rendered.filter((block) => block.type === "text" && (
-      readingRoomSnapshot.highlights?.[block.id] ||
-      readingRoomSnapshot.favorites?.[block.id] ||
-      readingRoomSnapshot.notes?.[block.id]
-    ));
-  }, [copy, draft.attachments, draft.content, editorLanguage, readingRoomSnapshot]);
-
-  useEffect(() => {
-    setEditorLanguage(language);
-  }, [language]);
-
-  useEffect(() => {
-    setSiteDraft(normalizeSiteContent(siteContent));
-  }, [siteContent]);
-
-  useStudioBackgroundPreview(siteDraft, setPreviewBackground);
-
-  useEffect(() => {
-    if (selectedSlug === "__new__") {
-      setDraft(createBlankArticle());
-      return;
-    }
-
-    const found = articles.find((item) => item.slug === selectedSlug);
-    if (found) {
-      setDraft(cloneArticle(found));
-    }
-  }, [articles, selectedSlug]);
-
-  useEffect(() => {
-    if (selectedProjectSlug === "__new_project__") {
-      setProjectDraft(createBlankProject());
-      return;
-    }
-
-    const found = projects.find((item) => item.slug === selectedProjectSlug);
-    if (found) {
-      setProjectDraft(cloneProject(found));
-    }
-  }, [projects, selectedProjectSlug]);
-
-  useEffect(() => {
-    // 命令面板可以通过 query 参数直接唤起“新建 / 编辑”状态。
-    const params = new URLSearchParams(location.search);
-    const createTarget = params.get("create");
-    const editArticle = params.get("editArticle");
-    const editProject = params.get("editProject");
-    if (!createTarget) {
-      if (editArticle) {
-        setSelectedSlug(editArticle);
-      }
-      if (editProject) {
-        setSelectedProjectSlug(editProject);
-      }
-      return;
-    }
-    if (createTarget === "article") {
-      setSelectedSlug("__new__");
-    }
-    if (createTarget === "project") {
-      setSelectedProjectSlug("__new_project__");
-    }
-  }, [location.search]);
-
-  const handleLogin = async (event) => {
-    event.preventDefault();
-    const result = await login(loginForm.username, loginForm.password);
-    if (result.ok) {
-      setLoginError("");
-      setLoginForm({ username: "", password: "" });
-      return;
-    }
-
-    setLoginError(
-      result.reason === "locked"
-        ? copy.loginLocked
-        : result.reason === "unavailable"
-          ? "Studio requires the Node server API."
-          : copy.loginError
-    );
-  };
-
-  const handleLocalizedField = (section, value) => {
-    setDraft((current) => ({
-      ...current,
-      [section]: {
-        ...current[section],
-        [editorLanguage]: value,
-      },
-    }));
-  };
-
-  const handleUpload = async (event) => {
-    const files = Array.from(event.target.files ?? []);
-    if (!files.length) {
-      return;
-    }
-
-    const nextAttachments = await Promise.all(files.map(fileToAttachment));
-    setDraft((current) => ({
-      ...current,
-      attachments: [...current.attachments, ...nextAttachments],
-    }));
-    event.target.value = "";
-  };
-
-  const handleCoverUpload = async (event) => {
-    const [file] = Array.from(event.target.files ?? []);
-    if (!file) {
-      return;
-    }
-    const [cover] = await Promise.all([fileToAttachment(file)]);
-    setDraft((current) => ({
-      ...current,
-      coverImage: cover.dataUrl,
-    }));
-    event.target.value = "";
-  };
-
-  const handleInsertAttachment = (attachmentId) => {
-    setDraft((current) => ({
-      ...current,
-      content: {
-        ...current.content,
-        [editorLanguage]: insertAttachmentIntoContent(current.content[editorLanguage] || "", attachmentId),
-      },
-    }));
-  };
-
-  const handleImportReadingRoomNotes = () => {
-    if (!readingRoomBlocks.length) {
-      return;
-    }
-
-    const noteDraft = readingRoomBlocks
-      .map((block, index) => {
-        const flags = [
-          readingRoomSnapshot.highlights?.[block.id] ? experience.highlightedParagraphs : "",
-          readingRoomSnapshot.favorites?.[block.id] ? experience.favoriteParagraphs : "",
-        ]
-          .filter(Boolean)
-          .join(" / ");
-        const noteText = readingRoomSnapshot.notes?.[block.id] || "";
-        return [
-          `## ${index + 1}. ${flags || experience.readingRoom}`,
-          block.value,
-          noteText ? `- ${noteText}` : "",
-        ]
-          .filter(Boolean)
-          .join("\n");
-      })
-      .join("\n\n");
-
-    setDraft((current) => ({
-      ...current,
-      content: {
-        ...current.content,
-        [editorLanguage]: [current.content[editorLanguage] || "", noteDraft].filter(Boolean).join("\n\n"),
-      },
-    }));
-    setFlash(experience.importNotesDraft);
-    window.setTimeout(() => setFlash(""), 1200);
-  };
-
-  const handleSave = async () => {
-    const preferredTitle =
-      draft.title.en || draft.title.zh || draft.title.ja || draft.title.ko || copy.newDraftTitle;
-    let nextSlug = slugify(draft.slug || preferredTitle);
-    if (!nextSlug) {
-      nextSlug = `article-${Date.now()}`;
-    }
-
-    if (selectedSlug === "__new__" || nextSlug !== selectedSlug) {
-      let deduped = nextSlug;
-      let suffix = 1;
-      while (articles.some((item) => item.slug === deduped && item.slug !== selectedSlug)) {
-        suffix += 1;
-        deduped = `${nextSlug}-${suffix}`;
-      }
-      nextSlug = deduped;
-    }
-
-    const nextDraft = {
-      ...draft,
-      slug: nextSlug,
-      title: ensureLocalizedMap(draft.title, preferredTitle),
-      excerpt: ensureLocalizedMap(
-        draft.excerpt,
-        (draft.content.en || draft.content.zh || draft.content.ja || draft.content.ko || "").slice(0, 140)
-      ),
-      content: ensureLocalizedMap(draft.content, ""),
-    };
-
-    const result = await saveArticle(nextDraft, selectedSlug === "__new__" ? null : selectedSlug);
-    if (!result.ok) {
-      setFlash(result.reason === "unauthorized" ? copy.sessionExpired : "Studio save is unavailable without the backend server.");
-      window.setTimeout(() => setFlash(""), 1800);
-      return;
-    }
-    pushRecentEdit({
-      id: `article-${nextSlug}`,
-      path: `/studio?editArticle=${nextSlug}`,
-      label: nextDraft.title[editorLanguage] || nextDraft.title.en || nextSlug,
-      timestamp: Date.now(),
-    });
-    setSelectedSlug(nextSlug);
-    setFlash(copy.articleSaved);
-    window.setTimeout(() => setFlash(""), 1600);
-  };
-
-  const handleSiteTextChange = (key, value) => {
-    setSiteDraft((current) => ({
-      ...current,
-      text: {
-        ...current.text,
-        [editorLanguage]: {
-          ...current.text[editorLanguage],
-          [key]: value,
-        },
-      },
-    }));
-  };
-
-  const handleSiteLocalizedMeta = (key, value) => {
-    setSiteDraft((current) => ({
-      ...current,
-      meta: {
-        ...current.meta,
-        [key]: {
-          ...current.meta[key],
-          [editorLanguage]: value,
-        },
-      },
-    }));
-  };
-
-  const handleSiteMetaField = (key, value) => {
-    setSiteDraft((current) => ({
-      ...current,
-      meta: {
-        ...current.meta,
-        [key]: value,
-      },
-    }));
-  };
-
-  const handleAvatarUpload = async (event) => {
-    const [file] = Array.from(event.target.files ?? []);
-    if (!file) {
-      return;
-    }
-
-    const [avatar] = await Promise.all([fileToAttachment(file)]);
-    handleSiteMetaField("avatarImage", avatar.dataUrl);
-    event.target.value = "";
-  };
-
-  const handleRemoveAvatar = () => {
-    handleSiteMetaField("avatarImage", "");
-  };
-
-  const handleBackgroundUpload = async (event) => {
-    const [file] = Array.from(event.target.files ?? []);
-    if (!file) {
-      return;
-    }
-    const [background] = await Promise.all([fileToAttachment(file)]);
-    setSiteDraft((current) => ({
-      ...current,
-      meta: {
-        ...current.meta,
-        backgroundPreset: "none",
-        backgroundImage: background.dataUrl,
-      },
-    }));
-    event.target.value = "";
-  };
-
-  const handleBackgroundPreset = (presetCode) => {
-    setSiteDraft((current) => ({
-      ...current,
-      meta: {
-        ...current.meta,
-        backgroundImage: "",
-        backgroundPreset: presetCode,
-      },
-    }));
-  };
-
-  const handleClearBackground = () => {
-    setSiteDraft((current) => ({
-      ...current,
-      meta: {
-        ...current.meta,
-        backgroundImage: "",
-        backgroundPreset: "none",
-      },
-    }));
-  };
-
-  const handleSocialLinkChange = (index, key, value) => {
-    setSiteDraft((current) => ({
-      ...current,
-      meta: {
-        ...current.meta,
-        socialLinks: current.meta.socialLinks.map((item, itemIndex) =>
-          itemIndex === index ? { ...item, [key]: value } : item
-        ),
-      },
-    }));
-  };
-
-  const handleSocialIconUpload = async (index, event) => {
-    const [file] = Array.from(event.target.files ?? []);
-    if (!file) {
-      return;
-    }
-    const [icon] = await Promise.all([fileToAttachment(file)]);
-    handleSocialLinkChange(index, "iconDataUrl", icon.dataUrl);
-    event.target.value = "";
-  };
-
-  const handleAddSocialLink = () => {
-    setSiteDraft((current) => ({
-      ...current,
-      meta: {
-        ...current.meta,
-        socialLinks: [...current.meta.socialLinks, createBlankSocialLink()],
-      },
-    }));
-  };
-
-  const handleRemoveSocialLink = (index) => {
-    setSiteDraft((current) => ({
-      ...current,
-      meta: {
-        ...current.meta,
-        socialLinks: current.meta.socialLinks.filter((_, itemIndex) => itemIndex !== index),
-      },
-    }));
-  };
-
-  const handleCustomCardLocalizedField = (index, key, value) => {
-    setSiteDraft((current) => ({
-      ...current,
-      meta: {
-        ...current.meta,
-        customCards: current.meta.customCards.map((item, itemIndex) =>
-          itemIndex === index
-            ? {
-                ...item,
-                [key]: {
-                  ...item[key],
-                  [editorLanguage]: value,
-                },
-              }
-            : item
-        ),
-      },
-    }));
-  };
-
-  const handleCustomCardField = (index, key, value) => {
-    setSiteDraft((current) => ({
-      ...current,
-      meta: {
-        ...current.meta,
-        customCards: current.meta.customCards.map((item, itemIndex) =>
-          itemIndex === index ? { ...item, [key]: value } : item
-        ),
-      },
-    }));
-  };
-
-  const handleAddCustomCard = () => {
-    setSiteDraft((current) => ({
-      ...current,
-      meta: {
-        ...current.meta,
-        customCards: [...current.meta.customCards, createBlankCustomCard()],
-      },
-    }));
-  };
-
-  const handleRemoveCustomCard = (index) => {
-    setSiteDraft((current) => ({
-      ...current,
-      meta: {
-        ...current.meta,
-        customCards: current.meta.customCards.filter((_, itemIndex) => itemIndex !== index),
-      },
-    }));
-  };
-
-  const handlePinnedSpaceField = (index, key, value) => {
-    setSiteDraft((current) => ({
-      ...current,
-      meta: {
-        ...current.meta,
-        pinnedSpaces: current.meta.pinnedSpaces.map((item, itemIndex) =>
-          itemIndex === index ? { ...item, [key]: value } : item
-        ),
-      },
-    }));
-  };
-
-  const handleRemoveHomeCardOverride = (cardId) => {
-    setSiteDraft((current) => {
-      const nextOverrides = { ...(current.meta.homeCardOverrides || {}) };
-      delete nextOverrides[cardId];
-      return {
-        ...current,
-        meta: {
-          ...current.meta,
-          homeCardOverrides: nextOverrides,
-        },
-      };
-    });
-  };
-
-  const handlePinnedSpaceLocalizedField = (index, key, value) => {
-    setSiteDraft((current) => ({
-      ...current,
-      meta: {
-        ...current.meta,
-        pinnedSpaces: current.meta.pinnedSpaces.map((item, itemIndex) =>
-          itemIndex === index
-            ? {
-                ...item,
-                [key]: {
-                  ...item[key],
-                  [editorLanguage]: value,
-                },
-              }
-            : item
-        ),
-      },
-    }));
-  };
-
-  const handleAddPinnedSpace = () => {
-    setSiteDraft((current) => ({
-      ...current,
-      meta: {
-        ...current.meta,
-        pinnedSpaces: [...current.meta.pinnedSpaces, createBlankPinnedSpace()],
-      },
-    }));
-  };
-
-  const handleRemovePinnedSpace = (index) => {
-    setSiteDraft((current) => ({
-      ...current,
-      meta: {
-        ...current.meta,
-        pinnedSpaces: current.meta.pinnedSpaces.filter((_, itemIndex) => itemIndex !== index),
-      },
-    }));
-  };
-
-  const handleSaveSiteContent = async () => {
-    const result = await saveSiteContent(siteDraft);
-    if (!result.ok) {
-      setSiteFlash(result.reason === "unauthorized" ? copy.sessionExpired : "Studio save is unavailable without the backend server.");
-      window.setTimeout(() => setSiteFlash(""), 1800);
-      return;
-    }
-    if (result.siteContent) {
-      setSiteDraft(normalizeSiteContent(result.siteContent));
-    }
-    setSiteFlash(copy.siteContentSaved);
-    window.setTimeout(() => setSiteFlash(""), 1600);
-  };
-
-  const handleProjectLocalizedField = (section, value) => {
-    setProjectDraft((current) => ({
-      ...current,
-      [section]: {
-        ...current[section],
-        [editorLanguage]: value,
-      },
-    }));
-  };
-
-  const handleSaveProject = async () => {
-    const baseSlug = slugify(projectDraft.slug || projectDraft.title || `project-${Date.now()}`);
-    let nextSlug = baseSlug || `project-${Date.now()}`;
-
-    if (selectedProjectSlug === "__new_project__" || nextSlug !== selectedProjectSlug) {
-      let deduped = nextSlug;
-      let suffix = 1;
-      while (projects.some((item) => item.slug === deduped && item.slug !== selectedProjectSlug)) {
-        suffix += 1;
-        deduped = `${nextSlug}-${suffix}`;
-      }
-      nextSlug = deduped;
-    }
-
-    const nextProject = {
-      ...projectDraft,
-      slug: nextSlug,
-      category: ensureLocalizedMap(projectDraft.category, ""),
-      summary: ensureLocalizedMap(projectDraft.summary, ""),
-      challenge: ensureLocalizedMap(projectDraft.challenge, ""),
-      solution: ensureLocalizedMap(projectDraft.solution, ""),
-      outcome: ensureLocalizedMap(projectDraft.outcome, ""),
-      metrics: projectDraft.metrics.filter(Boolean),
-      updatedAt: new Date().toISOString(),
-    };
-
-    const result = await saveProject(nextProject, selectedProjectSlug === "__new_project__" ? null : selectedProjectSlug);
-    if (!result.ok) {
-      setFlash(result.reason === "unauthorized" ? copy.sessionExpired : "Studio save is unavailable without the backend server.");
-      window.setTimeout(() => setFlash(""), 1800);
-      return;
-    }
-    pushRecentEdit({
-      id: `project-${nextSlug}`,
-      path: `/studio?editProject=${nextSlug}`,
-      label: nextProject.title || nextSlug,
-      timestamp: Date.now(),
-    });
-    setSelectedProjectSlug(nextSlug);
-    setFlash(copy.projectSaved);
-    window.setTimeout(() => setFlash(""), 1600);
-  };
-
-  const handleDeleteProject = async () => {
-    if (selectedProjectSlug === "__new_project__" || !projectDraft.slug) {
-      return;
-    }
-    const result = await deleteProject(selectedProjectSlug);
-    if (!result.ok) {
-      setFlash(result.reason === "unauthorized" ? copy.sessionExpired : "Studio save is unavailable without the backend server.");
-      window.setTimeout(() => setFlash(""), 1800);
-      return;
-    }
-    setSelectedProjectSlug("__new_project__");
-    setProjectDraft(createBlankProject());
-  };
-
-  const studioProgress = useReadingProgress();
-  const authSignals = useMemo(
-    () =>
-      language === "zh"
-        ? ["Server Session", "Content Control", "Private Access"]
-        : language === "ja"
-          ? ["Server Session", "Content Control", "Private Access"]
-          : language === "ko"
-            ? ["Server Session", "Content Control", "Private Access"]
-            : ["Server Session", "Content Control", "Private Access"],
-    [language]
-  );
-  const studioSections = useMemo(
-    () => [
-      { id: "studio-article", label: copy.articleListTitle },
-      { id: "studio-site-meta", label: copy.contentEditorTitle },
-      { id: "studio-site-copy", label: "Site Copy" },
-      { id: "studio-social", label: copy.socialEditorTitle },
-      { id: "studio-pinned", label: getExperienceCopy(language).pinnedEditorTitle },
-      { id: "studio-custom-cards", label: copy.customCardsTitle },
-      { id: "studio-projects", label: copy.projectsEditorTitle },
-    ],
-    [copy, language]
-  );
-  const scrollToStudioSection = (sectionId) => {
-    const node = document.getElementById(sectionId);
-    if (!node) {
-      return;
-    }
-
-    const headerOffset = 108;
-    const top = node.getBoundingClientRect().top + window.scrollY - headerOffset;
-    window.scrollTo({ top, behavior: "smooth" });
-  };
-
-  const handleAuthHeroPointerMove = (event) => {
-    const rect = event.currentTarget.getBoundingClientRect();
-    const x = ((event.clientX - rect.left) / rect.width - 0.5) * 2;
-    const y = ((event.clientY - rect.top) / rect.height - 0.5) * 2;
-    setAuthPointer({
-      x: Math.max(-1, Math.min(1, x)),
-      y: Math.max(-1, Math.min(1, y)),
-    });
-  };
-
-  const resetAuthHeroPointer = () => {
-    setAuthPointer({ x: 0, y: 0 });
-  };
-
-  if (!studioAvailable) {
-    return (
-      <main className="page">
-        <section className="page-banner glass-card auth-card">
-          <p className="micro-label">STUDIO</p>
-          <h1>{copy.loginTitle}</h1>
-          <p className="body-copy">This route is read-only without the Node backend. Run <code>npm run dev:full</code> or <code>npm run start</code>.</p>
-        </section>
-      </main>
-    );
-  }
-
-  if (!authReady) {
-    return (
-      <main className="page">
-        <section className="page-banner glass-card auth-card">
-          <p className="micro-label">STUDIO</p>
-          <h1>{copy.loginTitle}</h1>
-          <p className="body-copy">Loading secure studio session...</p>
-        </section>
-      </main>
-    );
-  }
-
-  if (!isAuthenticated) {
-    return (
-      <main className="page">
-        <section className="auth-shell glass-card">
-          <div
-            className={`auth-hero auth-hero--${authFocusField}`}
-            onPointerMove={handleAuthHeroPointerMove}
-            onPointerLeave={resetAuthHeroPointer}
-            style={{
-              "--auth-look-x": authPointer.x.toFixed(3),
-              "--auth-look-y": authPointer.y.toFixed(3),
-            }}
-          >
-            <p className="micro-label">DEVELOPER ACCESS</p>
-            <div className="auth-mascot" aria-hidden="true">
-              <div className="auth-mascot__halo auth-mascot__halo--back" />
-              <div className="auth-mascot__halo auth-mascot__halo--front" />
-              <div className="auth-mascot__spark auth-mascot__spark--a" />
-              <div className="auth-mascot__spark auth-mascot__spark--b" />
-              <div className="auth-mascot__spark auth-mascot__spark--c" />
-
-              <div className="auth-mascot__buddy auth-mascot__buddy--a">
-                <span className="auth-mascot__buddy-eye" />
-                <span className="auth-mascot__buddy-eye" />
-              </div>
-              <div className="auth-mascot__buddy auth-mascot__buddy--b">
-                <span className="auth-mascot__buddy-eye" />
-                <span className="auth-mascot__buddy-eye" />
-              </div>
-
-              <div className="auth-mascot__figure auth-mascot__figure--main">
-                <div className="auth-mascot__orb" />
-                <div className="auth-mascot__shell">
-                  <div className="auth-mascot__visor">
-                    <span className="auth-mascot__eye" />
-                    <span className="auth-mascot__eye" />
-                  </div>
-                  <div className="auth-mascot__smile" />
-                  <div className="auth-mascot__arm auth-mascot__arm--left" />
-                  <div className="auth-mascot__arm auth-mascot__arm--right" />
-                  <div className="auth-mascot__foot auth-mascot__foot--left" />
-                  <div className="auth-mascot__foot auth-mascot__foot--right" />
-                </div>
-              </div>
-            </div>
-            <h1>{copy.loginTitle}</h1>
-            <p className="body-copy">{copy.loginBody}</p>
-            <div className="auth-hero__chips">
-              {authSignals.map((item) => (
-                <span key={item} className="auth-chip">
-                  {item}
-                </span>
-              ))}
-            </div>
-            <div className="auth-hero__panel">
-              <div>
-                <span className="micro-label">Identity</span>
-                <strong>{siteDraft.meta.name}</strong>
-              </div>
-              <div>
-                <span className="micro-label">Secure Route</span>
-                <strong>/studio</strong>
-              </div>
-              <div>
-                <span className="micro-label">Scope</span>
-                <strong>{copy.contentEditorTitle}</strong>
-              </div>
-            </div>
-          </div>
-
-          <div className="auth-form-card">
-            <div className="auth-form-card__head">
-              <p className="micro-label">SIGN IN</p>
-              <h2>{copy.login}</h2>
-            </div>
-            <form className="studio-login" onSubmit={handleLogin}>
-              <label className="studio-field">
-                <span>{copy.username}</span>
-                <input
-                  type="text"
-                  value={loginForm.username}
-                  onChange={(event) => setLoginForm((current) => ({ ...current, username: event.target.value }))}
-                  onFocus={() => setAuthFocusField("username")}
-                  onBlur={() => setAuthFocusField("idle")}
-                />
-              </label>
-              <label className="studio-field">
-                <span>{copy.password}</span>
-                <input
-                  type="password"
-                  value={loginForm.password}
-                  onChange={(event) => setLoginForm((current) => ({ ...current, password: event.target.value }))}
-                  onFocus={() => setAuthFocusField("password")}
-                  onBlur={() => setAuthFocusField("idle")}
-                />
-              </label>
-              {sessionExpired ? <p className="studio-error">{copy.sessionExpired}</p> : null}
-              {lockUntil > Date.now() ? <p className="studio-error">{copy.loginLocked}</p> : null}
-              {loginError ? <p className="studio-error">{loginError}</p> : null}
-              <button type="submit" className="action-button action-button--primary auth-submit">
-                {copy.login}
-              </button>
-            </form>
-          </div>
-        </section>
-      </main>
-    );
-  }
-
-  return (
-    <main className="page">
-      <section className="page-banner glass-card glass-card--static studio-banner">
-        <div>
-          <p className="micro-label">STUDIO</p>
-          <h1>{copy.studioTitle}</h1>
-          <p className="body-copy">{copy.studioBody}</p>
-          <p className="body-copy studio-note">{copy.studioHint}</p>
-        </div>
-        <button type="button" className="action-button action-button--secondary" onClick={logout}>
-          {copy.logout}
-        </button>
-      </section>
-
-        <section className="studio-workbench">
-          <aside className="studio-sidebar glass-card glass-card--static">
-          <div className="studio-sidebar__head">
-            <div>
-              <p className="micro-label">{copy.manageArticles}</p>
-              <h2>{copy.articleListTitle}</h2>
-            </div>
-            <button type="button" className="action-button action-button--secondary" onClick={() => setSelectedSlug("__new__")}>
-              {copy.createArticle}
-            </button>
-          </div>
-
-          <div className="studio-article-list">
-            {articles.map((article) => (
-              <button
-                key={article.slug}
-                type="button"
-                className={`studio-article-item ${selectedSlug === article.slug ? "active" : ""}`}
-                onClick={() => setSelectedSlug(article.slug)}
-              >
-                <span className="micro-label">{article.tag}</span>
-                <strong>{article.title[language] || article.title.en}</strong>
-                <span>{copy.editedLabel} {formatRelativeTime(article.updatedAt, language)}</span>
-                <span>{article.attachments.length} {copy.attachmentCount}</span>
-              </button>
-            ))}
-          </div>
-        </aside>
-
-        <section className="studio-stack">
-        <section id="studio-article" className="studio-editor glass-card glass-card--static studio-section-card">
-          <div className="studio-editor__head">
-            <div>
-              <p className="micro-label">{selectedSlug === "__new__" ? copy.newDraftTitle : draft.tag}</p>
-              <h2>{selectedSlug === "__new__" ? copy.createArticle : draft.title[language] || draft.title.en || copy.newDraftTitle}</h2>
-            </div>
-            <div className="studio-editor__actions">
-              <Link className="action-button action-button--secondary" to={selectedSlug === "__new__" ? "/articles" : `/articles/${draft.slug || selectedSlug}`}>
-                {copy.preview}
-              </Link>
-              <button type="button" className="action-button action-button--primary" onClick={handleSave}>
-                {copy.saveArticle}
-              </button>
-            </div>
-          </div>
-
-          {flash ? <div className="studio-flash">{flash}</div> : null}
-
-          <div className="studio-form">
-            <div className="studio-form__row">
-              <label className="studio-field">
-                <span>{copy.articleTag}</span>
-                <input type="text" value={draft.tag} onChange={(event) => setDraft((current) => ({ ...current, tag: event.target.value }))} />
-              </label>
-              <label className="studio-field">
-                <span>{copy.articleReadTime}</span>
-                <input
-                  type="text"
-                  value={draft.readTime}
-                  onChange={(event) => setDraft((current) => ({ ...current, readTime: event.target.value }))}
-                />
-              </label>
-              <label className="studio-field">
-                <span>{copy.articleSlug}</span>
-                <input type="text" value={draft.slug} onChange={(event) => setDraft((current) => ({ ...current, slug: event.target.value }))} />
-              </label>
-            </div>
-
-            <div className="studio-form__row">
-              <label className="studio-field">
-                <span>{copy.coverImage}</span>
-                <input type="file" accept="image/*" onChange={handleCoverUpload} />
-              </label>
-              <label className="studio-field studio-checkbox">
-                <span>{copy.pinnedArticle}</span>
-                <input
-                  type="checkbox"
-                  checked={draft.pinned}
-                  onChange={(event) => setDraft((current) => ({ ...current, pinned: event.target.checked }))}
-                />
-              </label>
-            </div>
-
-            {draft.coverImage ? <img className="studio-cover-preview" src={draft.coverImage} alt={copy.coverImage} /> : null}
-
-            <div className="studio-language-bar">
-              <span className="micro-label">{copy.articleLanguage}</span>
-              <div className="studio-language-tabs">
-                {languages.map((item) => (
-                  <button
-                    key={item.code}
-                    type="button"
-                    className={`studio-tab ${editorLanguage === item.code ? "active" : ""}`}
-                    onClick={() => setEditorLanguage(item.code)}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <label className="studio-field">
-              <span>{copy.articleTitle}</span>
-              <input
-                type="text"
-                value={draft.title[editorLanguage] || ""}
-                onChange={(event) => handleLocalizedField("title", event.target.value)}
-              />
-            </label>
-
-            <label className="studio-field">
-              <span>{copy.articleExcerpt}</span>
-              <textarea
-                rows="4"
-                value={draft.excerpt[editorLanguage] || ""}
-                onChange={(event) => handleLocalizedField("excerpt", event.target.value)}
-              />
-            </label>
-
-            <label className="studio-field">
-              <span>{copy.articleContent}</span>
-              <textarea
-                rows="10"
-                value={draft.content[editorLanguage] || ""}
-                onChange={(event) => handleLocalizedField("content", event.target.value)}
-              />
-            </label>
-
-            <label className="studio-field">
-              <span>{getExperienceCopy(language).footnotesEditor}</span>
-              <textarea
-                rows="4"
-                value={(draft.footnotes?.[editorLanguage] || []).join("\n")}
-                onChange={(event) =>
-                  setDraft((current) => ({
-                    ...current,
-                    footnotes: {
-                      ...current.footnotes,
-                      [editorLanguage]: event.target.value.split("\n").map((item) => item.trim()).filter(Boolean),
-                    },
-                  }))
-                }
-              />
-            </label>
-
-            <div className="studio-reading-room">
-              <div className="studio-reading-room__head">
-                <div>
-                  <span className="micro-label">{experience.readingRoom}</span>
-                  <strong>{experience.highlightedParagraphs} / {experience.favoriteParagraphs}</strong>
-                </div>
-                <button
-                  type="button"
-                  className="action-button action-button--secondary"
-                  onClick={handleImportReadingRoomNotes}
-                  disabled={!readingRoomBlocks.length}
-                >
-                  {experience.importNotesDraft}
-                </button>
-              </div>
-              <div className="studio-reading-room__list">
-                {readingRoomBlocks.length ? (
-                  readingRoomBlocks.map((block) => (
-                    <article key={block.id} className="studio-reading-room__item">
-                      <p className="body-copy">{block.value}</p>
-                      {readingRoomSnapshot.notes?.[block.id] ? (
-                        <span>{readingRoomSnapshot.notes[block.id]}</span>
-                      ) : null}
-                    </article>
-                  ))
-                ) : (
-                  <p className="body-copy">{copy.noAttachments}</p>
-                )}
-              </div>
-            </div>
-
-            <label className="studio-field studio-upload">
-              <span>{copy.uploadFiles}</span>
-              <input type="file" multiple onChange={handleUpload} />
-            </label>
-
-            <div className="studio-attachments">
-              <div className="studio-attachments__head">
-                <span className="micro-label">{copy.attachments}</span>
-                <strong>{draft.attachments.length} {copy.attachmentCount}</strong>
-              </div>
-              <div className="attachment-grid compact">
-                {draft.attachments.length ? (
-                  draft.attachments.map((attachment) => (
-                    <AttachmentBlock
-                      key={attachment.id}
-                      attachment={attachment}
-                      copy={copy}
-                      compact
-                      inserted={contentHasAttachment(draft.content[editorLanguage] || "", attachment.id)}
-                      onInsert={handleInsertAttachment}
-                      onRemove={(attachmentId) =>
-                        setDraft((current) => ({
-                          ...current,
-                          attachments: current.attachments.filter((item) => item.id !== attachmentId),
-                        }))
-                      }
-                    />
-                  ))
-                ) : (
-                  <p className="body-copy">{copy.noAttachments}</p>
-                )}
-              </div>
-            </div>
-          </div>
-        </section>
-        <section id="studio-site-meta" className="studio-editor glass-card glass-card--static studio-section-card">
-          <div className="studio-editor__head">
-            <div>
-              <p className="micro-label">SITE</p>
-              <h2>{copy.contentEditorTitle}</h2>
-              <p className="body-copy">{copy.contentEditorBody}</p>
-            </div>
-            <button type="button" className="action-button action-button--primary" onClick={handleSaveSiteContent}>
-              {copy.saveSiteContent}
-            </button>
-          </div>
-
-          {siteFlash ? <div className="studio-flash">{siteFlash}</div> : null}
-
-          <div className="studio-form">
-            <div className="studio-form__row">
-              <label className="studio-field">
-                <span>{copy.brandName}</span>
-                <input
-                  type="text"
-                  value={siteDraft.meta.name}
-                  onChange={(event) => handleSiteMetaField("name", event.target.value)}
-                />
-              </label>
-              <label className="studio-field">
-                <span>{copy.brandEmail}</span>
-                <input
-                  type="text"
-                  value={siteDraft.meta.email}
-                  onChange={(event) => handleSiteMetaField("email", event.target.value)}
-                />
-              </label>
-              <label className="studio-field">
-                <span>{copy.brandLocation}</span>
-                <input
-                  type="text"
-                  value={siteDraft.meta.location}
-                  onChange={(event) => handleSiteMetaField("location", event.target.value)}
-                />
-              </label>
-              <label className="studio-field">
-                <span>{copy.browserTitle}</span>
-                <input
-                  type="text"
-                  value={siteDraft.meta.browserTitle[editorLanguage] || ""}
-                  onChange={(event) => handleSiteLocalizedMeta("browserTitle", event.target.value)}
-                />
-              </label>
-              <label className="studio-field">
-                <span>{copy.statProjects}</span>
-                <input
-                  type="text"
-                  value={siteDraft.meta.stats.projects}
-                  onChange={(event) =>
-                    setSiteDraft((current) => ({
-                      ...current,
-                      meta: { ...current.meta, stats: { ...current.meta.stats, projects: event.target.value } },
-                    }))
-                  }
-                />
-              </label>
-              <label className="studio-field">
-                <span>{copy.statEssays}</span>
-                <input
-                  type="text"
-                  value={siteDraft.meta.stats.essays}
-                  onChange={(event) =>
-                    setSiteDraft((current) => ({
-                      ...current,
-                      meta: { ...current.meta, stats: { ...current.meta.stats, essays: event.target.value } },
-                    }))
-                  }
-                />
-              </label>
-              <label className="studio-field">
-                <span>{copy.statLabs}</span>
-                <input
-                  type="text"
-                  value={siteDraft.meta.stats.labs}
-                  onChange={(event) =>
-                    setSiteDraft((current) => ({
-                      ...current,
-                      meta: { ...current.meta, stats: { ...current.meta.stats, labs: event.target.value } },
-                    }))
-                  }
-                />
-              </label>
-            </div>
-            <div className="studio-inline-actions studio-inline-actions--avatar">
-              <label className="studio-field studio-field--inline">
-                <span>{copy.uploadAvatar || "Upload Avatar"}</span>
-                <input type="file" accept="image/*" onChange={handleAvatarUpload} />
-              </label>
-              {siteDraft.meta.avatarImage ? (
-                <img
-                  className="studio-avatar-preview"
-                  src={siteDraft.meta.avatarImage}
-                  alt={`${siteDraft.meta.name || "Site"} avatar`}
-                />
-              ) : null}
-              <button type="button" className="action-button action-button--secondary" onClick={handleRemoveAvatar}>
-                {copy.removeAvatar || "Reset Avatar"}
-              </button>
-            </div>
-            <div className="studio-block studio-background-block">
-              <div className="studio-background-block__head">
-                <div>
-                  <p className="micro-label">BACKGROUND</p>
-                  <strong>{copy.backgroundTitle}</strong>
-                </div>
-                <button type="button" className="action-button action-button--secondary" onClick={handleClearBackground}>
-                  {copy.clearBackground}
-                </button>
-              </div>
-              <div className="studio-background-presets">
-                {STUDIO_BACKGROUND_PRESETS.map((preset) => (
-                  <button
-                    key={preset.code}
-                    type="button"
-                    className={`studio-preset ${siteDraft.meta.backgroundPreset === preset.code ? "active" : ""}`}
-                    onClick={() => handleBackgroundPreset(preset.code)}
-                  >
-                    <span className={`studio-preset__swatch studio-preset__swatch--${preset.code}`} />
-                    <span className="studio-preset__text">
-                      <strong>{preset.label[language] || preset.label.en}</strong>
-                      <span>{preset.eyebrow[language] || preset.eyebrow.en}</span>
-                    </span>
-                  </button>
-                ))}
-              </div>
-              <label className="studio-field studio-field--inline">
-                <span>{copy.uploadBackground}</span>
-                <input type="file" accept="image/*" onChange={handleBackgroundUpload} />
-              </label>
-              {siteDraft.meta.backgroundImage ? (
-                <img className="studio-background-preview" src={siteDraft.meta.backgroundImage} alt="background preview" />
-              ) : null}
-            </div>
-          </div>
-        </section>
-
-        <section id="studio-site-copy" className="studio-editor glass-card glass-card--static studio-section-card">
-          <div className="studio-editor__head">
-            <div>
-              <p className="micro-label">COPY</p>
-              <h2>Site Copy</h2>
-              <p className="body-copy">{copy.contentEditorBody}</p>
-            </div>
-            <button type="button" className="action-button action-button--primary" onClick={handleSaveSiteContent}>
-              {copy.saveSiteContent}
-            </button>
-          </div>
-
-          <div className="studio-form">
-            <div className="studio-language-bar">
-              <span className="micro-label">{copy.articleLanguage}</span>
-              <div className="studio-language-tabs">
-                {languages.map((item) => (
-                  <button
-                    key={`site-${item.code}`}
-                    type="button"
-                    className={`studio-tab ${editorLanguage === item.code ? "active" : ""}`}
-                    onClick={() => setEditorLanguage(item.code)}
-                  >
-                    {item.label}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <label className="studio-field">
-              <span>{copy.roleLabel}</span>
-              <input
-                type="text"
-                value={siteDraft.meta.role[editorLanguage] || ""}
-                onChange={(event) => handleSiteLocalizedMeta("role", event.target.value)}
-              />
-            </label>
-
-            <label className="studio-field">
-              <span>{copy.introLabel}</span>
-              <textarea
-                rows="4"
-                value={siteDraft.meta.intro[editorLanguage] || ""}
-                onChange={(event) => handleSiteLocalizedMeta("intro", event.target.value)}
-              />
-            </label>
-
-            {EDITABLE_TEXT_KEYS.map((key) => (
-              <label key={key} className="studio-field">
-                <span>{key}</span>
-                {String(siteDraft.text[editorLanguage]?.[key] ?? "").length > 90 ? (
-                  <textarea
-                    rows="4"
-                    value={siteDraft.text[editorLanguage]?.[key] ?? ""}
-                    onChange={(event) => handleSiteTextChange(key, event.target.value)}
-                  />
-                ) : (
-                  <input
-                    type="text"
-                    value={siteDraft.text[editorLanguage]?.[key] ?? ""}
-                    onChange={(event) => handleSiteTextChange(key, event.target.value)}
-                  />
-                )}
-              </label>
-            ))}
-          </div>
-        </section>
-
-        <section id="studio-social" className="studio-editor glass-card glass-card--static studio-section-card">
-          <div className="studio-editor__head">
-            <div>
-              <p className="micro-label">SOCIAL</p>
-              <h2>{copy.socialEditorTitle}</h2>
-              <p className="body-copy">{copy.socialEditorBody}</p>
-            </div>
-            <button type="button" className="action-button action-button--secondary" onClick={handleAddSocialLink}>
-              {copy.addSocialLink}
-            </button>
-          </div>
-
-          <div className="studio-list">
-            {siteDraft.meta.socialLinks.map((item, index) => (
-              <div key={`${item.label}-${index}`} className="studio-block">
-                <div className="studio-form__row">
-                  <label className="studio-field">
-                    <span>{copy.socialLabel}</span>
-                    <input
-                      type="text"
-                      value={item.label}
-                      onChange={(event) => handleSocialLinkChange(index, "label", event.target.value)}
-                    />
-                  </label>
-                  <label className="studio-field">
-                    <span>{copy.socialUrl}</span>
-                    <input
-                      type="text"
-                      value={item.url}
-                      onChange={(event) => handleSocialLinkChange(index, "url", event.target.value)}
-                    />
-                  </label>
-                  <label className="studio-field">
-                    <span>{copy.socialIcon}</span>
-                    <input
-                      type="text"
-                      value={item.icon}
-                      onChange={(event) => handleSocialLinkChange(index, "icon", event.target.value)}
-                    />
-                  </label>
-                </div>
-                <div className="studio-inline-actions">
-                  <label className="studio-field studio-field--inline">
-                    <span>{copy.uploadSocialIcon}</span>
-                    <input type="file" accept="image/*" onChange={(event) => handleSocialIconUpload(index, event)} />
-                  </label>
-                  {item.iconDataUrl ? <img className="studio-icon-preview" src={item.iconDataUrl} alt={item.label || "icon"} /> : null}
-                  <button type="button" className="action-button action-button--secondary" onClick={() => handleRemoveSocialLink(index)}>
-                    {copy.removeSocialLink}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section id="studio-pinned" className="studio-editor glass-card glass-card--static studio-section-card">
-          <div className="studio-editor__head">
-            <div>
-              <p className="micro-label">PINNED</p>
-              <h2>{getExperienceCopy(language).pinnedEditorTitle}</h2>
-              <p className="body-copy">{getExperienceCopy(language).pinnedEditorBody}</p>
-            </div>
-            <button type="button" className="action-button action-button--secondary" onClick={handleAddPinnedSpace}>
-              {getExperienceCopy(language).addPinnedSpace}
-            </button>
-          </div>
-
-          <div className="studio-list">
-            {siteDraft.meta.pinnedSpaces.map((item, index) => (
-              <div key={item.id} className="studio-block">
-                <div className="studio-form__row">
-                  <label className="studio-field">
-                    <span>{getExperienceCopy(language).pinnedKind}</span>
-                    <select value={item.kind} onChange={(event) => handlePinnedSpaceField(index, "kind", event.target.value)}>
-                      <option value="article">{getExperienceCopy(language).pinnedArticle}</option>
-                      <option value="project">{getExperienceCopy(language).pinnedProject}</option>
-                      <option value="link">{getExperienceCopy(language).pinnedLink}</option>
-                      <option value="audio">{getExperienceCopy(language).pinnedAudio}</option>
-                    </select>
-                  </label>
-                  {item.kind === "article" ? (
-                    <label className="studio-field">
-                      <span>{getExperienceCopy(language).pinnedTarget}</span>
-                      <select value={item.articleSlug} onChange={(event) => handlePinnedSpaceField(index, "articleSlug", event.target.value)}>
-                        <option value="">-</option>
-                        {articles.map((article) => (
-                          <option key={article.slug} value={article.slug}>
-                            {article.title[language] || article.title.en}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  ) : null}
-                  {item.kind === "project" ? (
-                    <label className="studio-field">
-                      <span>{getExperienceCopy(language).pinnedTarget}</span>
-                      <select value={item.projectSlug} onChange={(event) => handlePinnedSpaceField(index, "projectSlug", event.target.value)}>
-                        <option value="">-</option>
-                        {projects.map((project) => (
-                          <option key={project.slug} value={project.slug}>
-                            {project.title}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                  ) : null}
-                  {(item.kind === "link" || item.kind === "audio") ? (
-                    <label className="studio-field">
-                      <span>{getExperienceCopy(language).pinnedUrl}</span>
-                      <input
-                        type="text"
-                        value={item.kind === "audio" ? item.audioSrc : item.url}
-                        onChange={(event) =>
-                          handlePinnedSpaceField(index, item.kind === "audio" ? "audioSrc" : "url", event.target.value)
-                        }
-                      />
-                    </label>
-                  ) : null}
-                </div>
-
-                <div className="studio-form__row">
-                  <label className="studio-field">
-                    <span>{getExperienceCopy(language).pinnedLabel}</span>
-                    <input
-                      type="text"
-                      value={item.title[editorLanguage] || ""}
-                      onChange={(event) => handlePinnedSpaceLocalizedField(index, "title", event.target.value)}
-                    />
-                  </label>
-                  <label className="studio-field">
-                    <span>{getExperienceCopy(language).pinnedBodyLabel}</span>
-                    <textarea
-                      rows="3"
-                      value={item.body[editorLanguage] || ""}
-                      onChange={(event) => handlePinnedSpaceLocalizedField(index, "body", event.target.value)}
-                    />
-                  </label>
-                </div>
-
-                {item.kind === "audio" ? (
-                  <div className="studio-form__row">
-                    <label className="studio-field">
-                      <span>{getExperienceCopy(language).pinnedAudioTitle}</span>
-                      <input
-                        type="text"
-                        value={item.audioTitle[editorLanguage] || ""}
-                        onChange={(event) => handlePinnedSpaceLocalizedField(index, "audioTitle", event.target.value)}
-                      />
-                    </label>
-                    <label className="studio-field">
-                      <span>{getExperienceCopy(language).pinnedAudioArtist}</span>
-                      <input
-                        type="text"
-                        value={item.audioArtist[editorLanguage] || ""}
-                        onChange={(event) => handlePinnedSpaceLocalizedField(index, "audioArtist", event.target.value)}
-                      />
-                    </label>
-                  </div>
-                ) : null}
-
-                <button type="button" className="action-button action-button--secondary" onClick={() => handleRemovePinnedSpace(index)}>
-                  {getExperienceCopy(language).removePinnedSpace}
-                </button>
-              </div>
-            ))}
-          </div>
-        </section>
-
-        <section id="studio-custom-cards" className="studio-editor glass-card glass-card--static studio-section-card">
-          <div className="studio-editor__head">
-            <div>
-              <p className="micro-label">CARDS</p>
-              <h2>{copy.customCardsTitle}</h2>
-              <p className="body-copy">{copy.customCardsBody}</p>
-            </div>
-            <button type="button" className="action-button action-button--secondary" onClick={handleAddCustomCard}>
-              {copy.addCustomCard}
-            </button>
-          </div>
-
-          <div className="studio-list">
-            {siteDraft.meta.customCards.map((item, index) => (
-              <div key={item.id} className="studio-block">
-                <div className="studio-form__row">
-                  <label className="studio-field">
-                    <span>{copy.cardEyebrow}</span>
-                    <input
-                      type="text"
-                      value={item.eyebrow[editorLanguage] || ""}
-                      onChange={(event) => handleCustomCardLocalizedField(index, "eyebrow", event.target.value)}
-                    />
-                  </label>
-                  <label className="studio-field">
-                    <span>{copy.cardTitle}</span>
-                    <input
-                      type="text"
-                      value={item.title[editorLanguage] || ""}
-                      onChange={(event) => handleCustomCardLocalizedField(index, "title", event.target.value)}
-                    />
-                  </label>
-                  <label className="studio-field">
-                    <span>{copy.cardLinkUrl}</span>
-                    <input
-                      type="text"
-                      value={item.linkUrl}
-                      onChange={(event) => handleCustomCardField(index, "linkUrl", event.target.value)}
-                    />
-                  </label>
-                </div>
-                <label className="studio-field">
-                  <span>{copy.cardBody}</span>
-                  <textarea
-                    rows="4"
-                    value={item.body[editorLanguage] || ""}
-                    onChange={(event) => handleCustomCardLocalizedField(index, "body", event.target.value)}
-                  />
-                </label>
-                <div className="studio-inline-actions">
-                  <label className="studio-field studio-field--inline">
-                    <span>{copy.cardLinkLabel}</span>
-                    <input
-                      type="text"
-                      value={item.linkLabel[editorLanguage] || ""}
-                      onChange={(event) => handleCustomCardLocalizedField(index, "linkLabel", event.target.value)}
-                    />
-                  </label>
-                  <button type="button" className="action-button action-button--secondary" onClick={() => handleRemoveCustomCard(index)}>
-                    {copy.removeCustomCard}
-                  </button>
-                </div>
-              </div>
-            ))}
-            {Object.keys(siteDraft.meta.homeCardOverrides || {}).length ? (
-              <div className="studio-block">
-                <div className="studio-editor__head">
-                  <div>
-                    <p className="micro-label">OVERRIDES</p>
-                    <h3>首页卡片快捷编辑覆盖</h3>
-                    <p className="body-copy">这里显示卡片流里直接改过的标题、摘要、链接和按钮文案。</p>
-                  </div>
-                </div>
-                <div className="studio-list">
-                  {Object.entries(siteDraft.meta.homeCardOverrides || {}).map(([cardId, override]) => (
-                    <div key={cardId} className="studio-block">
-                      {override.coverImage ? <img className="studio-cover-preview" src={override.coverImage} alt={`${cardId} cover`} /> : null}
-                      <div className="studio-form__row">
-                        <label className="studio-field">
-                          <span>Card ID</span>
-                          <input type="text" value={cardId} readOnly />
-                        </label>
-                        <label className="studio-field">
-                          <span>标题</span>
-                          <input type="text" value={override.title || ""} readOnly />
-                        </label>
-                      </div>
-                      <label className="studio-field">
-                        <span>摘要</span>
-                        <textarea rows="3" value={override.body || ""} readOnly />
-                      </label>
-                      <div className="studio-form__row">
-                        <label className="studio-field">
-                          <span>链接</span>
-                          <input type="text" value={override.href || ""} readOnly />
-                        </label>
-                        <label className="studio-field">
-                          <span>按钮文案</span>
-                          <input type="text" value={override.action || ""} readOnly />
-                        </label>
-                      </div>
-                      <button type="button" className="action-button action-button--secondary" onClick={() => handleRemoveHomeCardOverride(cardId)}>
-                        清除覆盖
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ) : null}
-          </div>
-        </section>
-        <section id="studio-projects" className="studio-editor glass-card glass-card--static studio-section-card">
-          <div className="studio-editor__head">
-            <div>
-              <p className="micro-label">PROJECTS</p>
-              <h2>{copy.projectsEditorTitle}</h2>
-              <p className="body-copy">{copy.projectsEditorBody}</p>
-            </div>
-            <div className="studio-inline-actions">
-              {selectedProjectSlug !== "__new_project__" ? (
-                <button type="button" className="action-button action-button--secondary" onClick={handleDeleteProject}>
-                  {copy.deleteProject}
-                </button>
-              ) : null}
-              <button type="button" className="action-button action-button--primary" onClick={handleSaveProject}>
-                {copy.saveProject}
-              </button>
-            </div>
-          </div>
-
-          <div className="studio-grid-mini">
-            <aside className="studio-project-list">
-              <button
-                type="button"
-                className={`studio-article-item ${selectedProjectSlug === "__new_project__" ? "active" : ""}`}
-                onClick={() => setSelectedProjectSlug("__new_project__")}
-              >
-                <strong>{copy.createProject}</strong>
-              </button>
-              {projects.map((project) => (
-                <button
-                  key={project.slug}
-                  type="button"
-                  className={`studio-article-item ${selectedProjectSlug === project.slug ? "active" : ""}`}
-                  onClick={() => setSelectedProjectSlug(project.slug)}
-                >
-                  <span className="micro-label">{project.category[language] || project.category.en}</span>
-                  <strong>{project.title}</strong>
-                </button>
-              ))}
-            </aside>
-
-            <div className="studio-form">
-              <div className="studio-form__row">
-                <label className="studio-field">
-                  <span>{copy.projectTitle}</span>
-                  <input
-                    type="text"
-                    value={projectDraft.title}
-                    onChange={(event) => setProjectDraft((current) => ({ ...current, title: event.target.value }))}
-                  />
-                </label>
-                <label className="studio-field">
-                  <span>{copy.articleSlug}</span>
-                  <input
-                    type="text"
-                    value={projectDraft.slug}
-                    onChange={(event) => setProjectDraft((current) => ({ ...current, slug: event.target.value }))}
-                  />
-                </label>
-                <label className="studio-field">
-                  <span>{copy.projectMetrics}</span>
-                  <input
-                    type="text"
-                    value={projectDraft.metrics.join(", ")}
-                    onChange={(event) =>
-                      setProjectDraft((current) => ({
-                        ...current,
-                        metrics: event.target.value.split(",").map((item) => item.trim()).filter(Boolean),
-                      }))
-                    }
-                  />
-                </label>
-              </div>
-
-              <label className="studio-field">
-                <span>{copy.projectCategory}</span>
-                <input
-                  type="text"
-                  value={projectDraft.category[editorLanguage] || ""}
-                  onChange={(event) => handleProjectLocalizedField("category", event.target.value)}
-                />
-              </label>
-
-              <label className="studio-field">
-                <span>{copy.projectSummary}</span>
-                <textarea
-                  rows="4"
-                  value={projectDraft.summary[editorLanguage] || ""}
-                  onChange={(event) => handleProjectLocalizedField("summary", event.target.value)}
-                />
-              </label>
-
-              <label className="studio-field">
-                <span>{copy.projectChallenge}</span>
-                <textarea
-                  rows="4"
-                  value={projectDraft.challenge[editorLanguage] || ""}
-                  onChange={(event) => handleProjectLocalizedField("challenge", event.target.value)}
-                />
-              </label>
-
-              <label className="studio-field">
-                <span>{copy.projectSolution}</span>
-                <textarea
-                  rows="4"
-                  value={projectDraft.solution[editorLanguage] || ""}
-                  onChange={(event) => handleProjectLocalizedField("solution", event.target.value)}
-                />
-              </label>
-
-              <label className="studio-field">
-                <span>{copy.projectOutcome}</span>
-                <textarea
-                  rows="4"
-                  value={projectDraft.outcome[editorLanguage] || ""}
-                  onChange={(event) => handleProjectLocalizedField("outcome", event.target.value)}
-                />
-              </label>
-            </div>
-          </div>
-        </section>
-        </section>
-
-        <aside className="studio-rail glass-card glass-card--static">
-            <div className="studio-rail__progress">
-              <span className="micro-label">Progress</span>
-              <div className="studio-rail__bar">
-                <div
-                  className="studio-rail__fill"
-                  style={{
-                    "--studio-progress": studioProgress,
-                  }}
-                />
-              </div>
-            </div>
-          <nav className="studio-rail__nav">
-            {studioSections.map((section) => (
-              <button
-                key={section.id}
-                type="button"
-                className="studio-rail__link"
-                onClick={() => scrollToStudioSection(section.id)}
-              >
-                {section.label}
-              </button>
-            ))}
-          </nav>
-        </aside>
-      </section>
-    </main>
-  );
-}
-
 export default function App() {
   const { theme, setTheme, language, setLanguage, font, setFont } = usePreferences();
   const { palette, setPalette } = usePalette();
@@ -6867,6 +4367,7 @@ export default function App() {
         <Route
           path="/studio"
           element={
+            <Suspense fallback={<main className="page"><div className="glass-card empty-state">…</div></main>}>
             <StudioPage
               language={language}
               copy={copy}
@@ -6886,6 +4387,7 @@ export default function App() {
               saveSiteContent={saveContent}
               setPreviewBackground={setPreviewBackground}
             />
+            </Suspense>
           }
         />
         <Route path="*" element={<Navigate to="/" replace />} />
