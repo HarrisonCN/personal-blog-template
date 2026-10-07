@@ -7,6 +7,7 @@ import { buildDefaultStore, formatArticleDate, normalizeSiteContent, normalizeSt
 import { createCredentialManager } from "./lib/credentials.js";
 import { buildRobots, buildRssFeed, buildSitemap, createLinkBuilder, normalizeSiteUrl, pickText, articlePublishedAt, articleUpdatedAt } from "./lib/feeds.js";
 import { injectSeo } from "./lib/seo.js";
+import { articleReadingMinutesOrOverride, readingTimeIsoDuration } from "../src/lib/readingTime.js";
 import { createSessionStore } from "./lib/sessions.js";
 import { resolveSlug } from "./lib/slugs.js";
 
@@ -622,6 +623,7 @@ export function createApp(options = {}) {
         datePublished: published,
         dateModified: modified,
         keywords: tags.join(", ") || undefined,
+        timeRequired: readingTimeIsoDuration(articleReadingMinutesOrOverride(article, feedLanguage)),
         image: image || undefined,
         author: { "@type": "Person", name: store.siteContent.meta.name },
       },

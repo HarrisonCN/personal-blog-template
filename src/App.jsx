@@ -25,6 +25,7 @@ import { getExperienceCopy } from "./lib/experienceCopy";
 import { apiRequest } from "./lib/api";
 import { loadFont } from "./lib/fonts";
 import { buildSearchIndex, collectTags, filterArticles, splitTags } from "./lib/articleSearch";
+import { articleReadingTime } from "./lib/readingTime";
 import { AttachmentBlock, renderArticleContent } from "./components/ArticleContent";
 import { useReadingProgress } from "./hooks/studio";
 
@@ -1878,7 +1879,7 @@ function ArticleMeta({ article, copy, language }) {
   return (
     <div className="card-meta">
       <span>{article.date}</span>
-      <span>{article.readTime}</span>
+      <span>{articleReadingTime(article, language)}</span>
       <span>
         {copy.editedLabel} {formatRelativeTime(article.updatedAt, language)}
       </span>
@@ -3521,7 +3522,7 @@ function ArticlesPage({ language, text, copy, articles, meta, isXFlow }) {
               </div>
               <div className="article-row__meta">
                 <span>{article.date}</span>
-                <span>{article.readTime}</span>
+                <span>{articleReadingTime(article, language)}</span>
                 <span>
                   {copy.editedLabel} {formatRelativeTime(article.updatedAt, language)}
                 </span>

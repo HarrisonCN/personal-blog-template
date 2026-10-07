@@ -5,6 +5,7 @@ import { Link, useLocation } from "react-router-dom";
 import { languages } from "../data/siteContent";
 import { EDITABLE_TEXT_KEYS, STUDIO_BACKGROUND_PRESETS, cloneArticle, cloneProject, contentHasAttachment, createBlankArticle, createBlankCustomCard, createBlankPinnedSpace, createBlankProject, createBlankSocialLink, ensureLocalizedMap, fileToAttachment, formatRelativeTime, insertAttachmentIntoContent, normalizeSiteContent, slugify } from "../lib/content";
 import { getReadingRoomSnapshot, pushRecentEdit } from "../lib/storage";
+import { articleReadingTime } from "../lib/readingTime";
 import { getExperienceCopy } from "../lib/experienceCopy";
 import { AttachmentBlock, renderArticleContent } from "../components/ArticleContent";
 import { useReadingProgress, useStudioBackgroundPreview } from "../hooks/studio";
@@ -849,6 +850,7 @@ export default function StudioPage({
                 <input
                   type="text"
                   value={draft.readTime}
+                  placeholder={`auto: ${articleReadingTime({ ...draft, readTime: "" }, editorLanguage)}`}
                   onChange={(event) => setDraft((current) => ({ ...current, readTime: event.target.value }))}
                 />
               </label>
