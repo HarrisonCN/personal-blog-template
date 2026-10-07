@@ -14,6 +14,7 @@ export default function StudioPage({
   copy,
   articles,
   saveArticle,
+  deleteArticle,
   projects,
   saveProject,
   deleteProject,
@@ -257,6 +258,23 @@ export default function StudioPage({
     });
     setSelectedSlug(nextSlug);
     setFlash(copy.articleSaved);
+    window.setTimeout(() => setFlash(""), 1600);
+  };
+
+  const handleDeleteArticle = async () => {
+    if (selectedSlug === "__new__" || !window.confirm(copy.deleteArticleConfirm)) {
+      return;
+    }
+    const deletedSlug = selectedSlug;
+    const result = await deleteArticle(deletedSlug);
+    if (!result.ok && result.reason !== "not_found") {
+      setFlash(result.reason === "unauthorized" ? copy.sessionExpired : "Studio save is unavailable without the backend server.");
+      window.setTimeout(() => setFlash(""), 1800);
+      return;
+    }
+    const next = articles.find((item) => item.slug !== deletedSlug);
+    setSelectedSlug(next ? next.slug : "__new__");
+    setFlash(copy.articleDeleted);
     window.setTimeout(() => setFlash(""), 1600);
   };
 
@@ -830,6 +848,11 @@ export default function StudioPage({
               <Link className="action-button action-button--secondary" to={selectedSlug === "__new__" ? "/articles" : `/articles/${draft.slug || selectedSlug}`}>
                 {copy.preview}
               </Link>
+              {selectedSlug !== "__new__" ? (
+                <button type="button" className="action-button action-button--secondary" onClick={handleDeleteArticle}>
+                  {copy.deleteArticle}
+                </button>
+              ) : null}
               <button type="button" className="action-button action-button--primary" onClick={handleSave}>
                 {copy.saveArticle}
               </button>

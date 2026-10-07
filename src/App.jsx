@@ -147,6 +147,9 @@ const fallbackCopy = {
     projectsEditorBody: "这里可以新增、修改项目卡片和项目详情内容。",
     saveProject: "保存项目",
     deleteProject: "删除项目",
+    deleteArticle: "删除文章",
+    deleteArticleConfirm: "确定删除这篇文章吗？删除后会从站点移除（服务器会在 deleted-articles.json 中保留备份）。",
+    articleDeleted: "文章已删除",
     createProject: "新建项目",
     projectSaved: "项目已保存",
     projectListTitle: "已有项目",
@@ -254,6 +257,9 @@ const fallbackCopy = {
     projectsEditorBody: "Create and revise project cards and project detail content here.",
     saveProject: "Save Project",
     deleteProject: "Delete Project",
+    deleteArticle: "Delete Article",
+    deleteArticleConfirm: "Delete this article? It is removed from the site (the server keeps a backup in deleted-articles.json).",
+    articleDeleted: "Article deleted",
     createProject: "New Project",
     projectSaved: "Project saved",
     projectListTitle: "Projects",
@@ -731,6 +737,23 @@ function useBackendContent() {
     }
   };
 
+  const deleteArticle = async (slug) => {
+    if (!studioAvailable) {
+      return { ok: false, reason: "studio_unavailable" };
+    }
+
+    try {
+      const payload = await apiRequest("/api/studio/articles/delete", {
+        method: "POST",
+        body: JSON.stringify({ slug }),
+      });
+      setArticles(sortArticles((payload.articles ?? []).map(normalizeArticle)));
+      return { ok: true };
+    } catch (error) {
+      return { ok: false, reason: error.status === 401 ? "unauthorized" : error.status === 404 ? "not_found" : "request_failed" };
+    }
+  };
+
   const deleteProject = async (slug) => {
     if (!studioAvailable) {
       return { ok: false, reason: "studio_unavailable" };
@@ -791,7 +814,7 @@ function useBackendContent() {
     }
   };
 
-  return { articles, projects, siteContent, entries, saveArticle, saveProject, deleteProject, saveContent, addEntry, studioAvailable, contentReady };
+  return { articles, projects, siteContent, entries, saveArticle, deleteArticle, saveProject, deleteProject, saveContent, addEntry, studioAvailable, contentReady };
 }
 
 function useStudioAuth(studioAvailable) {
@@ -4267,7 +4290,7 @@ export default function App() {
   const [previewBackground, setPreviewBackground] = useState(null);
   const [backgroundPresetOverride, setBackgroundPresetOverride] = useState(null);
   const copy = getCopy(language);
-  const { articles, projects, siteContent, entries, saveArticle, saveProject, deleteProject, saveContent, addEntry, studioAvailable } = useBackendContent();
+  const { articles, projects, siteContent, entries, saveArticle, deleteArticle, saveProject, deleteProject, saveContent, addEntry, studioAvailable } = useBackendContent();
   const { isAuthenticated, login, logout, sessionExpired, lockUntil, authReady } = useStudioAuth(studioAvailable);
   const text = {
     ...uiText[language],
@@ -4373,6 +4396,7 @@ export default function App() {
               copy={copy}
               articles={articles}
               saveArticle={saveArticle}
+              deleteArticle={deleteArticle}
               projects={projects}
               saveProject={saveProject}
               deleteProject={deleteProject}

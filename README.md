@@ -39,7 +39,7 @@ This project is for people who want more than a plain markdown blog. It combines
 
 ## Features
 
-- Built-in studio for editing articles, projects, site copy, social links, custom cards, browser title, and background settings
+- Built-in studio for creating, editing and deleting articles, projects, site copy, social links, custom cards, browser title, and background settings
 - Server-side studio auth with cookie session support
 - Article attachments with custom inline placement inside content
 - Cover image upload for articles and home cards
@@ -338,8 +338,17 @@ When the Node server runs, content is stored in:
 - `server/data/store.json`: articles, projects, site content, guestbook
 - `server/data/sessions.json`: active studio sessions (hashed ids)
 - `server/data/auth.json`: upgraded password hash, only after a legacy SHA-256 login
+- `server/data/deleted-articles.json`: the last 20 articles deleted in the studio, newest first, as `{ deletedAt, article }`
 
 The whole `server/data/` folder is ignored by Git and acts as runtime storage. Back it up together.
+
+### Deleting articles
+
+Open an article in the studio and press **Delete Article** (confirmed with a prompt). The server endpoint is `POST /api/studio/articles/delete` with `{ "slug": "..." }`. It needs a studio session and a same-origin request, returns `404` for an unknown slug, and removes the article from the store, the RSS feed, the sitemap and its share URL. Pinned home spaces that pointed at it are hidden automatically.
+
+Before removing it, the server copies the full article (content, attachments, cover) to `server/data/deleted-articles.json`. To restore one, copy its `article` object back into the `articles` array in `server/data/store.json` while the server is stopped. Only the newest 20 deletions are kept there.
+
+删除文章：在编辑台打开文章后点击“删除文章”并确认。服务端在删除前会把整篇文章备份到 `server/data/deleted-articles.json`（保留最近 20 篇），误删时可手动拷回 `store.json`。
 
 Slugs are unique: saving an article or project whose slug is already used by another item stores it as `slug-2`, `slug-3`, ... and the studio switches to the stored slug.
 
